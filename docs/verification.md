@@ -47,3 +47,24 @@ cross-compiled. GitHub CI runs packed-package installation, setup and daemon
 shutdown on Linux, macOS and Windows; its status must be checked separately.
 The checks above do not prove all 48 reports are available on every Semrush plan,
 indefinite session validity, or native execution on every compiled architecture.
+
+## Published release
+
+Version `0.1.1` uses the canonical `semrush-cli` executable so it can coexist with
+an existing `semrush-mcp` installation. The CLI and MCP server report version
+`0.1.1`, and a live MCP keyword call passed against that build.
+
+[CI run 38652629000](https://github.com/Microck/semrush-cli/actions/runs/38652629000)
+passed the source check, documentation build and packed-package setup/shutdown
+on Ubuntu, macOS and Windows. The two source commits are `3c5ce82e` and
+`fc8ac3b5`; subsequent evidence-document edits do not change the executable.
+
+The npm `0.1.1` archive's SHA-1 is
+`faf93a0c5d41740736953fb9258211a37cb595a0`, matching a locally packed archive.
+The production Fumadocs site is `https://semrush.micr.dev`, with
+`https://semrush-cli.vercel.app` as its Vercel alias. Public HTML, documentation,
+search and `llms.txt` returned HTTP 200. Chromium rendered live search results
+with no page errors, and the 390px mobile layout had no horizontal overflow.
+Authoritative DNS and a public recursive resolver returned `76.76.21.21` for
+the custom hostname; HTTPS on that hostname returned 200 with a valid certificate.
+The host's resolver temporarily retained the earlier negative DNS cache.

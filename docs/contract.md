@@ -1,6 +1,6 @@
 # Command contract
 
-`semrush` and `semrush-cli` are the same executable. Node.js 22 or newer.
+The executable is `semrush-cli`. Node.js 22 or newer. It does not claim the `semrush` command owned by other packages.
 
 - `semrush-cli reports [--json]` lists the fixed 48 read-only research reports.
 - `semrush-cli <report-name> --<parameter> <value> [--json]` executes one report. Names and flags use hyphens. `semrush-cli <report-name> --help` shows its complete schema-derived options. Objects and arrays use JSON. Report definitions live in `src/report-catalog.json`.
