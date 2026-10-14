@@ -6,7 +6,7 @@ import { Semrush } from './browser-service.js';
 import { Sessions } from './session-service.js';
 import { origin } from './session-layer.js';
 import { ReportError, SessionError } from './errors.js';
-import { reportParameters, type Query } from './report-parameters.js';
+import { reportParameters, projectRequest, type Query } from './report-parameters.js';
 import type { ReportRequest } from './validation.js';
 
 const transportPaths = new Map([['domain', '/dpa/rpc'], ['direct', '/dpa/rpc'], ['magic', '/kmtgw/v2/webapi'], ['keyword', '/kwogw/v2/webapi']]);
@@ -41,23 +41,28 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
   yield* browserCall(() => page.goto(browserOrigin + '/robots.txt', { waitUntil: 'domcontentloaded', timeout: 45000 }));
   const bootstrap = yield* browserCall(() => page.evaluate(async () => {
     const response = await fetch('/analytics/overview/?db=us', { credentials: 'include', signal: AbortSignal.timeout(45000) });
-    return { status: response.status, text: response.ok ? await response.text() : '' };
+    return { status: response.status, text: await response.text() };
   }));
   // Extract the JSON value with a balanced scanner, never eval page-owned JavaScript.
   const auth = yield* Effect.try({ try: () => readBootstrap(bootstrap.text), catch: () => new SessionError({ message: 'Semrush sign-in metadata unavailable. Run semrush-cli auth login or import a signed-in browser.' }) });
   const semaphore = yield* Semaphore.make(1);
   let spectrumToken = '';
-  const request = Effect.fn('Semrush.request')(function* (path: string, payload: Query, get = false, extraHeaders: Record<string, string> = {}) {
-    const wire = yield* browserCall(() => page.evaluate(async ({ path, encodedPayload, get, extraHeaders }) => {
+  const request = Effect.fn('Semrush.request')(function* (path: string, payload: Query, method = 'POST', extraHeaders: Record<string, string> = {}) {
+    const wire = yield* browserCall(() => page.evaluate(async ({ path, encodedPayload, method, extraHeaders }) => {
       const payload: Schema.JsonObject = JSON.parse(encodedPayload);
       const query = new URLSearchParams();
+      const get = method === 'GET';
       if (get) for (const [key, value] of Object.entries(payload)) for (const item of Array.isArray(value) ? value : [value]) query.append(key, String(item));
-      const options: RequestInit = { method: get ? 'GET' : 'POST', credentials: 'include', headers: extraHeaders, signal: AbortSignal.timeout(45000) };
-      if (!get) { options.headers = { ...extraHeaders, 'Content-Type': 'application/json' }; options.body = JSON.stringify(payload); }
-      const response = await fetch(get ? path + '?' + query : path, options);
-      return { status: response.status, text: response.ok ? await response.text() : '' };
-    }, { path, encodedPayload: JSON.stringify(payload), get, extraHeaders }));
-    if (wire.status !== 200) return yield* Effect.fail(new ReportError({ message: `Semrush report returned HTTP ${wire.status}. Check your session and account permissions.` }));
+      const options: RequestInit = { method, credentials: 'include', headers: extraHeaders, signal: AbortSignal.timeout(45000) };
+      if (!get && method !== 'DELETE') { options.headers = { ...extraHeaders, 'Content-Type': 'application/json' }; options.body = JSON.stringify(payload); }
+      const response = await fetch(get && query.size > 0 ? path + '?' + query : path, options);
+      return { status: response.status, text: await response.text() };
+    }, { path, encodedPayload: JSON.stringify(payload), method, extraHeaders }));
+    if (wire.status < 200 || wire.status >= 300) {
+      const detail = yield* Effect.try({ try: () => JSON.stringify(redact(parseWire(wire.text), [auth.apiKey, spectrumToken, spectrumToken.replace(/^Bearer /, '')])).slice(0, 500), catch: safeBrowserError }).pipe(Effect.option);
+      return yield* Effect.fail(new ReportError({ message: `Semrush request returned HTTP ${wire.status}.${Option.isSome(detail) ? ' ' + detail.value : ' Check your session and account permissions.'}` }));
+    }
+    if (wire.status === 204 && !wire.text) return null;
     const body = yield* Effect.try({ try: () => parseWire(wire.text), catch: () => new ReportError({ message: 'Semrush returned a page or challenge instead of JSON. Sign in again or retry later.' }) });
     if (objectValue(body) && ('error' in body || ('status' in body && !(body.status === null || body.status === 'SUCCESS' || body.status === 'success')))) return yield* Effect.fail(new ReportError({ message: `Semrush report failed: ${JSON.stringify(redact(body.error ?? body.status ?? null, [auth.apiKey, spectrumToken, spectrumToken.replace(/^Bearer /, '')])).slice(0, 500)}` }));
     return body;
@@ -74,10 +79,13 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       return response.ok && new URL(response.url).pathname === '/home/';
     }));
     if (!valid) return yield* Effect.fail(new SessionError({ message: 'Semrush session expired. Run semrush-cli auth login or import a signed-in browser.' }));
-    const params = reportParameters(definition, query);
     const family = definition.transport;
+    const planned = family === 'project_web' ? projectRequest(definition, query) : undefined;
+    const params = planned?.body ?? reportParameters(definition, query);
     let reportData: Schema.Json | undefined;
-    if (['keyword', 'domain', 'direct', 'magic'].includes(family)) reportData = yield* rpc(definition.method, params, family, definition.web_report);
+    if (planned) {
+      reportData = yield* request(planned.path, planned.body, planned.method);
+    } else if (['keyword', 'domain', 'direct', 'magic'].includes(family)) reportData = yield* rpc(definition.method, params, family, definition.web_report);
     else {
       const extra: Record<string, string> = {};
       if (family === 'gap') {
@@ -91,10 +99,10 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
         if (family === 'backlink_overview') {
           path += 'overview/' + definition.method;
           extra['x-request-id'] = randomUUID();
-          yield* request('/analytics/backlinks/webapi2/overview/init', params, true, extra);
+          yield* request('/analytics/backlinks/webapi2/overview/init', params, 'GET', extra);
         }
       } else if (path.startsWith('/siteaudit/')) params.key = auth.apiKey;
-      reportData = yield* request(path, params, !['post', 'gap', 'projects'].includes(family), extra);
+      reportData = yield* request(path, params, ['post', 'gap', 'projects'].includes(family) ? 'POST' : 'GET', extra);
     }
     if (definition.total_method) {
       const totalParams = name === 'domain_position_changes' ? Object.fromEntries(Object.entries(params).filter(([key]) => key !== 'display')) : params;

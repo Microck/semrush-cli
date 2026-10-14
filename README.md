@@ -1,16 +1,31 @@
-<p align="center"><img src="assets/logo.svg" width="100" alt="semrush-cli"></p>
+<p align="center">
+  <img src="assets/logo.svg" width="220" alt="semrush-cli">
+</p>
 <h1 align="center">semrush-cli</h1>
-<p align="center">Semrush research from your terminal and MCP clients.</p>
-<p align="center"><a href="https://semrush.micr.dev">Documentation</a> · <a href="https://www.npmjs.com/package/semrush-cli">npm</a> · <a href="https://github.com/Microck/semrush-cli/issues">Issues</a></p>
+<p align="center">
+  <a href="https://github.com/Microck/semrush-cli/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Microck/semrush-cli/ci.yml?branch=main&style=flat-square&label=ci&color=000000" alt="CI"></a>
+  <a href="https://www.npmjs.com/package/semrush-cli"><img src="https://img.shields.io/npm/v/semrush-cli?style=flat-square&color=000000" alt="npm"></a>
+  <a href="https://github.com/Microck/semrush-cli/releases/latest"><img src="https://img.shields.io/github/v/release/Microck/semrush-cli?style=flat-square&color=000000" alt="release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Microck/semrush-cli?style=flat-square&color=000000" alt="license"></a>
+</p>
+
+---
+
+semrush from your terminal and MCP clients. keyword research, organic rankings,
+competitors, backlinks and AI visibility, through your signed-in web account.
+built with TypeScript + Effect. sessions stored in Galleton.
+
+[docs](https://semrush.micr.dev) · [npm](https://www.npmjs.com/package/semrush-cli) · [mcp](#mcp) · [issues](https://github.com/Microck/semrush-cli/issues)
+
+## why
+
+62 operations with the same input schemas in the CLI and MCP. JSON output for
+scripts, account totals and pagination, project management, and encrypted session storage.
+no Semrush developer API key or Python runtime required.
 
 The executable is `semrush-cli`. It can coexist with other tools named `semrush`.
 
-48 read-only web reports for keyword research, organic rankings, competitors,
-keyword and backlink gaps, backlinks, historical/mobile research and AI visibility.
-Written in TypeScript with Effect. Sessions live in an encrypted Galleton vault.
-No Semrush developer API key, Python runtime or CAPTCHA service required.
-
-## Install
+## quickstart
 
 Requires Node.js 22+. Includes Galleton binaries for Linux x64/arm64,
 macOS x64/arm64 and Windows x64.
@@ -39,7 +54,27 @@ supports the browser managed by [semrush-web-mcp](https://github.com/Microck/sem
 Import does not stop or change that browser. Keep CDP private; forward it over
 SSH when necessary.
 
-## Research
+## projects
+
+```sh
+semrush-cli projects --json
+semrush-cli project-create --name 'my website' --domain example.com --dry-run
+semrush-cli project-create --name 'my website' --domain example.com --confirm --json
+semrush-cli project-get --folder-id 123 --json
+semrush-cli project-update --folder-id 123 --name 'new name' --confirm
+semrush-cli project-set-tags --folder-id 123 --tags '["client"]' --confirm
+semrush-cli project-pin --folder-id 123 --pinned --confirm
+semrush-cli project-delete --folder-id 123 --confirm
+```
+
+Project commands use the current web UI's folder IDs. Creation does not start
+crawls or share the project. Every write requires `--confirm`; `--dry-run` prints
+the request without authentication or network access. SEO project creation and
+automatic Site Audit/Position Tracking setup are separate, explicit commands.
+See [projects](https://semrush.micr.dev/docs/projects) and
+[web UI coverage](https://semrush.micr.dev/docs/coverage).
+
+## commands
 
 ```sh
 semrush-cli keyword-overview --keyword 'email marketing' --json
@@ -62,7 +97,8 @@ semrush-cli domain-keywords --help
 | Gaps | Keyword overlaps and gaps, backlink prospects and profile comparisons |
 | Backlinks | Links, referring domains, anchors, indexed pages, outbound domains, history and authority |
 | AI visibility | Visibility, mentions, citation sources and country distribution |
-| Account | Limits, permissions, databases, snapshots, projects, folders, saved lists and audit campaigns |
+| Projects | Create, inspect, rename, delete, leave, tags, pinning, toolkit status, dashboard metrics and explicit SEO setup |
+| Account | Limits, permissions, databases, snapshots, folders, saved lists and audit campaigns |
 
 All successful reports use `{authenticated: true, report, data}`. Domain ranking
 and page reports include provider totals. Large integers remain exact as decimal
@@ -70,7 +106,7 @@ strings. Errors go to stderr with a nonzero exit. `--json` works before or after
 the command. Objects and arrays use JSON flags; booleans support explicit `false`.
 See the [full command reference](https://semrush.micr.dev/docs/reports).
 
-## MCP
+## mcp
 
 Complete setup and authentication, then configure your MCP client:
 
@@ -86,12 +122,14 @@ Complete setup and authentication, then configure your MCP client:
 ```
 
 Use an absolute executable path if your client does not inherit the terminal's
-PATH. `npx -y semrush-cli@0.1.1 mcp` also works. MCP tool names use underscores,
+PATH. `npx -y semrush-cli@0.2.0 mcp` also works. MCP tool names use underscores,
 for example `keyword_overview` and `domain_keywords`. Input schemas and reports
-match the CLI. All 48 tools are annotated read-only. Login, account mutations,
-arbitrary URLs and JavaScript execution are not MCP tools.
+match the CLI. The 54 read tools carry read-only annotations. The 8 write tools require
+`confirm:true`, or accept `dry_run:true` to preview the request. Delete and leave
+also carry destructive annotations. Login, arbitrary URLs and JavaScript
+execution are not MCP tools.
 
-## Sessions
+## sessions
 
 ```sh
 semrush-cli auth status --check --json
@@ -126,7 +164,7 @@ The setup/daemon commands manage only the default CLI-owned daemon. An external
 daemon must support the documented static-provider extension. Never expose its
 API token or credential directory.
 
-## Limits
+## limits
 
 Semrush account permissions, quotas and product access apply. A read-only report
 can consume an allowance. Internal web endpoints may change. Provider caps remain
@@ -134,7 +172,7 @@ visible; there is no unlimited-export claim. Galleton encrypts at rest but its k
 and vault share a private local directory. Other processes running as your OS user
 are within the same trust boundary.
 
-## Development
+## development
 
 ```sh
 npm ci
@@ -152,7 +190,7 @@ Chromium and Galleton with a local HTTP fixture, and exercise the built executab
 They never require a Semrush account. See [verification](docs/verification.md) for
 the separate live-account evidence.
 
-## Uninstall
+## uninstall
 
 ```sh
 semrush-cli auth logout

@@ -10,7 +10,10 @@
       "properties": {},
       "title": "EmptyQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "keyword_overview": {
     "method": "keywords.GetInfo",
@@ -39,7 +42,10 @@
       ],
       "title": "KeywordQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "keyword_ideas": {
     "method": "ideas.GetKeywords",
@@ -80,7 +86,10 @@
       ],
       "title": "IdeasQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "keyword_ideas_summary": {
     "method": "ideas.GetKeywordsSummary",
@@ -114,7 +123,10 @@
       ],
       "title": "IdeasSummaryQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "keyword_serp": {
     "method": "serp.GetURLs",
@@ -150,7 +162,10 @@
       ],
       "title": "KeywordListQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "keyword_ads": {
     "method": "adwords.GetCopies",
@@ -186,7 +201,10 @@
       ],
       "title": "KeywordListQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "keyword_clusters": {
     "method": "clusters.Get",
@@ -215,7 +233,10 @@
       ],
       "title": "KeywordQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "keyword_magic": {
     "method": "ideas.GetKeywords",
@@ -300,7 +321,10 @@
       ],
       "title": "MagicQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "keyword_magic_summary": {
     "method": "ideas.GetKeywordsSummary",
@@ -372,7 +396,10 @@
       ],
       "title": "MagicSummaryQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "keyword_magic_groups": {
     "method": "ideas.GetGroups",
@@ -457,7 +484,10 @@
       ],
       "title": "MagicQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "domain_overview": {
     "method": "organic.Summary",
@@ -487,7 +517,10 @@
       ],
       "title": "DomainQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "domain_keywords": {
     "method": "organic.Positions",
@@ -573,7 +606,10 @@
       ],
       "title": "DomainReportQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "domain_pages": {
     "method": "organic.PagesV3",
@@ -659,7 +695,10 @@
       ],
       "title": "DomainPagesQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "domain_subdomains": {
     "method": "organic.Subdomains",
@@ -745,7 +784,10 @@
       ],
       "title": "DomainPagesQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "domain_position_changes": {
     "method": "organic.PositionChangesV2",
@@ -831,7 +873,10 @@
       ],
       "title": "DomainChangesQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "domain_competitors": {
     "method": "organic.Competitors",
@@ -911,7 +956,10 @@
       ],
       "title": "DomainCompetitorsQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "domain_backlinks": {
     "method": "backlinks.Overview",
@@ -935,7 +983,10 @@
       ],
       "title": "DomainIdentityQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "domain_ai_visibility": {
     "method": "organic.AiSeoSummary",
@@ -959,7 +1010,10 @@
       ],
       "title": "DomainIdentityQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "domain_ai_countries": {
     "method": "organic.AiDistributionByCountry",
@@ -983,7 +1037,10 @@
       ],
       "title": "DomainIdentityQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "domain_ai_sources": {
     "method": "organic.AiTopSources",
@@ -1026,7 +1083,10 @@
       ],
       "title": "AiSourcesQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "domain_trends": {
     "method": "organic.OverviewTrend",
@@ -1067,7 +1127,10 @@
       ],
       "title": "DomainTrendQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "domain_paid_keywords": {
     "method": "adwords.PositionsOverview",
@@ -1104,7 +1167,10 @@
       ],
       "title": "DomainListQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "domain_paid_competitors": {
     "method": "adwords.CompetitorsOverview",
@@ -1141,7 +1207,10 @@
       ],
       "title": "DomainListQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "domain_topics": {
     "method": "organic.TopicsResult",
@@ -1171,7 +1240,10 @@
       ],
       "title": "DomainQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "domain_topics_status": {
     "method": "organic.TopicsStatus",
@@ -1201,7 +1273,10 @@
       ],
       "title": "DomainQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "databases": {
     "method": "user.Databases",
@@ -1214,7 +1289,10 @@
       "properties": {},
       "title": "EmptyQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "snapshot_dates": {
     "method": "organic.SnapshotDates",
@@ -1239,7 +1317,10 @@
       },
       "title": "HistoryQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "report_permissions": {
     "method": "dpa.UserPermissions",
@@ -1259,7 +1340,10 @@
       },
       "title": "DatabaseQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "backlink_links": {
     "method": "backlinks",
@@ -1312,7 +1396,10 @@
       ],
       "title": "BacklinkListQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "backlink_referring_domains": {
     "method": "backlinks_refdomains",
@@ -1365,7 +1452,10 @@
       ],
       "title": "BacklinkListQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "backlink_history": {
     "method": "historical",
@@ -1394,7 +1484,10 @@
       ],
       "title": "BacklinkQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "backlink_competitors": {
     "method": "competitors",
@@ -1423,7 +1516,10 @@
       ],
       "title": "BacklinkQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "backlink_top_pages": {
     "method": "backlinks_pages",
@@ -1476,7 +1572,10 @@
       ],
       "title": "BacklinkListQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "backlink_anchors": {
     "method": "backlinks_anchors",
@@ -1529,7 +1628,10 @@
       ],
       "title": "BacklinkListQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "backlink_outgoing_domains": {
     "method": "backlinks_outgoing_domains",
@@ -1582,7 +1684,10 @@
       ],
       "title": "BacklinkListQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "backlink_countries": {
     "method": "geodomains",
@@ -1611,7 +1716,10 @@
       ],
       "title": "BacklinkQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "backlink_authority": {
     "method": "ascore",
@@ -1640,7 +1748,10 @@
       ],
       "title": "BacklinkQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "backlink_categories": {
     "method": "category-profile",
@@ -1669,7 +1780,10 @@
       ],
       "title": "BacklinkQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "keyword_gap": {
     "method": "/spectrum/v1/Gap/KeywordsList",
@@ -1729,7 +1843,10 @@
       ],
       "title": "GapQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "keyword_gap_totals": {
     "method": "/spectrum/v1/Gap/KeywordsTotals",
@@ -1768,7 +1885,10 @@
       ],
       "title": "GapSummaryQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "keyword_gap_overlap": {
     "method": "/spectrum/v1/Gap/Overlaps",
@@ -1807,7 +1927,10 @@
       ],
       "title": "GapSummaryQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "backlink_gap": {
     "method": "backlinks_matrix",
@@ -1871,7 +1994,10 @@
       ],
       "title": "BacklinkGapQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "backlink_comparison": {
     "method": "backlinks_comparison",
@@ -1898,7 +2024,10 @@
       ],
       "title": "BacklinkComparisonQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "projects": {
     "method": "/apis/v4-raw/crossroad/api/v0/crossroad/list",
@@ -1931,7 +2060,10 @@
       },
       "title": "ProjectListQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "ai_capabilities": {
     "method": "/ai-seo/api/v2/user/user_capabilities",
@@ -1944,7 +2076,10 @@
       "properties": {},
       "title": "EmptyQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "audit_campaigns": {
     "method": "/siteaudit/api/campaigns/seolist",
@@ -1957,7 +2092,10 @@
       "properties": {},
       "title": "EmptyQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "folders": {
     "method": "/apis/v4-raw/folders/api/v0/folders/selector-list",
@@ -1970,7 +2108,10 @@
       "properties": {},
       "title": "EmptyQuery",
       "type": "object"
-    }
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
   },
   "saved_keyword_lists": {
     "method": "/apis/v4-raw/saved-keywords/api/v0/list/all",
@@ -1983,6 +2124,494 @@
       "properties": {},
       "title": "EmptyQuery",
       "type": "object"
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
+  },
+  "project_create": {
+    "method": "/apis/v4-raw/folders/api/v0/folders",
+    "description": "Create a project, optionally with a website. Does not start tools or share it.",
+    "transport": "project_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^(?=.*\\S)[^~|`!#%^&*=\\[\\]\\\\\\x27/{}\":<>?]+$",
+          "description": "Project name, up to 255 characters. The web UI restricts punctuation."
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253,
+          "pattern": "^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z]{2,63}$",
+          "description": "Domain or subdomain, without protocol or path."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "name"
+      ]
+    }
+  },
+  "project_get": {
+    "method": "/apis/v4-raw/folders/api/v0/folders/folder",
+    "description": "Read one project by its current web folder ID.",
+    "transport": "project_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "folder_id": {
+          "type": "string",
+          "pattern": "^[0-9]+$",
+          "maxLength": 30,
+          "description": "Current web project folder ID, as a decimal string."
+        }
+      },
+      "required": [
+        "folder_id"
+      ]
+    }
+  },
+  "project_update": {
+    "method": "/apis/v4-raw/folders/api/v0/folders/{folder_id}",
+    "description": "Rename a project or add its first domain. Existing domains cannot be changed.",
+    "transport": "project_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "PUT",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "folder_id": {
+          "type": "string",
+          "pattern": "^[0-9]+$",
+          "maxLength": 30,
+          "description": "Current web project folder ID, as a decimal string."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^(?=.*\\S)[^~|`!#%^&*=\\[\\]\\\\\\x27/{}\":<>?]+$",
+          "description": "Project name, up to 255 characters. The web UI restricts punctuation."
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253,
+          "pattern": "^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z]{2,63}$",
+          "description": "Domain or subdomain, without protocol or path."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "folder_id"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "name"
+          ]
+        },
+        {
+          "required": [
+            "domain"
+          ]
+        }
+      ]
+    }
+  },
+  "project_delete": {
+    "method": "/apis/v4-raw/folders/api/v0/folders/{folder_id}",
+    "description": "Permanently delete a project and its attached tool data.",
+    "transport": "project_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "DELETE",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "folder_id": {
+          "type": "string",
+          "pattern": "^[0-9]+$",
+          "maxLength": 30,
+          "description": "Current web project folder ID, as a decimal string."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "folder_id"
+      ]
+    }
+  },
+  "project_leave": {
+    "method": "/share/json/leave/project-smb",
+    "description": "Leave a shared project.",
+    "transport": "project_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "folder_id": {
+          "type": "string",
+          "pattern": "^[0-9]+$",
+          "maxLength": 30,
+          "description": "Current web project folder ID, as a decimal string."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "folder_id"
+      ]
+    }
+  },
+  "project_limits": {
+    "method": "/apis/v4-raw/folders/api/v0/folders/limits",
+    "description": "Read project creation limits.",
+    "transport": "project_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    }
+  },
+  "project_tags": {
+    "method": "/apis/v4-raw/folders/api/v0/folders/tags",
+    "description": "Read available project tags.",
+    "transport": "project_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    }
+  },
+  "project_set_tags": {
+    "method": "/apis/v4-raw/folders/api/v0/folders/tags/{folder_id}",
+    "description": "Replace project tags. An empty array removes all its tags.",
+    "transport": "project_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "folder_id": {
+          "type": "string",
+          "pattern": "^[0-9]+$",
+          "maxLength": 30,
+          "description": "Current web project folder ID, as a decimal string."
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50,
+            "pattern": "^[^~|`!#%^&*=\\[\\]\\\\\\x27/{}\":<>?]+$"
+          },
+          "maxItems": 3,
+          "uniqueItems": true
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "folder_id",
+        "tags"
+      ]
+    }
+  },
+  "project_check_domain": {
+    "method": "/apis/v4-raw/folders/api/v0/folders/check-domain",
+    "description": "Check website information before creating a project.",
+    "transport": "project_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253,
+          "pattern": "^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z]{2,63}$",
+          "description": "Domain or subdomain, without protocol or path."
+        }
+      },
+      "required": [
+        "domain"
+      ]
+    }
+  },
+  "project_pin": {
+    "method": "/apis/v4-raw/crossroad/api/v0/crossroad/set-pinned",
+    "description": "Pin or unpin a project on the dashboard.",
+    "transport": "project_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "folder_id": {
+          "type": "string",
+          "pattern": "^[0-9]+$",
+          "maxLength": 30,
+          "description": "Current web project folder ID, as a decimal string."
+        },
+        "pinned": {
+          "type": "boolean"
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "folder_id",
+        "pinned"
+      ]
+    }
+  },
+  "project_toolkits": {
+    "method": "/apis/v4-raw/crossroad/api/v0/crossroad/toolkits",
+    "description": "Read SEO, AI, local, social, advertising and content toolkit status.",
+    "transport": "project_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "folder_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9]+$",
+            "maxLength": 30,
+            "description": "Current web project folder ID, as a decimal string."
+          },
+          "minItems": 1,
+          "maxItems": 100,
+          "uniqueItems": true
+        },
+        "with_promo": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "folder_ids"
+      ]
+    }
+  },
+  "project_tools": {
+    "method": "/apis/v4-raw/crossroad/api/v0/crossroad/tools",
+    "description": "Read project dashboard metrics. Tool IDs match the web dashboard.",
+    "transport": "project_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "folder_id": {
+          "type": "string",
+          "pattern": "^[0-9]+$",
+          "maxLength": 30,
+          "description": "Current web project folder ID, as a decimal string."
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 3,
+            "maximum": 33
+          },
+          "minItems": 1,
+          "maxItems": 31,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "folder_id",
+        "tools"
+      ]
+    }
+  },
+  "project_enable_seo": {
+    "method": "/projects/api/projects",
+    "description": "Create the SEO project associated with an existing web project. Uses project allowance.",
+    "transport": "project_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "folder_id": {
+          "type": "string",
+          "pattern": "^[0-9]+$",
+          "maxLength": 30,
+          "description": "Current web project folder ID, as a decimal string."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "folder_id"
+      ]
+    }
+  },
+  "project_seo_auto_setup": {
+    "method": "/projects/api/projects/seo_auto_setup",
+    "description": "Start automatic SEO setup, including Site Audit and Position Tracking. Uses account allowances.",
+    "transport": "project_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "folder_id": {
+          "type": "string",
+          "pattern": "^[0-9]+$",
+          "maxLength": 30,
+          "description": "Current web project folder ID, as a decimal string."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "folder_id"
+      ]
     }
   }
 }

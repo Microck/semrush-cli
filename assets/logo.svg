@@ -1,1 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><title>semrush-cli</title><path d="m9 19 12 13L9 45" fill="none" stroke="#fff" stroke-width="7" stroke-linejoin="miter"/><path fill="#ff8a3d" d="M27 36h7v12h-7zm11-9h7v21h-7zm11-11h7v32h-7z"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 518 320" role="img" aria-labelledby="title">
+  <title id="title">semrush-cli</title>
+  <defs>
+    <mask id="terminal">
+      <rect width="518" height="320" fill="white"/>
+      <path d="m340 130 29 29-29 29m45 0h35" fill="none" stroke="black" stroke-width="12" stroke-linejoin="miter"/>
+    </mask>
+  </defs>
+  <path d="M357.481 3C333.269 3 306.873 11.7835 277.382 27.1205L113.044 114.41H247.71L3 244.524H272.376L136.164 316.977H361.44C446.818 314.792 515.038 245.48 515.038 160.011C515.038 74.5425 444.178 3.04552 357.481 3.04552V3Z" fill="#ff642d" mask="url(#terminal)"/>
+</svg>

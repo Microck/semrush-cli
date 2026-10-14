@@ -1,6 +1,6 @@
 ---
 title: MCP
-description: Connect agents to the same 48 read-only reports.
+description: Connect agents to the same research and project operations.
 ---
 
 First complete `semrush-cli setup` and authentication. Add this to your MCP client's configuration:
@@ -16,14 +16,14 @@ First complete `semrush-cli setup` and authentication. Add this to your MCP clie
 }
 ```
 
-If your client cannot find global npm executables, use the absolute path printed by `command -v semrush`, or configure:
+If your client cannot find global npm executables, use the absolute path printed by `command -v semrush-cli`, or configure:
 
 ```json
 {
   "mcpServers": {
     "semrush": {
       "command": "npx",
-      "args": ["-y", "semrush-cli@0.1.1", "mcp"]
+      "args": ["-y", "semrush-cli@0.2.0", "mcp"]
     }
   }
 }
@@ -43,6 +43,10 @@ Tool names use underscores, such as `domain_overview`, `keyword_magic` and `back
 }
 ```
 
-The server sends only MCP protocol messages to stdout. Tools are annotated read-only. Account changes, login, daemon management, arbitrary URLs and JavaScript execution are not exposed. Report calls can still consume normal account allowances.
+The server sends only MCP protocol messages to stdout. The 54 read tools have `readOnlyHint:true`. The 8 project write tools have
+`readOnlyHint:false` and require `confirm:true`. Delete and leave also have
+`destructiveHint:true`. Use `dry_run:true` to validate and inspect a write without
+connecting to Semrush. A write without confirmation fails before authentication.
+Login, daemon management, arbitrary URLs and JavaScript execution are not exposed. Report calls can still consume normal account allowances.
 
 Tool errors have `isError: true`. Reimport an expired session and restart or reconnect the MCP process. Each process owns and cleans up its transient browser.

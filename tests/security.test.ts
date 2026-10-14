@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest';
 import { Effect } from 'effect';
 import { parseWire, readBootstrap, redact } from '../src/browser-layer.js';
+import type { Query } from '../src/report-parameters.js';
 import { parseReport } from '../src/validation.js';
 
 test('preserves 64-bit identifiers through JSON output', () => {
@@ -27,4 +28,18 @@ test('validates schema defaults, numeric bounds, and rejects auth injection', as
   await expect(Effect.runPromise(parseReport('keyword_magic', { keyword: 'foo', page: 0 }))).rejects.toThrow();
   await expect(Effect.runPromise(parseReport('domain_overview', { domain: 'example.com', apiKey: 'injected' }))).rejects.toThrow();
   await expect(Effect.runPromise(parseReport('unknown', {}))).rejects.toThrow();
+});
+
+
+test('project validation rejects write consent bypasses, path injection and empty edits', async () => {
+  const invalidInputs: Query[] = [{ name: 'invalid:name', confirm: true }, { name: 'example' }, { name: 'example', confirm: false }, { name: 'example', confirm: true, folder_id: '1' }];
+  for (const input of invalidInputs) {
+    await expect(Effect.runPromise(parseReport('project_create', input))).rejects.toThrow();
+  }
+  await expect(Effect.runPromise(parseReport('project_update', { folder_id: '1', confirm: true }))).rejects.toThrow();
+  await expect(Effect.runPromise(parseReport('project_delete', { folder_id: '1/other', confirm: true }))).rejects.toThrow();
+  await expect(Effect.runPromise(parseReport('project_create', { name: ' ', confirm: true }))).rejects.toThrow();
+  const preview = await Effect.runPromise(parseReport('project_delete', { folder_id: '9223372036854775807', dry_run: true }));
+  expect(preview.query.folder_id).toBe('9223372036854775807');
+  expect(preview.definition.destructive).toBe(true);
 });

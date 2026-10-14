@@ -14,6 +14,7 @@ export interface Query { [key: string]: Schema.Json; }
 /** Fixed request shapes observed in semrush-web-mcp. No arbitrary RPC or URL input. */
 export function reportParameters(definition: Report, q: Query): Query {
   const family = definition.transport;
+  if (family === 'project_web') return projectParameters(definition, q);
   if (family === 'magic') return magicParameters(definition, q);
   if (family === 'keyword') return keywordParameters(definition, q);
   if (family === 'direct') return 'database' in q ? { database: (q.database ?? null), global: (q.global_data ?? null), dateFormat: 'date' } : {};
@@ -100,4 +101,37 @@ function gapParameters(definition: Report, q: Query): Query {
   const params: Query = { targets: Array.isArray(q.domains) ? q.domains.map(value => ({ product_type: 2, type: 1, value, filters: '' })) : [], date: null, database: (q.database ?? null), filters: (q.filters ?? null) };
   if (method.endsWith('KeywordsList')) Object.assign(params, { type: (q.gap_type ?? null), range: { limit: (q.limit ?? null), offset: (q.offset ?? null) }, columns: ['KEYWORD', 'INTENTS', 'VOLUME', 'KEYWORD_DIFFICULTY', 'CPC', 'COMPETITION_DENSITY', 'TARGETS_POSITION', 'TARGETS_URL', 'RESULTS'], order: { column: 6, direction: 2 } });
   return params;
+}
+
+/** Current project-selector and Crossroad web contracts. Control flags never go on wire. */
+function projectParameters(definition: Report, q: Query): Query {
+  const path = definition.method;
+  if (path === '/apis/v4-raw/folders/api/v0/folders' || definition.http_method === 'PUT') {
+    const properties: Schema.Json[] = [];
+    if (q.name !== undefined) properties.push({ name: { value: q.name } });
+    if (q.domain !== undefined) properties.push({ domain: { value: q.domain } });
+    return { properties };
+  }
+  if (path.endsWith('/leave/project-smb')) return { object_ids: [q.folder_id ?? null] };
+  if (path.includes('/tags/')) return { tags: Array.isArray(q.tags) ? q.tags.map(name => ({ name })) : [] };
+  if (path.endsWith('/set-pinned')) return { id: q.folder_id ?? null, is_pinned: q.pinned ?? null };
+  if (path.endsWith('/toolkits')) return { folders: q.folder_ids ?? [], withPromo: q.with_promo ?? false };
+  if (path.endsWith('/tools')) return { items: Array.isArray(q.tools) ? q.tools.map(tool => ({ folder_id: q.folder_id ?? null, tool })) : [] };
+  if (definition.http_method === 'DELETE') return {};
+  return Object.fromEntries(Object.entries(q).filter(([key]) => key !== 'confirm' && key !== 'dry_run'));
+}
+
+/** Paths come only from the catalog; folder IDs pass the decimal-string input schema. */
+export function projectRequest(definition: Report, query: Query) {
+  return {
+    method: definition.http_method,
+    path: definition.method.replace('{folder_id}', String(query.folder_id)),
+    body: reportParameters(definition, query),
+  };
+}
+
+export function previewMutation(name: string, definition: Report, query: Query) {
+  return definition.mutation && query.dry_run === true
+    ? { dry_run: true, report: name, request: projectRequest(definition, query) }
+    : undefined;
 }

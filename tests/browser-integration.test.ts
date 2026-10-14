@@ -23,6 +23,8 @@ let fixtureURL: string;
 let authenticated = true;
 let failReport = false;
 const observed: string[] = [];
+const folderPath = '/apis/v4-raw/folders/api/v0/folders';
+let savedProject: { id: string; name: string; domain?: string; tags?: { name: string }[] } | undefined;
 const fixture = createServer(async (request, response) => {
   const url = new URL(request.url ?? '/', fixtureURL);
   if (url.pathname === '/robots.txt') { response.end('User-agent: *\nDisallow: /'); return; }
@@ -32,6 +34,37 @@ const fixture = createServer(async (request, response) => {
   if (url.pathname === '/home/') {
     if (!authenticated || !request.headers.cookie?.includes('session=authorized')) { response.writeHead(302, { Location: '/login/' }); }
     response.end(); return;
+  }
+  if (url.pathname.startsWith(folderPath)) {
+    let encoded = '';
+    for await (const chunk of request) encoded += chunk;
+    const payload = encoded ? JSON.parse(encoded) : undefined;
+    observed.push(`${request.method} ${url.pathname}`);
+    response.setHeader('Content-Type', 'application/json');
+    if (url.pathname === folderPath && request.method === 'POST') {
+      expect(payload).toEqual({ properties: [{ name: { value: 'Fixture project' } }, { domain: { value: 'example.com' } }] });
+      savedProject = { id: '9223372036854775807', name: payload.properties[0].name.value, domain: payload.properties[1].domain.value };
+      response.writeHead(201); response.end(JSON.stringify({ folder: { id: savedProject.id, properties: { name: savedProject.name, domain: savedProject.domain } } })); return;
+    }
+    if (url.pathname === folderPath + '/folder') {
+      expect(url.searchParams.get('folder_id')).toBe('9223372036854775807');
+      response.end(JSON.stringify({ folder: savedProject })); return;
+    }
+    if (request.method === 'PUT') {
+      expect(payload).toEqual({ properties: [{ name: { value: 'Renamed fixture' } }] });
+      if (savedProject) savedProject.name = payload.properties[0].name.value;
+      response.end(JSON.stringify({ folder: savedProject })); return;
+    }
+    if (url.pathname.includes('/tags/')) {
+      expect(payload).toEqual({ tags: [{ name: 'fixture' }] });
+      if (savedProject) savedProject.tags = payload.tags;
+      response.end(JSON.stringify({ tags: savedProject?.tags })); return;
+    }
+    if (request.method === 'DELETE') {
+      expect(encoded).toBe(''); savedProject = undefined;
+      response.writeHead(204); response.end(); return;
+    }
+    response.writeHead(404); response.end('{}'); return;
   }
   if (url.pathname === '/kwogw/v2/webapi') {
     let body = '';
@@ -112,4 +145,19 @@ test('provider failure remains an error and removes echoed secrets', async () =>
       return yield* (yield* Semrush).report(yield* parseReport('account_status', {}));
     }).pipe(Effect.provide(fixtureLayer()))))).rejects.toThrow('[redacted] access denied');
   } finally { failReport = false; }
+}, 30000);
+
+
+test('real browser and Galleton complete the stateful project lifecycle with exact IDs', async () => {
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const semrush = yield* Semrush;
+    const created = yield* semrush.report(yield* parseReport('project_create', { name: 'Fixture project', domain: 'example.com', confirm: true }));
+    expect(created.data).toEqual({ folder: { id: '9223372036854775807', properties: { name: 'Fixture project', domain: 'example.com' } } });
+    yield* semrush.report(yield* parseReport('project_update', { folder_id: '9223372036854775807', name: 'Renamed fixture', confirm: true }));
+    yield* semrush.report(yield* parseReport('project_set_tags', { folder_id: '9223372036854775807', tags: ['fixture'], confirm: true }));
+    const current = yield* semrush.report(yield* parseReport('project_get', { folder_id: '9223372036854775807' }));
+    expect(current.data).toEqual({ folder: { id: '9223372036854775807', name: 'Renamed fixture', domain: 'example.com', tags: [{ name: 'fixture' }] } });
+    expect((yield* semrush.report(yield* parseReport('project_delete', { folder_id: '9223372036854775807', confirm: true }))).data).toBeNull();
+    expect(savedProject).toBeUndefined();
+  }).pipe(Effect.provide(fixtureLayer()))));
 }, 30000);

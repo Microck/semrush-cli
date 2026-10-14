@@ -15,5 +15,7 @@ Microck/semrush-web-mcp, commit `764d102f`, under MIT.
 Copyright (c) 2026 Microck. See the repository LICENSE.
 
 All package dependencies retain their own licenses in their installed packages.
-This project is independent of Semrush and does not include Semrush trademarks
-or credentials in its distribution.
+The modified logo derives from the official Semrush SVG icon in
+https://brand.semrush.com/Semrush%20Logo.zip. Semrush owns the underlying mark.
+This project is independent of Semrush. Its distribution contains no account
+credentials.

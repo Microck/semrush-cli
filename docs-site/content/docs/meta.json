@@ -1,1 +1,14 @@
-{"title":"semrush-cli","pages":["index","authentication","reports","mcp","scripting","troubleshooting","development"]}
+{
+  "title": "semrush-cli",
+  "pages": [
+    "index",
+    "authentication",
+    "reports",
+    "projects",
+    "coverage",
+    "mcp",
+    "scripting",
+    "troubleshooting",
+    "development"
+  ]
+}

@@ -1,0 +1,79 @@
+---
+title: Projects
+description: Create and manage the same projects as the current Semrush web dashboard.
+---
+
+Projects use the current web dashboard's folder IDs. These differ from legacy
+SEO project IDs. Use the `id` from `projects`, `folders` or `project-create`.
+
+## Create a project
+
+```sh
+semrush-cli project-limits --json
+semrush-cli project-create --name 'my website' --domain example.com --dry-run
+semrush-cli project-create --name 'my website' --domain example.com --confirm --json
+```
+
+Creation adds a project to the dashboard. The website is optional, as in the web
+UI. It does not share the project, start a crawl or enable paid tools. Domains
+must omit the protocol and path. Account project limits apply.
+
+Every write requires `--confirm`. Without it, the CLI fails before authentication.
+`--dry-run` validates and prints the HTTP method, path and JSON body without
+network access. MCP accepts the equivalent `confirm:true` and `dry_run:true`.
+Writes have no automatic retries. After an interrupted write, inspect the project
+before issuing it again.
+
+## Manage projects
+
+```sh
+semrush-cli project-get --folder-id 123 --json
+semrush-cli project-update --folder-id 123 --name 'new name' --confirm
+semrush-cli project-set-tags --folder-id 123 --tags '["client","seo"]' --confirm
+semrush-cli project-pin --folder-id 123 --pinned --confirm
+semrush-cli project-pin --folder-id 123 --pinned false --confirm
+semrush-cli project-tags --json
+semrush-cli project-check-domain --domain example.com --json
+```
+
+`project-update --domain` adds a website only when a project has none. Semrush
+does not allow changing an existing project website. Tags replace the entire tag
+list. Use `--tags '[]'` to clear it. The web UI allows three tags of up to 50
+characters each and restricts punctuation. Sharing and access permissions apply.
+
+`project-delete --folder-id 123 --confirm` permanently removes the project and
+attached tool data. `project-leave --folder-id 123 --confirm` leaves a shared
+project. Both MCP tools carry destructive annotations.
+
+## Dashboard and SEO tools
+
+```sh
+semrush-cli project-toolkits --folder-ids '["123"]' --json
+semrush-cli project-tools --folder-id 123 --tools '[23,27,28,31]' --json
+semrush-cli project-enable-seo --folder-id 123 --confirm --json
+semrush-cli project-seo-auto-setup --folder-id 123 --confirm --json
+```
+
+`project-toolkits` reads toolkit status and detail URLs. `project-tools` reads the
+dashboard metrics. It does not poll until data becomes ready. Common tool IDs:
+
+| ID | Metric |
+| --- | --- |
+| 23 | Site health |
+| 24 | Backlink prospects |
+| 25 | Backlinks |
+| 26 | SEO ideas |
+| 27 | Organic keywords |
+| 28 | Organic traffic |
+| 29 | Organic sessions |
+| 30 | Toxic domains |
+| 31 | Position Tracking visibility |
+| 32 | AI visibility |
+| 33 | AI mentions |
+
+`project-enable-seo` associates an SEO project with the folder. It consumes the
+account's SEO project allowance. `project-seo-auto-setup` starts the web UI's
+automatic SEO setup, including Site Audit and Position Tracking. These commands
+are separate because starting crawls and tracking consumes account allowances.
+Custom audit schedules, keyword tracking settings and third-party integrations
+still require the web UI. See [coverage](/docs/coverage).

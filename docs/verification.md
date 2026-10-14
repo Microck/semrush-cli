@@ -68,3 +68,26 @@ with no page errors, and the 390px mobile layout had no horizontal overflow.
 Authoritative DNS and a public recursive resolver returned `76.76.21.21` for
 the custom hostname; HTTPS on that hostname returned 200 with a valid certificate.
 The host's resolver temporarily retained the earlier negative DNS cache.
+
+## Version 0.2.0 project and branding checks
+
+The shared catalog now contains 62 operations: 54 reads and 8 confirmed writes.
+`npm run check` passed typechecking, Oxlint, daemon packaging and 79 tests.
+Fourteen request-shape cases match the current Semrush project-selector and
+Crossroad clients. A stateful HTTP fixture verifies real Chromium/Galleton
+create/read/update/tags/delete behavior, HTTP 201/204 and exact 64-bit IDs.
+A real MCP SDK client checks write/destructive annotations, confirmation refusal
+and an unauthenticated dry run.
+
+Live verification created a uniquely named project for `example.com`, read it,
+renamed it, replaced its tags, pinned it, and read toolkit status and dashboard
+metrics. The CLI deleted that exact test project and verified its absence from
+the project list. Existing projects were not changed. SEO auto-setup and leaving
+a shared project were not executed against the live account.
+
+The purple documentation deployment built successfully on Vercel. Chromium
+confirmed the page background is `rgb(66, 25, 131)` (`#421983`), with darker
+purple sidebar and code surfaces, a loaded logo and no page errors. At 390px,
+the home page has no horizontal overflow. White text on the primary background
+has a measured contrast of 12.36:1. The coverage page lists remaining web-only
+workflows rather than claiming full-suite parity.

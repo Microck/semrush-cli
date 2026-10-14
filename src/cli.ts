@@ -2,7 +2,7 @@
 import { Command, Option as CliOption, InvalidArgumentError, CommanderError } from 'commander';
 import { Effect } from 'effect';
 import type { Scope } from 'effect';
-import { reports, version, type Query } from './report-parameters.js';
+import { reports, version, previewMutation, type Query } from './report-parameters.js';
 import { Sessions } from './session-service.js';
 import { sessionsLive } from './session-layer.js';
 import { initializeDaemon, startDaemon, stopDaemon, installBrowser } from './daemon.js';
@@ -22,8 +22,8 @@ async function execute<A, E extends { readonly message: string }>(program: Effec
   })), { signal: interruption.signal });
 }
 
-cli.command('reports').description('List all 48 read-only research reports').action((_options, command: Command) => {
-  output(Object.entries(reports).map(([name, report]) => ({ command: name.replaceAll('_', '-'), tool: name, description: report.description, schema: report.schema })), command);
+cli.command('reports').description('List research reports and project operations').action((_options, command: Command) => {
+  output(Object.entries(reports).map(([name, report]) => ({ command: name.replaceAll('_', '-'), tool: name, description: report.description, read_only: !report.mutation, destructive: report.destructive, schema: report.schema })), command);
 });
 
 interface Property { type?: string; default?: unknown; description?: string; anyOf?: { type?: string }[]; }
@@ -59,6 +59,8 @@ for (const [name, definition] of Object.entries(reports)) {
     // Parse before acquiring any credential-bearing browser resources.
     const parsed = await Effect.runPromise(parseReport(name, input).pipe(Effect.match({ onSuccess: value => ({ ok: true as const, value }), onFailure: error => ({ ok: false as const, error }) })));
     if (!parsed.ok) { process.stderr.write(`semrush-cli: ${parsed.error.message}\n`); process.exitCode = 2; return; }
+    const preview = previewMutation(parsed.value.name, parsed.value.definition, parsed.value.query);
+    if (preview) { output(preview, command); return; }
     const { appLayer } = await import('./mcp.js');
     const { Semrush } = await import('./browser-service.js');
     await execute(Effect.gen(function* () { return yield* (yield* Semrush).report(parsed.value); }).pipe(Effect.provide(appLayer)), command);
@@ -93,7 +95,7 @@ cli.command('doctor').description('Check Galleton, browser and authenticated rep
   const { parseReport } = await import('./validation.js');
   await execute(Effect.gen(function* () { yield* (yield* Semrush).report(yield* parseReport('account_status', {})); return { ok: true, galleton: true, chromium: true, authenticated: true }; }).pipe(Effect.provide(appLayer)), command);
 });
-cli.command('mcp').description('Run the read-only MCP server over stdio').action(async () => (await import('./mcp.js')).serveMcp());
+cli.command('mcp').description('Run the MCP server over stdio').action(async () => (await import('./mcp.js')).serveMcp());
 
 process.once('SIGINT', () => { if (process.argv.includes('mcp')) return; process.exitCode = 130; interruption.abort(); });
 try { await cli.parseAsync(); }

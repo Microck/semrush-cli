@@ -13,7 +13,9 @@ export const parseReport = Effect.fn('Reports.parse')(function* (name: string, i
   const validate = validators.get(name);
   const query = structuredClone(input);
   if (!validate || !validate(query)) return yield* Effect.fail(new UsageError({ message: `Invalid ${name} input: ${ajv.errorsText(validate?.errors)}. Run semrush-cli ${name.replaceAll('_', '-')} --help.` }));
-  return { name, definition: reports[name], query };
+  const definition = reports[name];
+  if (definition.mutation && query.confirm !== true && query.dry_run !== true) return yield* Effect.fail(new UsageError({ message: `${name} changes your Semrush account. Use --confirm (MCP confirm:true) to send it, or --dry-run to inspect the request.` }));
+  return { name, definition, query };
 });
 
 export type ReportRequest = Effect.Success<ReturnType<typeof parseReport>>;
