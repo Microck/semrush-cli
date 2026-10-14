@@ -39,8 +39,8 @@ found no credential values.
 
 `npm pack` produced a 14.4 MB package, approximately 33.9 MB unpacked, containing
 the JavaScript executable, five daemon binaries, licenses and branding. An install
-into a separate temporary prefix ran `semrush --version` and passed a live
-`semrush doctor --json` without relying on source-tree modules.
+into a separate temporary prefix ran `semrush-cli --version` and passed a live
+`semrush-cli doctor --json` without relying on source-tree modules.
 
 Linux arm64 has native execution evidence on this host. Other daemon targets are
 cross-compiled. GitHub CI runs packed-package installation, setup and daemon

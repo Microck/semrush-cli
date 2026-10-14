@@ -3,13 +3,13 @@ title: MCP
 description: Connect agents to the same 48 read-only reports.
 ---
 
-First complete `semrush setup` and authentication. Add this to your MCP client's configuration:
+First complete `semrush-cli setup` and authentication. Add this to your MCP client's configuration:
 
 ```json
 {
   "mcpServers": {
     "semrush": {
-      "command": "semrush",
+      "command": "semrush-cli",
       "args": ["mcp"]
     }
   }
@@ -23,7 +23,7 @@ If your client cannot find global npm executables, use the absolute path printed
   "mcpServers": {
     "semrush": {
       "command": "npx",
-      "args": ["-y", "semrush-cli@0.1.0", "mcp"]
+      "args": ["-y", "semrush-cli@0.1.1", "mcp"]
     }
   }
 }

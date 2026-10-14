@@ -1,8 +1,10 @@
 import type { Schema } from 'effect';
+import packageInfo from '../package.json' with { type: 'json' };
 import catalog from './report-catalog.json' with { type: 'json' };
 
 const backlinkSorts = new Map([['backlinks', 'page_ascore'], ['backlinks_refdomains', 'backlinksnum'], ['backlinks_anchors', 'backlinksnum'], ['backlinks_pages', 'domainsnum'], ['backlinks_outgoing_domains', 'links_num']]);
 
+export const version = packageInfo.version;
 export const reports = catalog;
 export type ReportName = keyof typeof reports;
 export type Report = (typeof reports)[ReportName];

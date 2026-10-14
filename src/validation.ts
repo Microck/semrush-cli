@@ -9,10 +9,10 @@ export function isReportName(name: string): name is ReportName { return Object.h
 
 /** Validate once at the public boundary, populate schema defaults, reject unknown keys. */
 export const parseReport = Effect.fn('Reports.parse')(function* (name: string, input: Query) {
-  if (!isReportName(name)) return yield* Effect.fail(new UsageError({ message: `Unknown report: ${name}. Run semrush reports.` }));
+  if (!isReportName(name)) return yield* Effect.fail(new UsageError({ message: `Unknown report: ${name}. Run semrush-cli reports.` }));
   const validate = validators.get(name);
   const query = structuredClone(input);
-  if (!validate || !validate(query)) return yield* Effect.fail(new UsageError({ message: `Invalid ${name} input: ${ajv.errorsText(validate?.errors)}. Run semrush ${name.replaceAll('_', '-')} --help.` }));
+  if (!validate || !validate(query)) return yield* Effect.fail(new UsageError({ message: `Invalid ${name} input: ${ajv.errorsText(validate?.errors)}. Run semrush-cli ${name.replaceAll('_', '-')} --help.` }));
   return { name, definition: reports[name], query };
 });
 

@@ -12,17 +12,17 @@ export const defaultStateDirectory = join(homedir(), '.local', 'share', 'semrush
 /** Raw SDK errors stop here; daemon and upstream payloads never reach diagnostics. */
 const sdkError = (cause: unknown): SessionError => {
   if (cause instanceof GalletonError) {
-    const recovery = cause.code === 'not_found' ? 'Run semrush auth login or semrush auth import --cdp-url URL.' : 'Run semrush daemon start and semrush auth status. Reimport if renewal or authentication failed.';
+    const recovery = cause.code === 'not_found' ? 'Run semrush-cli auth login or semrush-cli auth import --cdp-url URL.' : 'Run semrush-cli daemon start and semrush-cli auth status. Reimport if renewal or authentication failed.';
     return new SessionError({ message: `Galleton ${cause.code}. ${recovery}`, code: cause.code });
   }
-  return new SessionError({ message: 'Galleton operation failed. Run semrush doctor and check local configuration.' });
+  return new SessionError({ message: 'Galleton operation failed. Run semrush-cli doctor and check local configuration.' });
 };
 
 export const makeSessionsLayer = (credentialOrigin: string) => Layer.effect(Sessions, Effect.gen(function* () {
   const baseURL = yield* Config.String('SEMRUSH_GALLETON_URL').pipe(Config.withDefault('http://127.0.0.1:8768'));
   const tokenFile = yield* Config.String('SEMRUSH_GALLETON_TOKEN_FILE').pipe(Config.withDefault(join(defaultStateDirectory, 'api.token')));
   const id = yield* Config.String('SEMRUSH_SESSION').pipe(Config.withDefault('semrush-cli'));
-  const token = yield* Effect.tryPromise({ try: () => readFile(tokenFile, 'utf8'), catch: () => new SessionError({ message: 'Galleton token unavailable. Run semrush setup, or set SEMRUSH_GALLETON_TOKEN_FILE.' }) });
+  const token = yield* Effect.tryPromise({ try: () => readFile(tokenFile, 'utf8'), catch: () => new SessionError({ message: 'Galleton token unavailable. Run semrush-cli setup, or set SEMRUSH_GALLETON_TOKEN_FILE.' }) });
   const sdk = yield* Effect.try({ try: () => new Galleton({ baseURL, token, timeoutMs: 60000 }), catch: sdkError });
   const status = Effect.fn('Sessions.status')(() => Effect.tryPromise({ try: () => sdk.status(id), catch: sdkError }));
   return Sessions.of({

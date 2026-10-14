@@ -2,7 +2,7 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { Effect, ManagedRuntime, Schema } from 'effect';
-import { reports } from './report-parameters.js';
+import { reports, version } from './report-parameters.js';
 import { Semrush } from './browser-service.js';
 import { semrushLive } from './browser-layer.js';
 import { sessionsLive } from './session-layer.js';
@@ -15,7 +15,7 @@ export const appLayer = semrushLive.pipe(Layer.provide(sessionsLive));
 /** Protocol-only stdout; validation and auth failures become ordinary MCP tool errors. */
 export async function serveMcp(): Promise<void> {
   const runtime = ManagedRuntime.make(appLayer);
-  const server = new Server({ name: 'semrush-cli', version: '0.1.0' }, { capabilities: { tools: {} } });
+  const server = new Server({ name: 'semrush-cli', version }, { capabilities: { tools: {} } });
   server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: Object.entries(reports).map(([name, report]) => ({ name, description: report.description, inputSchema: report.schema, annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: true } })) }));
   server.setRequestHandler(CallToolRequestSchema, async request => {
     const program = Effect.gen(function* () {
@@ -26,7 +26,7 @@ export async function serveMcp(): Promise<void> {
     if (!validated.ok) return { isError: true, content: [{ type: 'text', text: validated.message }] };
     const outcome = await runtime.runPromise(Effect.gen(function* () {
       return yield* (yield* Semrush).report(validated.value);
-    }).pipe(Effect.match({ onSuccess: value => ({ ok: true as const, text: JSON.stringify(value) }), onFailure: error => ({ ok: false as const, text: error.message }) }))).catch(() => ({ ok: false as const, text: 'Semrush session or browser unavailable. Run semrush doctor, then reconnect this MCP server.' }));
+    }).pipe(Effect.match({ onSuccess: value => ({ ok: true as const, text: JSON.stringify(value) }), onFailure: error => ({ ok: false as const, text: error.message }) }))).catch(() => ({ ok: false as const, text: 'Semrush session or browser unavailable. Run semrush-cli doctor, then reconnect this MCP server.' }));
     return { isError: !outcome.ok, content: [{ type: 'text', text: outcome.text }] };
   });
   let closing = false;

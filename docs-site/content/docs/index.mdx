@@ -7,9 +7,9 @@ Requires Node.js 22 or newer. The npm package includes Galleton binaries for Lin
 
 ```sh
 npm install -g semrush-cli
-semrush setup
-semrush auth login
-semrush domain-overview --domain openai.com --json
+semrush-cli setup
+semrush-cli auth login
+semrush-cli domain-overview --domain openai.com --json
 ```
 
 `setup` installs Chromium and starts a private, authenticated Galleton daemon at `127.0.0.1:8768`. It stores encrypted credentials under `~/.local/share/semrush-cli/galleton`. On Linux, Chromium may need system libraries. Install them with `npx patchright install-deps chromium` if the browser fails to launch.
@@ -19,11 +19,11 @@ semrush domain-overview --domain openai.com --json
 On a headless host with an existing signed-in browser, see [authentication](/docs/authentication).
 
 ```sh
-semrush keyword-overview --keyword 'email marketing' --json
-semrush domain-keywords --domain openai.com --page-size 20 --json
-semrush backlink-links --domain openai.com --json
-semrush reports
-semrush doctor
+semrush-cli keyword-overview --keyword 'email marketing' --json
+semrush-cli domain-keywords --domain openai.com --page-size 20 --json
+semrush-cli backlink-links --domain openai.com --json
+semrush-cli reports
+semrush-cli doctor
 ```
 
 This is an independent project, not an official Semrush integration. Your account permissions and report allowances apply. Web endpoints may change. No developer API key is required.

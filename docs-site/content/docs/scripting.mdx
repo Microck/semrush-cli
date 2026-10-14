@@ -4,18 +4,18 @@ description: JSON, pagination, large identifiers and exit codes.
 ---
 
 ```sh
-semrush keyword-overview --keyword 'email marketing' --json > keyword.json
-semrush domain-keywords --domain openai.com --page 2 --page-size 20 --json
-semrush keyword-gap --domains '["openai.com","anthropic.com"]' --json
-semrush backlink-links --domain openai.com --filters '+|type||nofollow' --json
-semrush keyword-magic --keyword 'email marketing' --questions-only --descending false --json
+semrush-cli keyword-overview --keyword 'email marketing' --json > keyword.json
+semrush-cli domain-keywords --domain openai.com --page 2 --page-size 20 --json
+semrush-cli keyword-gap --domains '["openai.com","anthropic.com"]' --json
+semrush-cli backlink-links --domain openai.com --filters '+|type||nofollow' --json
+semrush-cli keyword-magic --keyword 'email marketing' --questions-only --descending false --json
 ```
 
 Objects and arrays are JSON arguments. Booleans accept a bare positive flag or `true` / `false`. Required arguments and numeric bounds appear in each command's help. `--json` works before or after the command.
 
 ```sh
-semrush domain-keywords --help
-semrush reports --json
+semrush-cli domain-keywords --help
+semrush-cli reports --json
 ```
 
 Successful reports return:
@@ -33,8 +33,8 @@ Exit codes are 0 for success, 1 for authentication/service/report failures and 2
 Historical timestamps come from `snapshot-dates`:
 
 ```sh
-semrush snapshot-dates --database us --json
-semrush domain-keywords --domain openai.com --database mobile-us --date 1789430400 --date-type monthly --json
+semrush-cli snapshot-dates --database us --json
+semrush-cli domain-keywords --domain openai.com --database mobile-us --date 1789430400 --date-type monthly --json
 ```
 
 Account access determines which historical and mobile reports are available.

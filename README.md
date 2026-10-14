@@ -3,6 +3,8 @@
 <p align="center">Semrush research from your terminal and MCP clients.</p>
 <p align="center"><a href="https://semrush.micr.dev">Documentation</a> · <a href="https://www.npmjs.com/package/semrush-cli">npm</a> · <a href="https://github.com/Microck/semrush-cli/issues">Issues</a></p>
 
+The executable is `semrush-cli`. It can coexist with other tools named `semrush`.
+
 48 read-only web reports for keyword research, organic rankings, competitors,
 keyword and backlink gaps, backlinks, historical/mobile research and AI visibility.
 Written in TypeScript with Effect. Sessions live in an encrypted Galleton vault.
@@ -15,9 +17,9 @@ macOS x64/arm64 and Windows x64.
 
 ```sh
 npm install -g semrush-cli
-semrush setup
-semrush auth login
-semrush domain-overview --domain openai.com --json
+semrush-cli setup
+semrush-cli auth login
+semrush-cli domain-overview --domain openai.com --json
 ```
 
 `setup` installs Chromium and starts a private Galleton daemon. `auth login`
@@ -28,8 +30,8 @@ libraries can be installed with `npx patchright install-deps chromium`.
 To import an existing, authorized Chromium session on a headless machine:
 
 ```sh
-semrush auth import --cdp-url http://127.0.0.1:9234
-semrush doctor --json
+semrush-cli auth import --cdp-url http://127.0.0.1:9234
+semrush-cli doctor --json
 ```
 
 The browser must already expose CDP on a literal loopback HTTP address. This
@@ -40,17 +42,17 @@ SSH when necessary.
 ## Research
 
 ```sh
-semrush keyword-overview --keyword 'email marketing' --json
-semrush keyword-magic --keyword 'email marketing' --questions-only --page-size 20 --json
-semrush domain-keywords --domain openai.com --page 2 --page-size 20 --json
-semrush domain-competitors --domain openai.com --page-size 10 --json
-semrush keyword-gap --domains '["openai.com","anthropic.com"]' --json
-semrush backlink-gap --domains '["openai.com","anthropic.com"]' --json
-semrush backlink-links --domain openai.com --filters '+|type||nofollow' --json
-semrush domain-ai-visibility --domain openai.com --json
-semrush snapshot-dates --database us --json
-semrush reports --json
-semrush domain-keywords --help
+semrush-cli keyword-overview --keyword 'email marketing' --json
+semrush-cli keyword-magic --keyword 'email marketing' --questions-only --page-size 20 --json
+semrush-cli domain-keywords --domain openai.com --page 2 --page-size 20 --json
+semrush-cli domain-competitors --domain openai.com --page-size 10 --json
+semrush-cli keyword-gap --domains '["openai.com","anthropic.com"]' --json
+semrush-cli backlink-gap --domains '["openai.com","anthropic.com"]' --json
+semrush-cli backlink-links --domain openai.com --filters '+|type||nofollow' --json
+semrush-cli domain-ai-visibility --domain openai.com --json
+semrush-cli snapshot-dates --database us --json
+semrush-cli reports --json
+semrush-cli domain-keywords --help
 ```
 
 | Area | Reports |
@@ -76,7 +78,7 @@ Complete setup and authentication, then configure your MCP client:
 {
   "mcpServers": {
     "semrush": {
-      "command": "semrush",
+      "command": "semrush-cli",
       "args": ["mcp"]
     }
   }
@@ -84,7 +86,7 @@ Complete setup and authentication, then configure your MCP client:
 ```
 
 Use an absolute executable path if your client does not inherit the terminal's
-PATH. `npx -y semrush-cli@0.1.0 mcp` also works. MCP tool names use underscores,
+PATH. `npx -y semrush-cli@0.1.1 mcp` also works. MCP tool names use underscores,
 for example `keyword_overview` and `domain_keywords`. Input schemas and reports
 match the CLI. All 48 tools are annotated read-only. Login, account mutations,
 arbitrary URLs and JavaScript execution are not MCP tools.
@@ -92,10 +94,10 @@ arbitrary URLs and JavaScript execution are not MCP tools.
 ## Sessions
 
 ```sh
-semrush auth status --check --json
-semrush auth logout
-semrush daemon stop
-semrush daemon start
+semrush-cli auth status --check --json
+semrush-cli auth logout
+semrush-cli daemon stop
+semrush-cli daemon start
 ```
 
 Galleton stores credentials under `~/.local/share/semrush-cli/galleton`. The
@@ -153,8 +155,8 @@ the separate live-account evidence.
 ## Uninstall
 
 ```sh
-semrush auth logout
-semrush daemon stop
+semrush-cli auth logout
+semrush-cli daemon stop
 npm uninstall -g semrush-cli
 ```
 

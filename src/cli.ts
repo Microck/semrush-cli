@@ -2,14 +2,14 @@
 import { Command, Option as CliOption, InvalidArgumentError, CommanderError } from 'commander';
 import { Effect } from 'effect';
 import type { Scope } from 'effect';
-import { reports, type Query } from './report-parameters.js';
+import { reports, version, type Query } from './report-parameters.js';
 import { Sessions } from './session-service.js';
 import { sessionsLive } from './session-layer.js';
 import { initializeDaemon, startDaemon, stopDaemon, installBrowser } from './daemon.js';
 
 const interruption = new AbortController();
-const cli = new Command().name('semrush').description('Semrush research through your signed-in account. CLI + MCP, powered by Effect and Galleton.').version('0.1.0').exitOverride().showHelpAfterError().option('--json', 'Emit compact JSON').option('--no-input', 'Never prompt for terminal input').option('--no-color', 'Disable terminal colors');
-cli.addHelpText('after', '\nExamples:\n  semrush setup\n  semrush auth login\n  semrush domain-overview --domain openai.com --json\n  semrush keyword-magic --keyword "email marketing" --page-size 20 --json\n  semrush mcp\n\nDocumentation: https://semrush.micr.dev\n');
+const cli = new Command().name('semrush-cli').description('Semrush research through your signed-in account. CLI + MCP, powered by Effect and Galleton.').version(version).exitOverride().showHelpAfterError().option('--json', 'Emit compact JSON').option('--no-input', 'Never prompt for terminal input').option('--no-color', 'Disable terminal colors');
+cli.addHelpText('after', '\nExamples:\n  semrush-cli setup\n  semrush-cli auth login\n  semrush-cli domain-overview --domain openai.com --json\n  semrush-cli keyword-magic --keyword "email marketing" --page-size 20 --json\n  semrush-cli mcp\n\nDocumentation: https://semrush.micr.dev\n');
 
 function output<A>(value: A, command: Command): void {
   process.stdout.write(JSON.stringify(value, null, command.optsWithGlobals().json ? undefined : 2) + '\n');
@@ -18,7 +18,7 @@ function output<A>(value: A, command: Command): void {
 async function execute<A, E extends { readonly message: string }>(program: Effect.Effect<A, E, Scope.Scope>, command: Command): Promise<void> {
   await Effect.runPromise(Effect.scoped(program).pipe(Effect.match({
     onSuccess: value => output(value, command),
-    onFailure: error => { process.stderr.write(`semrush: ${error.message}\n`); process.exitCode = 'name' in error && error.name === 'UsageError' ? 2 : 1; },
+    onFailure: error => { process.stderr.write(`semrush-cli: ${error.message}\n`); process.exitCode = 'name' in error && error.name === 'UsageError' ? 2 : 1; },
   })), { signal: interruption.signal });
 }
 
@@ -58,7 +58,7 @@ for (const [name, definition] of Object.entries(reports)) {
     const input = Object.fromEntries(Object.keys(schema.properties).map(key => [key, options[key.replace(/_([a-z])/g, (_match, char: string) => char.toUpperCase())]]).filter(([, value]) => value !== undefined));
     // Parse before acquiring any credential-bearing browser resources.
     const parsed = await Effect.runPromise(parseReport(name, input).pipe(Effect.match({ onSuccess: value => ({ ok: true as const, value }), onFailure: error => ({ ok: false as const, error }) })));
-    if (!parsed.ok) { process.stderr.write(`semrush: ${parsed.error.message}\n`); process.exitCode = 2; return; }
+    if (!parsed.ok) { process.stderr.write(`semrush-cli: ${parsed.error.message}\n`); process.exitCode = 2; return; }
     const { appLayer } = await import('./mcp.js');
     const { Semrush } = await import('./browser-service.js');
     await execute(Effect.gen(function* () { return yield* (yield* Semrush).report(parsed.value); }).pipe(Effect.provide(appLayer)), command);
@@ -68,7 +68,7 @@ for (const [name, definition] of Object.entries(reports)) {
 cli.command('setup').description('Install Chromium and initialize the private Galleton daemon').action((_options, command: Command) => execute(Effect.gen(function* () {
   yield* initializeDaemon();
   yield* installBrowser();
-  return { ...(yield* startDaemon()), next: 'semrush auth login' };
+  return { ...(yield* startDaemon()), next: 'semrush-cli auth login' };
 }), command));
 const daemon = cli.command('daemon').description('Control the CLI-owned Galleton daemon');
 daemon.command('start').description('Start the private daemon').action((_options, command: Command) => execute(startDaemon(), command));
@@ -101,5 +101,5 @@ catch (error) {
   // Commander writes usage details itself. Other defects must not expose browser payloads.
   if (interruption.signal.aborted) process.exitCode = 130;
   else if (error instanceof CommanderError) process.exitCode = error.exitCode === 0 ? 0 : 2;
-  else { process.stderr.write('semrush: Unexpected failure. Run semrush doctor and report the failing command at https://github.com/Microck/semrush-cli/issues.\n'); process.exitCode = 1; }
+  else { process.stderr.write('semrush-cli: Unexpected failure. Run semrush-cli doctor and report the failing command at https://github.com/Microck/semrush-cli/issues.\n'); process.exitCode = 1; }
 }

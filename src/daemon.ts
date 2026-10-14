@@ -10,7 +10,7 @@ import { SessionError } from './errors.js';
 
 const exec = promisify(execFile);
 const daemonPath = () => fileURLToPath(new URL(`./daemon/galleton-${process.platform}-${process.arch}${process.platform === 'win32' ? '.exe' : ''}`, import.meta.url));
-const failed = () => new SessionError({ message: 'Local daemon setup failed. Check semrush daemon start and the private daemon.log in the state directory.' });
+const failed = () => new SessionError({ message: 'Local daemon setup failed. Check semrush-cli daemon start and the private daemon.log in the state directory.' });
 const io = <A>(run: () => Promise<A>) => Effect.tryPromise({ try: run, catch: failed });
 
 /** Own daemon, state directory and port. Never edits a shared Galleton installation. */
