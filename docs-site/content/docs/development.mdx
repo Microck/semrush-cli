@@ -1,0 +1,23 @@
+---
+title: Development
+description: Build the TypeScript and Effect implementation.
+---
+
+```sh
+git clone https://github.com/Microck/semrush-cli
+cd semrush-cli
+npm ci
+npm run check
+npm --prefix docs-site ci
+npm --prefix docs-site run build
+```
+
+Development builds require Go 1.23 or newer to compile the pinned Galleton daemon with its documented static-provider extension. Published npm users do not need Go. `scripts/build-daemon.mjs` downloads one pinned Galleton source archive and caches the resulting platform binaries in the OS temporary directory.
+
+`src/report-catalog.json` records the 48 observed report schemas from `semrush-web-mcp`. CLI options, MCP tools and input validation derive from this catalog. `src/report-parameters.ts` maps validated queries to fixed request shapes. Differential cases in `tests/reference-cases.json` preserve the Python reference's wire contract.
+
+Effect service contracts live in `session-service.ts` and `browser-service.ts`. Their layers own the Galleton SDK and browser lifecycle. Browser reports serialize within each runtime. The CLI and MCP are transport boundaries around the same service. Expected failures use tagged Effect errors. Browser resources close when their scope ends.
+
+The Galleton TypeScript SDK is vendored unchanged because it is not published to npm. See `src/vendor/README.md` for the exact commit and update procedure. Its license ships in the npm package.
+
+Tests use real implementations and local fixtures. Live account verification is reported separately in the repository's verification document. No production credentials belong in fixtures or CI.

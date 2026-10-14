@@ -1,0 +1,1096 @@
+[
+  {
+    "name": "account_status",
+    "input": {},
+    "query": {},
+    "params": {}
+  },
+  {
+    "name": "keyword_overview",
+    "input": {
+      "keyword": "email marketing"
+    },
+    "query": {
+      "keyword": "email marketing",
+      "database": "us"
+    },
+    "params": {
+      "phrase": "email marketing",
+      "database": "us",
+      "device": 0,
+      "currency": "USD",
+      "location": 0,
+      "date": ""
+    }
+  },
+  {
+    "name": "keyword_ideas",
+    "input": {
+      "keyword": "email marketing"
+    },
+    "query": {
+      "keyword": "email marketing",
+      "database": "us",
+      "questions_only": false,
+      "limit": 10
+    },
+    "params": {
+      "phrase": "email marketing",
+      "database": "us",
+      "device": 0,
+      "currency": "USD",
+      "location": 0,
+      "date": "",
+      "mode": 0,
+      "questions_only": false
+    }
+  },
+  {
+    "name": "keyword_ideas_summary",
+    "input": {
+      "keyword": "email marketing"
+    },
+    "query": {
+      "keyword": "email marketing",
+      "database": "us",
+      "questions_only": false
+    },
+    "params": {
+      "phrase": "email marketing",
+      "database": "us",
+      "device": 0,
+      "currency": "USD",
+      "location": 0,
+      "date": "",
+      "mode": 0,
+      "questions_only": false
+    }
+  },
+  {
+    "name": "keyword_serp",
+    "input": {
+      "keyword": "email marketing"
+    },
+    "query": {
+      "keyword": "email marketing",
+      "database": "us",
+      "limit": 10
+    },
+    "params": {
+      "phrase": "email marketing",
+      "database": "us",
+      "device": 0,
+      "currency": "USD",
+      "location": 0,
+      "date": ""
+    }
+  },
+  {
+    "name": "keyword_ads",
+    "input": {
+      "keyword": "email marketing"
+    },
+    "query": {
+      "keyword": "email marketing",
+      "database": "us",
+      "limit": 10
+    },
+    "params": {
+      "phrase": "email marketing",
+      "database": "us",
+      "device": 0,
+      "currency": "USD",
+      "location": 0,
+      "date": ""
+    }
+  },
+  {
+    "name": "keyword_clusters",
+    "input": {
+      "keyword": "email marketing"
+    },
+    "query": {
+      "keyword": "email marketing",
+      "database": "us"
+    },
+    "params": {
+      "phrase": "email marketing",
+      "database": "us",
+      "device": 0,
+      "currency": "USD",
+      "location": 0,
+      "date": ""
+    }
+  },
+  {
+    "name": "keyword_magic",
+    "input": {
+      "keyword": "email marketing"
+    },
+    "query": {
+      "keyword": "email marketing",
+      "database": "us",
+      "questions_only": false,
+      "mode": 4,
+      "currency": "USD",
+      "sort_field": "similarity_score",
+      "descending": true,
+      "filters": {},
+      "groups": [],
+      "page": 1,
+      "page_size": 100
+    },
+    "params": {
+      "phrase": "email marketing",
+      "database": "us",
+      "currency": "USD",
+      "mode": 4,
+      "questions_only": false,
+      "topics_enabled": true,
+      "filter": {
+        "phrase": [],
+        "competition_level": [],
+        "cpc": [],
+        "difficulty": [],
+        "results": [],
+        "volume": [],
+        "words_count": [],
+        "serp_features": [
+          {
+            "inverted": false,
+            "value": []
+          }
+        ],
+        "phrase_include_logic": 0
+      },
+      "groups": [],
+      "order": {
+        "direction": 1,
+        "field": "similarity_score"
+      },
+      "groups_order": {
+        "direction": 1,
+        "field": "relevance"
+      },
+      "page": {
+        "number": 1,
+        "size": 100
+      }
+    }
+  },
+  {
+    "name": "keyword_magic_summary",
+    "input": {
+      "keyword": "email marketing"
+    },
+    "query": {
+      "keyword": "email marketing",
+      "database": "us",
+      "questions_only": false,
+      "mode": 4,
+      "currency": "USD",
+      "sort_field": "similarity_score",
+      "descending": true,
+      "filters": {},
+      "groups": []
+    },
+    "params": {
+      "phrase": "email marketing",
+      "database": "us",
+      "currency": "USD",
+      "mode": 4,
+      "questions_only": false,
+      "topics_enabled": true,
+      "filter": {
+        "phrase": [],
+        "competition_level": [],
+        "cpc": [],
+        "difficulty": [],
+        "results": [],
+        "volume": [],
+        "words_count": [],
+        "serp_features": [
+          {
+            "inverted": false,
+            "value": []
+          }
+        ],
+        "phrase_include_logic": 0
+      },
+      "groups": [],
+      "order": {
+        "direction": 1,
+        "field": "similarity_score"
+      },
+      "groups_order": {
+        "direction": 1,
+        "field": "relevance"
+      }
+    }
+  },
+  {
+    "name": "keyword_magic_groups",
+    "input": {
+      "keyword": "email marketing"
+    },
+    "query": {
+      "keyword": "email marketing",
+      "database": "us",
+      "questions_only": false,
+      "mode": 4,
+      "currency": "USD",
+      "sort_field": "similarity_score",
+      "descending": true,
+      "filters": {},
+      "groups": [],
+      "page": 1,
+      "page_size": 100
+    },
+    "params": {
+      "phrase": "email marketing",
+      "database": "us",
+      "currency": "USD",
+      "mode": 4,
+      "questions_only": false,
+      "topics_enabled": true,
+      "filter": {
+        "phrase": [],
+        "competition_level": [],
+        "cpc": [],
+        "difficulty": [],
+        "results": [],
+        "volume": [],
+        "words_count": [],
+        "serp_features": [
+          {
+            "inverted": false,
+            "value": []
+          }
+        ],
+        "phrase_include_logic": 0
+      },
+      "groups": [],
+      "order": {
+        "direction": 1,
+        "field": "similarity_score"
+      },
+      "groups_order": {
+        "direction": 1,
+        "field": "relevance"
+      },
+      "groups_page": {
+        "number": 1,
+        "size": 100
+      }
+    }
+  },
+  {
+    "name": "domain_overview",
+    "input": {
+      "domain": "openai.com"
+    },
+    "query": {
+      "domain": "openai.com",
+      "database": "us"
+    },
+    "params": {
+      "searchItem": "openai.com",
+      "searchType": "domain",
+      "dateFormat": "date",
+      "dateType": "daily",
+      "database": "us"
+    }
+  },
+  {
+    "name": "domain_keywords",
+    "input": {
+      "domain": "openai.com"
+    },
+    "query": {
+      "domain": "openai.com",
+      "database": "us",
+      "date": null,
+      "search_type": "domain",
+      "date_type": "daily",
+      "page": 1,
+      "page_size": 100,
+      "sort_field": "trafficPercent",
+      "descending": true,
+      "filters": {}
+    },
+    "params": {
+      "searchItem": "openai.com",
+      "searchType": "domain",
+      "dateType": "daily",
+      "database": "us",
+      "display": {
+        "page": 1,
+        "pageSize": 100,
+        "order": {
+          "field": "trafficPercent",
+          "direction": "desc"
+        }
+      },
+      "positionsType": "all",
+      "filter": {}
+    }
+  },
+  {
+    "name": "domain_pages",
+    "input": {
+      "domain": "openai.com"
+    },
+    "query": {
+      "domain": "openai.com",
+      "database": "us",
+      "date": null,
+      "search_type": "domain",
+      "date_type": "daily",
+      "page": 1,
+      "page_size": 100,
+      "sort_field": "traffic",
+      "descending": true,
+      "filters": {}
+    },
+    "params": {
+      "searchItem": "openai.com",
+      "searchType": "domain",
+      "dateType": "daily",
+      "database": "us",
+      "display": {
+        "page": 1,
+        "pageSize": 100,
+        "order": {
+          "field": "traffic",
+          "direction": "desc"
+        }
+      },
+      "filter": {}
+    }
+  },
+  {
+    "name": "domain_subdomains",
+    "input": {
+      "domain": "openai.com"
+    },
+    "query": {
+      "domain": "openai.com",
+      "database": "us",
+      "date": null,
+      "search_type": "domain",
+      "date_type": "daily",
+      "page": 1,
+      "page_size": 100,
+      "sort_field": "traffic",
+      "descending": true,
+      "filters": {}
+    },
+    "params": {
+      "searchItem": "openai.com",
+      "searchType": "domain",
+      "dateType": "daily",
+      "database": "us",
+      "display": {
+        "page": 1,
+        "pageSize": 100,
+        "order": {
+          "field": "traffic",
+          "direction": "desc"
+        }
+      },
+      "filter": {}
+    }
+  },
+  {
+    "name": "domain_position_changes",
+    "input": {
+      "domain": "openai.com"
+    },
+    "query": {
+      "domain": "openai.com",
+      "database": "us",
+      "date": null,
+      "search_type": "domain",
+      "date_type": "daily",
+      "page": 1,
+      "page_size": 100,
+      "sort_field": "changeOfTraffic",
+      "descending": true,
+      "filters": {}
+    },
+    "params": {
+      "searchItem": "openai.com",
+      "searchType": "domain",
+      "dateType": "daily",
+      "database": "us",
+      "display": {
+        "page": 1,
+        "pageSize": 100,
+        "order": {
+          "field": "changeOfTraffic",
+          "direction": "desc"
+        }
+      },
+      "positionsType": "all",
+      "filter": {},
+      "changesTypes": null,
+      "dateRange": null
+    }
+  },
+  {
+    "name": "domain_competitors",
+    "input": {
+      "domain": "openai.com"
+    },
+    "query": {
+      "domain": "openai.com",
+      "database": "us",
+      "date": null,
+      "search_type": "domain",
+      "date_type": "daily",
+      "page": 1,
+      "page_size": 100,
+      "sort_field": "competitionLvl",
+      "descending": true
+    },
+    "params": {
+      "searchItem": "openai.com",
+      "searchType": "domain",
+      "dateType": "daily",
+      "database": "us",
+      "display": {
+        "page": 1,
+        "pageSize": 100,
+        "order": {
+          "field": "competitionLvl",
+          "direction": "desc"
+        }
+      }
+    }
+  },
+  {
+    "name": "domain_backlinks",
+    "input": {
+      "domain": "openai.com"
+    },
+    "query": {
+      "domain": "openai.com"
+    },
+    "params": {
+      "searchItem": "openai.com",
+      "searchType": "domain",
+      "dateFormat": "date",
+      "dateType": "daily"
+    }
+  },
+  {
+    "name": "domain_ai_visibility",
+    "input": {
+      "domain": "openai.com"
+    },
+    "query": {
+      "domain": "openai.com"
+    },
+    "params": {
+      "searchItem": "openai.com",
+      "searchType": "domain",
+      "dateFormat": "date",
+      "dateType": "daily"
+    }
+  },
+  {
+    "name": "domain_ai_countries",
+    "input": {
+      "domain": "openai.com"
+    },
+    "query": {
+      "domain": "openai.com"
+    },
+    "params": {
+      "searchItem": "openai.com",
+      "searchType": "domain",
+      "dateFormat": "date",
+      "dateType": "daily"
+    }
+  },
+  {
+    "name": "domain_ai_sources",
+    "input": {
+      "domain": "openai.com"
+    },
+    "query": {
+      "domain": "openai.com",
+      "database": "us",
+      "limit": 20,
+      "offset": 0
+    },
+    "params": {
+      "searchItem": "openai.com",
+      "searchType": "domain",
+      "dateFormat": "date",
+      "dateType": "daily",
+      "database": "us",
+      "range": {
+        "limit": 20,
+        "offset": 0
+      }
+    }
+  },
+  {
+    "name": "domain_trends",
+    "input": {
+      "domain": "openai.com"
+    },
+    "query": {
+      "domain": "openai.com",
+      "database": "us",
+      "date_type": "monthly",
+      "global_data": false
+    },
+    "params": {
+      "searchItem": "openai.com",
+      "searchType": "domain",
+      "dateType": "monthly",
+      "database": "us",
+      "dateRange": null,
+      "global": false
+    }
+  },
+  {
+    "name": "domain_paid_keywords",
+    "input": {
+      "domain": "openai.com"
+    },
+    "query": {
+      "domain": "openai.com",
+      "database": "us",
+      "limit": 5
+    },
+    "params": {
+      "searchItem": "openai.com",
+      "searchType": "domain",
+      "dateFormat": "date",
+      "dateType": "daily",
+      "database": "us"
+    }
+  },
+  {
+    "name": "domain_paid_competitors",
+    "input": {
+      "domain": "openai.com"
+    },
+    "query": {
+      "domain": "openai.com",
+      "database": "us",
+      "limit": 5
+    },
+    "params": {
+      "searchItem": "openai.com",
+      "searchType": "domain",
+      "dateFormat": "date",
+      "dateType": "daily",
+      "database": "us",
+      "display": {
+        "page": 1,
+        "pageSize": 5
+      },
+      "youDomain": true
+    }
+  },
+  {
+    "name": "domain_topics",
+    "input": {
+      "domain": "openai.com"
+    },
+    "query": {
+      "domain": "openai.com",
+      "database": "us"
+    },
+    "params": {
+      "searchItem": "openai.com",
+      "searchType": "domain",
+      "database": "us"
+    }
+  },
+  {
+    "name": "domain_topics_status",
+    "input": {
+      "domain": "openai.com"
+    },
+    "query": {
+      "domain": "openai.com",
+      "database": "us"
+    },
+    "params": {
+      "searchItem": "openai.com",
+      "searchType": "domain",
+      "database": "us"
+    }
+  },
+  {
+    "name": "databases",
+    "input": {},
+    "query": {},
+    "params": {}
+  },
+  {
+    "name": "snapshot_dates",
+    "input": {},
+    "query": {
+      "database": "us",
+      "global_data": false
+    },
+    "params": {
+      "database": "us",
+      "global": false,
+      "dateFormat": "date"
+    }
+  },
+  {
+    "name": "report_permissions",
+    "input": {},
+    "query": {
+      "database": "us"
+    },
+    "params": {
+      "database": "us"
+    }
+  },
+  {
+    "name": "backlink_links",
+    "input": {
+      "domain": "openai.com"
+    },
+    "query": {
+      "domain": "openai.com",
+      "target_type": "root_domain",
+      "filters": "",
+      "page": 0,
+      "sort_field": "",
+      "descending": true
+    },
+    "params": {
+      "target": "openai.com",
+      "target_type": "root_domain",
+      "action": "report",
+      "type": "backlinks",
+      "display_page": 0,
+      "sort_field": "page_ascore",
+      "sort_type": "desc"
+    }
+  },
+  {
+    "name": "backlink_referring_domains",
+    "input": {
+      "domain": "openai.com"
+    },
+    "query": {
+      "domain": "openai.com",
+      "target_type": "root_domain",
+      "filters": "",
+      "page": 0,
+      "sort_field": "",
+      "descending": true
+    },
+    "params": {
+      "target": "openai.com",
+      "target_type": "root_domain",
+      "action": "report",
+      "type": "backlinks_refdomains",
+      "display_page": 0,
+      "sort_field": "backlinksnum",
+      "sort_type": "desc"
+    }
+  },
+  {
+    "name": "backlink_history",
+    "input": {
+      "domain": "openai.com"
+    },
+    "query": {
+      "domain": "openai.com",
+      "target_type": "root_domain"
+    },
+    "params": {
+      "target": "openai.com",
+      "target_type": "root_domain"
+    }
+  },
+  {
+    "name": "backlink_competitors",
+    "input": {
+      "domain": "openai.com"
+    },
+    "query": {
+      "domain": "openai.com",
+      "target_type": "root_domain"
+    },
+    "params": {
+      "target": "openai.com",
+      "target_type": "root_domain"
+    }
+  },
+  {
+    "name": "backlink_top_pages",
+    "input": {
+      "domain": "openai.com"
+    },
+    "query": {
+      "domain": "openai.com",
+      "target_type": "root_domain",
+      "filters": "",
+      "page": 0,
+      "sort_field": "",
+      "descending": true
+    },
+    "params": {
+      "target": "openai.com",
+      "target_type": "root_domain",
+      "action": "report",
+      "type": "backlinks_pages",
+      "display_page": 0,
+      "sort_field": "domainsnum",
+      "sort_type": "desc"
+    }
+  },
+  {
+    "name": "backlink_anchors",
+    "input": {
+      "domain": "openai.com"
+    },
+    "query": {
+      "domain": "openai.com",
+      "target_type": "root_domain",
+      "filters": "",
+      "page": 0,
+      "sort_field": "",
+      "descending": true
+    },
+    "params": {
+      "target": "openai.com",
+      "target_type": "root_domain",
+      "action": "report",
+      "type": "backlinks_anchors",
+      "display_page": 0,
+      "sort_field": "backlinksnum",
+      "sort_type": "desc"
+    }
+  },
+  {
+    "name": "backlink_outgoing_domains",
+    "input": {
+      "domain": "openai.com"
+    },
+    "query": {
+      "domain": "openai.com",
+      "target_type": "root_domain",
+      "filters": "",
+      "page": 0,
+      "sort_field": "",
+      "descending": true
+    },
+    "params": {
+      "target": "openai.com",
+      "target_type": "root_domain",
+      "action": "report",
+      "type": "backlinks_outgoing_domains",
+      "display_page": 0,
+      "sort_field": "links_num",
+      "sort_type": "desc"
+    }
+  },
+  {
+    "name": "backlink_countries",
+    "input": {
+      "domain": "openai.com"
+    },
+    "query": {
+      "domain": "openai.com",
+      "target_type": "root_domain"
+    },
+    "params": {
+      "target": "openai.com",
+      "target_type": "root_domain"
+    }
+  },
+  {
+    "name": "backlink_authority",
+    "input": {
+      "domain": "openai.com"
+    },
+    "query": {
+      "domain": "openai.com",
+      "target_type": "root_domain"
+    },
+    "params": {
+      "target": "openai.com",
+      "target_type": "root_domain"
+    }
+  },
+  {
+    "name": "backlink_categories",
+    "input": {
+      "domain": "openai.com"
+    },
+    "query": {
+      "domain": "openai.com",
+      "target_type": "root_domain"
+    },
+    "params": {
+      "target": "openai.com",
+      "target_type": "root_domain"
+    }
+  },
+  {
+    "name": "keyword_gap",
+    "input": {
+      "domains": [
+        "openai.com",
+        "anthropic.com"
+      ]
+    },
+    "query": {
+      "database": "us",
+      "domains": [
+        "openai.com",
+        "anthropic.com"
+      ],
+      "filters": "",
+      "gap_type": 2,
+      "limit": 100,
+      "offset": 0
+    },
+    "params": {
+      "targets": [
+        {
+          "product_type": 2,
+          "type": 1,
+          "value": "openai.com",
+          "filters": ""
+        },
+        {
+          "product_type": 2,
+          "type": 1,
+          "value": "anthropic.com",
+          "filters": ""
+        }
+      ],
+      "date": null,
+      "database": "us",
+      "filters": "",
+      "type": 2,
+      "range": {
+        "limit": 100,
+        "offset": 0
+      },
+      "columns": [
+        "KEYWORD",
+        "INTENTS",
+        "VOLUME",
+        "KEYWORD_DIFFICULTY",
+        "CPC",
+        "COMPETITION_DENSITY",
+        "TARGETS_POSITION",
+        "TARGETS_URL",
+        "RESULTS"
+      ],
+      "order": {
+        "column": 6,
+        "direction": 2
+      }
+    }
+  },
+  {
+    "name": "keyword_gap_totals",
+    "input": {
+      "domains": [
+        "openai.com",
+        "anthropic.com"
+      ]
+    },
+    "query": {
+      "database": "us",
+      "domains": [
+        "openai.com",
+        "anthropic.com"
+      ],
+      "filters": ""
+    },
+    "params": {
+      "targets": [
+        {
+          "product_type": 2,
+          "type": 1,
+          "value": "openai.com",
+          "filters": ""
+        },
+        {
+          "product_type": 2,
+          "type": 1,
+          "value": "anthropic.com",
+          "filters": ""
+        }
+      ],
+      "date": null,
+      "database": "us",
+      "filters": ""
+    }
+  },
+  {
+    "name": "keyword_gap_overlap",
+    "input": {
+      "domains": [
+        "openai.com",
+        "anthropic.com"
+      ]
+    },
+    "query": {
+      "database": "us",
+      "domains": [
+        "openai.com",
+        "anthropic.com"
+      ],
+      "filters": ""
+    },
+    "params": {
+      "targets": [
+        {
+          "product_type": 2,
+          "type": 1,
+          "value": "openai.com",
+          "filters": ""
+        },
+        {
+          "product_type": 2,
+          "type": 1,
+          "value": "anthropic.com",
+          "filters": ""
+        }
+      ],
+      "date": null,
+      "database": "us",
+      "filters": ""
+    }
+  },
+  {
+    "name": "backlink_gap",
+    "input": {
+      "domains": [
+        "openai.com",
+        "anthropic.com"
+      ]
+    },
+    "query": {
+      "domains": [
+        "openai.com",
+        "anthropic.com"
+      ],
+      "page": 0,
+      "limit": 100,
+      "filters": "+|backlinksnum_0|Eq|0",
+      "sort_field": "matchesnum",
+      "descending": true,
+      "sort_target": 0
+    },
+    "params": {
+      "action": "report",
+      "type": "backlinks_matrix",
+      "targets[]": [
+        "openai.com",
+        "anthropic.com"
+      ],
+      "target_types[]": [
+        "root_domain",
+        "root_domain"
+      ],
+      "display_limit": 100,
+      "export_columns": "domain,domain_ascore,matches_num,backlinks_num,traffic",
+      "display_filter": "+|backlinksnum_0|Eq|0",
+      "sort_field": "matchesnum",
+      "sort_type": "desc",
+      "sort_target": 0,
+      "display_page": 0
+    }
+  },
+  {
+    "name": "backlink_comparison",
+    "input": {
+      "domains": [
+        "openai.com",
+        "anthropic.com"
+      ]
+    },
+    "query": {
+      "domains": [
+        "openai.com",
+        "anthropic.com"
+      ]
+    },
+    "params": {
+      "action": "report",
+      "type": "backlinks_comparison",
+      "targets[]": [
+        "openai.com",
+        "anthropic.com"
+      ],
+      "target_types[]": [
+        "root_domain",
+        "root_domain"
+      ],
+      "export_columns": "zones,backlinks_historical,geodomains"
+    }
+  },
+  {
+    "name": "projects",
+    "input": {},
+    "query": {
+      "limit": 15,
+      "offset": 0,
+      "filters": {}
+    },
+    "params": {
+      "filter": {},
+      "range": {
+        "limit": 15,
+        "offset": 0
+      }
+    }
+  },
+  {
+    "name": "ai_capabilities",
+    "input": {},
+    "query": {},
+    "params": {}
+  },
+  {
+    "name": "audit_campaigns",
+    "input": {},
+    "query": {},
+    "params": {}
+  },
+  {
+    "name": "folders",
+    "input": {},
+    "query": {},
+    "params": {
+      "limit": 10000,
+      "offset": 0
+    }
+  },
+  {
+    "name": "saved_keyword_lists",
+    "input": {},
+    "query": {},
+    "params": {
+      "ownership": 1,
+      "order": {
+        "field": 3,
+        "direction": 2
+      },
+      "range": {
+        "limit": 1000,
+        "offset": 0
+      }
+    }
+  }
+]

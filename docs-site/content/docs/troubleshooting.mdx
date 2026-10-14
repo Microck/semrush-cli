@@ -1,0 +1,40 @@
+---
+title: Troubleshooting
+description: Diagnose browser, session and account failures.
+---
+
+```sh
+semrush doctor --json
+semrush auth status --json
+semrush auth status --check --json
+```
+
+## Galleton unavailable
+
+Run `semrush setup` once, then `semrush daemon start` after reboot or a deliberate shutdown. The daemon's private log is `~/.local/share/semrush-cli/galleton/daemon.log`. Keep that directory private. If port 8768 belongs to another process, stop that process deliberately or use your own Galleton instance through the documented configuration.
+
+## Browser unavailable
+
+Run `semrush setup` to install Chromium. On Linux, install missing browser libraries with `npx patchright install-deps chromium`. `SEMRUSH_BROWSER_EXECUTABLE` can select an installed Chromium binary. Headless report commands do not require a graphical desktop; `auth login` does.
+
+## Session expired or renewal blocked
+
+Run `semrush auth login`, or reimport a signed-in browser. Restart your MCP client. The tool does not bypass login, CAPTCHA, account revocation or provider challenges. A Galleton cookie refresh cannot guarantee that Semrush will keep a session valid.
+
+## Report denied or empty
+
+Your account's plan, product permissions, history access and quotas apply. A read-only request can consume a report allowance. Paid search, AI and historical reports can be restricted independently. A failure is not an empty dataset. Check the same report in Semrush before changing the command.
+
+## Changed web endpoints
+
+Internal Semrush endpoints can change. Open an issue with the command, CLI version and a redacted error message. Never attach cookies, browser profiles, daemon tokens or bootstrap HTML.
+
+## Uninstall
+
+```sh
+semrush auth logout
+semrush daemon stop
+npm uninstall -g semrush-cli
+```
+
+The private vault and browser cache remain on disk. Remove them yourself only after confirming they contain no sessions you need. This tool never deletes another application's browser profile.

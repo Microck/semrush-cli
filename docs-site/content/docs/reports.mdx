@@ -1,0 +1,703 @@
+---
+title: Report reference
+description: All 48 commands, inputs and observed report families.
+---
+
+Every command also has an MCP tool with underscores in its name. Use `--json` for scripts.
+
+## account-status
+
+Signed-in account and report limits.
+
+```sh
+semrush account-status --help
+```
+
+## keyword-overview
+
+Volume, difficulty, CPC, intent and trends.
+
+```sh
+semrush keyword-overview --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--keyword` | string |  | yes |
+| `--database` | string | `"us"` |  |
+
+## keyword-ideas
+
+Overview sample of related keywords or questions.
+
+```sh
+semrush keyword-ideas --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--keyword` | string |  | yes |
+| `--database` | string | `"us"` |  |
+| `--questions-only` | boolean | `false` |  |
+| `--limit` | integer | `10` |  |
+
+## keyword-ideas-summary
+
+Total related keyword count and volume.
+
+```sh
+semrush keyword-ideas-summary --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--keyword` | string |  | yes |
+| `--database` | string | `"us"` |  |
+| `--questions-only` | boolean | `false` |  |
+
+## keyword-serp
+
+Ranked URLs and SERP features.
+
+```sh
+semrush keyword-serp --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--keyword` | string |  | yes |
+| `--database` | string | `"us"` |  |
+| `--limit` | integer | `10` |  |
+
+## keyword-ads
+
+Search ad copies for a keyword.
+
+```sh
+semrush keyword-ads --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--keyword` | string |  | yes |
+| `--database` | string | `"us"` |  |
+| `--limit` | integer | `10` |  |
+
+## keyword-clusters
+
+Keyword topics and search intents.
+
+```sh
+semrush keyword-clusters --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--keyword` | string |  | yes |
+| `--database` | string | `"us"` |  |
+
+## keyword-magic
+
+Paginated Keyword Magic research with filters and sorting.
+
+```sh
+semrush keyword-magic --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--keyword` | string |  | yes |
+| `--database` | string | `"us"` |  |
+| `--questions-only` | boolean | `false` |  |
+| `--mode` | integer | `4` |  |
+| `--currency` | string | `"USD"` |  |
+| `--sort-field` | string | `"similarity_score"` |  |
+| `--descending` | boolean | `true` |  |
+| `--filters` | object |  |  |
+| `--groups` | array |  |  |
+| `--page` | integer | `1` |  |
+| `--page-size` | integer | `100` |  |
+
+## keyword-magic-summary
+
+Keyword Magic totals for matching filters.
+
+```sh
+semrush keyword-magic-summary --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--keyword` | string |  | yes |
+| `--database` | string | `"us"` |  |
+| `--questions-only` | boolean | `false` |  |
+| `--mode` | integer | `4` |  |
+| `--currency` | string | `"USD"` |  |
+| `--sort-field` | string | `"similarity_score"` |  |
+| `--descending` | boolean | `true` |  |
+| `--filters` | object |  |  |
+| `--groups` | array |  |  |
+
+## keyword-magic-groups
+
+Keyword Magic topic groups.
+
+```sh
+semrush keyword-magic-groups --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--keyword` | string |  | yes |
+| `--database` | string | `"us"` |  |
+| `--questions-only` | boolean | `false` |  |
+| `--mode` | integer | `4` |  |
+| `--currency` | string | `"USD"` |  |
+| `--sort-field` | string | `"similarity_score"` |  |
+| `--descending` | boolean | `true` |  |
+| `--filters` | object |  |  |
+| `--groups` | array |  |  |
+| `--page` | integer | `1` |  |
+| `--page-size` | integer | `100` |  |
+
+## domain-overview
+
+Search metrics and backlink summary.
+
+```sh
+semrush domain-overview --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--domain` | string |  | yes |
+| `--database` | string | `"us"` |  |
+
+## domain-keywords
+
+Paginated organic rankings with filters, sorting and totals.
+
+```sh
+semrush domain-keywords --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--domain` | string |  | yes |
+| `--database` | string | `"us"` |  |
+| `--date` | integer / null | `null` |  |
+| `--search-type` | string | `"domain"` |  |
+| `--date-type` | string | `"daily"` |  |
+| `--page` | integer | `1` |  |
+| `--page-size` | integer | `100` |  |
+| `--sort-field` | string | `"trafficPercent"` |  |
+| `--descending` | boolean | `true` |  |
+| `--filters` | object |  |  |
+
+## domain-pages
+
+Paginated top organic pages with totals.
+
+```sh
+semrush domain-pages --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--domain` | string |  | yes |
+| `--database` | string | `"us"` |  |
+| `--date` | integer / null | `null` |  |
+| `--search-type` | string | `"domain"` |  |
+| `--date-type` | string | `"daily"` |  |
+| `--page` | integer | `1` |  |
+| `--page-size` | integer | `100` |  |
+| `--sort-field` | string | `"traffic"` |  |
+| `--descending` | boolean | `true` |  |
+| `--filters` | object |  |  |
+
+## domain-subdomains
+
+Paginated organic subdomain traffic and keyword totals.
+
+```sh
+semrush domain-subdomains --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--domain` | string |  | yes |
+| `--database` | string | `"us"` |  |
+| `--date` | integer / null | `null` |  |
+| `--search-type` | string | `"domain"` |  |
+| `--date-type` | string | `"daily"` |  |
+| `--page` | integer | `1` |  |
+| `--page-size` | integer | `100` |  |
+| `--sort-field` | string | `"traffic"` |  |
+| `--descending` | boolean | `true` |  |
+| `--filters` | object |  |  |
+
+## domain-position-changes
+
+Paginated ranking changes with totals.
+
+```sh
+semrush domain-position-changes --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--domain` | string |  | yes |
+| `--database` | string | `"us"` |  |
+| `--date` | integer / null | `null` |  |
+| `--search-type` | string | `"domain"` |  |
+| `--date-type` | string | `"daily"` |  |
+| `--page` | integer | `1` |  |
+| `--page-size` | integer | `100` |  |
+| `--sort-field` | string | `"changeOfTraffic"` |  |
+| `--descending` | boolean | `true` |  |
+| `--filters` | object |  |  |
+
+## domain-competitors
+
+Paginated organic search competitors and totals.
+
+```sh
+semrush domain-competitors --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--domain` | string |  | yes |
+| `--database` | string | `"us"` |  |
+| `--date` | integer / null | `null` |  |
+| `--search-type` | string | `"domain"` |  |
+| `--date-type` | string | `"daily"` |  |
+| `--page` | integer | `1` |  |
+| `--page-size` | integer | `100` |  |
+| `--sort-field` | string | `"competitionLvl"` |  |
+| `--descending` | boolean | `true` |  |
+
+## domain-backlinks
+
+Backlink summary, sample links and anchors.
+
+```sh
+semrush domain-backlinks --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--domain` | string |  | yes |
+
+## domain-ai-visibility
+
+AI visibility, mentions and citations.
+
+```sh
+semrush domain-ai-visibility --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--domain` | string |  | yes |
+
+## domain-ai-countries
+
+AI visibility and mentions by country.
+
+```sh
+semrush domain-ai-countries --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--domain` | string |  | yes |
+
+## domain-ai-sources
+
+Top AI citation sources with offset and limit.
+
+```sh
+semrush domain-ai-sources --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--domain` | string |  | yes |
+| `--database` | string | `"us"` |  |
+| `--limit` | integer | `20` |  |
+| `--offset` | integer | `0` |  |
+
+## domain-trends
+
+Daily or monthly organic and paid search trends.
+
+```sh
+semrush domain-trends --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--domain` | string |  | yes |
+| `--database` | string | `"us"` |  |
+| `--date-type` | string | `"monthly"` |  |
+| `--global-data` | boolean | `false` |  |
+
+## domain-paid-keywords
+
+Paid keyword overview sample; account permissions apply.
+
+```sh
+semrush domain-paid-keywords --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--domain` | string |  | yes |
+| `--database` | string | `"us"` |  |
+| `--limit` | integer | `5` |  |
+
+## domain-paid-competitors
+
+Paid search competitors; account permissions apply.
+
+```sh
+semrush domain-paid-competitors --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--domain` | string |  | yes |
+| `--database` | string | `"us"` |  |
+| `--limit` | integer | `5` |  |
+
+## domain-topics
+
+Organic search topics already available for a domain.
+
+```sh
+semrush domain-topics --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--domain` | string |  | yes |
+| `--database` | string | `"us"` |  |
+
+## domain-topics-status
+
+Availability of domain organic topics.
+
+```sh
+semrush domain-topics-status --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--domain` | string |  | yes |
+| `--database` | string | `"us"` |  |
+
+## databases
+
+Search databases and account access.
+
+```sh
+semrush databases --help
+```
+
+## snapshot-dates
+
+Available historical domain snapshots.
+
+```sh
+semrush snapshot-dates --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--database` | string | `"us"` |  |
+| `--global-data` | boolean | `false` |  |
+
+## report-permissions
+
+Account history, export and research permissions.
+
+```sh
+semrush report-permissions --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--database` | string | `"us"` |  |
+
+## backlink-links
+
+Paginated backlinks with provider caps and totals.
+
+```sh
+semrush backlink-links --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--domain` | string |  | yes |
+| `--target-type` | string | `"root_domain"` |  |
+| `--filters` | string | `""` |  |
+| `--page` | integer | `0` |  |
+| `--sort-field` | string | `""` |  |
+| `--descending` | boolean | `true` |  |
+
+## backlink-referring-domains
+
+Paginated referring domains.
+
+```sh
+semrush backlink-referring-domains --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--domain` | string |  | yes |
+| `--target-type` | string | `"root_domain"` |  |
+| `--filters` | string | `""` |  |
+| `--page` | integer | `0` |  |
+| `--sort-field` | string | `""` |  |
+| `--descending` | boolean | `true` |  |
+
+## backlink-history
+
+Historical backlink and referring-domain trends.
+
+```sh
+semrush backlink-history --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--domain` | string |  | yes |
+| `--target-type` | string | `"root_domain"` |  |
+
+## backlink-competitors
+
+Competitors sharing a backlink profile.
+
+```sh
+semrush backlink-competitors --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--domain` | string |  | yes |
+| `--target-type` | string | `"root_domain"` |  |
+
+## backlink-top-pages
+
+Paginated indexed pages ranked by referring domains.
+
+```sh
+semrush backlink-top-pages --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--domain` | string |  | yes |
+| `--target-type` | string | `"root_domain"` |  |
+| `--filters` | string | `""` |  |
+| `--page` | integer | `0` |  |
+| `--sort-field` | string | `""` |  |
+| `--descending` | boolean | `true` |  |
+
+## backlink-anchors
+
+Paginated anchor texts and backlink counts.
+
+```sh
+semrush backlink-anchors --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--domain` | string |  | yes |
+| `--target-type` | string | `"root_domain"` |  |
+| `--filters` | string | `""` |  |
+| `--page` | integer | `0` |  |
+| `--sort-field` | string | `""` |  |
+| `--descending` | boolean | `true` |  |
+
+## backlink-outgoing-domains
+
+Paginated outbound domains and outgoing link counts.
+
+```sh
+semrush backlink-outgoing-domains --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--domain` | string |  | yes |
+| `--target-type` | string | `"root_domain"` |  |
+| `--filters` | string | `""` |  |
+| `--page` | integer | `0` |  |
+| `--sort-field` | string | `""` |  |
+| `--descending` | boolean | `true` |  |
+
+## backlink-countries
+
+Referring-domain country distribution.
+
+```sh
+semrush backlink-countries --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--domain` | string |  | yes |
+| `--target-type` | string | `"root_domain"` |  |
+
+## backlink-authority
+
+Authority score and supporting metrics.
+
+```sh
+semrush backlink-authority --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--domain` | string |  | yes |
+| `--target-type` | string | `"root_domain"` |  |
+
+## backlink-categories
+
+Referring-domain category profile.
+
+```sh
+semrush backlink-categories --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--domain` | string |  | yes |
+| `--target-type` | string | `"root_domain"` |  |
+
+## keyword-gap
+
+Paginated organic keyword gap between two to five sites.
+
+```sh
+semrush keyword-gap --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--database` | string | `"us"` |  |
+| `--domains` | array |  | yes |
+| `--filters` | string | `""` |  |
+| `--gap-type` | integer | `2` |  |
+| `--limit` | integer | `100` |  |
+| `--offset` | integer | `0` |  |
+
+## keyword-gap-totals
+
+Counts for keyword overlap and opportunity types.
+
+```sh
+semrush keyword-gap-totals --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--database` | string | `"us"` |  |
+| `--domains` | array |  | yes |
+| `--filters` | string | `""` |  |
+
+## keyword-gap-overlap
+
+Organic keyword profile overlaps.
+
+```sh
+semrush keyword-gap-overlap --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--database` | string | `"us"` |  |
+| `--domains` | array |  | yes |
+| `--filters` | string | `""` |  |
+
+## backlink-gap
+
+Paginated link-building prospects shared by competitors but missing from your site.
+
+```sh
+semrush backlink-gap --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--domains` | array |  | yes |
+| `--page` | integer | `0` |  |
+| `--limit` | integer | `100` |  |
+| `--filters` | string | `"+\|backlinksnum_0\|Eq\|0"` |  |
+| `--sort-field` | string | `"matchesnum"` |  |
+| `--descending` | boolean | `true` |  |
+| `--sort-target` | integer | `0` |  |
+
+## backlink-comparison
+
+Compare backlink history, country distribution and domain zones.
+
+```sh
+semrush backlink-comparison --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--domains` | array |  | yes |
+
+## projects
+
+Existing projects and folder access, with pagination.
+
+```sh
+semrush projects --help
+```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--limit` | integer | `15` |  |
+| `--offset` | integer | `0` |  |
+| `--filters` | object |  |  |
+
+## ai-capabilities
+
+Account AI Visibility Toolkit access and limits.
+
+```sh
+semrush ai-capabilities --help
+```
+
+## audit-campaigns
+
+Existing Site Audit campaigns; does not start a crawl.
+
+```sh
+semrush audit-campaigns --help
+```
+
+## folders
+
+Accessible project folders.
+
+```sh
+semrush folders --help
+```
+
+## saved-keyword-lists
+
+Existing saved keyword lists.
+
+```sh
+semrush saved-keyword-lists --help
+```
+

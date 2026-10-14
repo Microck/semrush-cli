@@ -1,0 +1,40 @@
+---
+title: Output and scripting
+description: JSON, pagination, large identifiers and exit codes.
+---
+
+```sh
+semrush keyword-overview --keyword 'email marketing' --json > keyword.json
+semrush domain-keywords --domain openai.com --page 2 --page-size 20 --json
+semrush keyword-gap --domains '["openai.com","anthropic.com"]' --json
+semrush backlink-links --domain openai.com --filters '+|type||nofollow' --json
+semrush keyword-magic --keyword 'email marketing' --questions-only --descending false --json
+```
+
+Objects and arrays are JSON arguments. Booleans accept a bare positive flag or `true` / `false`. Required arguments and numeric bounds appear in each command's help. `--json` works before or after the command.
+
+```sh
+semrush domain-keywords --help
+semrush reports --json
+```
+
+Successful reports return:
+
+```json
+{"authenticated":true,"report":"keyword_overview","data":{}}
+```
+
+The example shows the envelope only. `data` contains the provider's actual response. Domain keyword and page reports contain rows, provider totals and the requested page. Other nesting follows the Semrush report. Integers outside JavaScript's safe range become decimal strings. Credential fields and echoed secrets are removed recursively.
+
+Keyword Magic and organic report pages start at 1. Backlink pages start at 0. Gaps use `offset` or a zero-based backlink page. Provider caps remain visible. There is no automatic pagination or unlimited-export promise.
+
+Exit codes are 0 for success, 1 for authentication/service/report failures and 2 for invalid usage. Errors go to stderr. Commands never prompt for terminal input. Reports are not automatically retried, because repeated requests can consume allowances.
+
+Historical timestamps come from `snapshot-dates`:
+
+```sh
+semrush snapshot-dates --database us --json
+semrush domain-keywords --domain openai.com --database mobile-us --date 1789430400 --date-type monthly --json
+```
+
+Account access determines which historical and mobile reports are available.

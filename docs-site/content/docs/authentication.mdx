@@ -1,0 +1,54 @@
+---
+title: Authentication
+description: Sign in, import a browser, and manage encrypted sessions.
+---
+
+## Visible sign-in
+
+```sh
+semrush setup
+semrush auth login
+semrush auth status --check --json
+```
+
+Sign-in requires a graphical desktop. The CLI waits up to five minutes. Credentials remain in the browser and encrypted Galleton vault. The CLI never logs cookies or page-owned API keys.
+
+## Import an existing browser
+
+Start a dedicated Chromium profile with a loopback debugging port, sign into Semrush, then import it:
+
+```sh
+semrush auth import --cdp-url http://127.0.0.1:9234
+semrush doctor
+```
+
+The browser must already be running with CDP enabled. The reference `semrush-web-mcp` browser on port 9234 is supported. Import opens and closes one temporary page. It does not stop or reconfigure that browser. Use SSH forwarding for remote browsers. Public CDP endpoints are rejected.
+
+Import verifies the account before storing cookies. Repeating import replaces only the selected CLI profile, using Galleton's revision check.
+
+## Storage and lifecycle
+
+Galleton owns the durable cookies. Every CLI process starts a transient browser context from the stored session. The MCP server reuses one context and serializes report requests. Successful reports save updated cookies back through the SDK. No plaintext cookie export or persistent Chromium profile is created by this tool.
+
+Galleton encrypts its vault with AES-256-GCM. The local key and vault share a private state directory. This protects against accidental file disclosure, not another process running as your OS user. Its daemon API token grants access to all profiles in that daemon.
+
+The bundled Galleton daemon includes a documented storage-only provider. It never schedules renewal or fabricates a refresh token. Semrush validates the stored session before each report. If it expires, sign in or import again. The TypeScript SDK remains unchanged. See the repository architecture document for the exact patch, tests and upstream removal criteria.
+
+```sh
+semrush auth logout
+semrush daemon stop
+semrush daemon start
+```
+
+Logout forgets only this CLI's Galleton profile. It does not log out your other browsers. The default daemon continues after the terminal closes; run `daemon start` after a machine reboot. No system startup service is installed automatically.
+
+## Configuration
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `SEMRUSH_GALLETON_URL` | `http://127.0.0.1:8768` | Existing literal-loopback Galleton API |
+| `SEMRUSH_GALLETON_TOKEN_FILE` | `~/.local/share/semrush-cli/galleton/api.token` | Local API token file |
+| `SEMRUSH_SESSION` | `semrush-cli` | Galleton session ID |
+| `SEMRUSH_BROWSER_EXECUTABLE` | Patchright Chromium | Optional system Chromium executable |
+
+The `setup` and `daemon` commands always manage the CLI-owned default daemon. To use another compatible Galleton instance, build it with this repository's static-provider extension and configure its `semrush` provider with the supplied adapter, set the URL and token file variables, and use the auth/report commands. Never expose the daemon API token in browser code or publish it.

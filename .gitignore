@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env*
+*.tgz
+.next/
+.source/
+.vercel/
+coverage/
+*.tsbuildinfo

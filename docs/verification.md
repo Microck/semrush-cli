@@ -1,0 +1,49 @@
+# Verification
+
+Verified on 2026-10-14. Evidence is separated by layer.
+
+## Automated checks
+
+- TypeScript strict typecheck passes.
+- Oxlint generic anti-slop rules, the Effect plugin and complexity checks pass with warnings denied.
+- 61 Vitest tests pass. These include all 48 request-shape comparisons against the Python reference, schema/default checks, credential redaction, exact large IDs, executable behavior and three real-browser integration cases.
+- Browser integration starts a real isolated Galleton daemon and Chromium against a local HTTP fixture. It verifies restored cookies, report decoding, cookie rotation persisted through the SDK, expiry refusal before report requests, and redacted provider errors. No module mocks and no Semrush credentials.
+- Building Galleton runs the upstream core Go test suite with the static-provider integration test. It verifies storage without network renewal, origin restrictions, persisted cookie rotation and explicit refresh refusal.
+- Fumadocs built successfully locally. Landing page and docs navigation rendered in Chromium. Public-site and package checks are recorded below as publication finishes.
+
+## Live Semrush account
+
+The authorized browser session was imported into the CLI-owned Galleton vault. A separate transient Chromium process restored the stored cookies and passed `doctor`.
+
+The following CLI reports returned authenticated data:
+
+- `keyword-overview --keyword 'email marketing'`
+- `domain-overview --domain openai.com`
+- `domain-keywords --domain openai.com --page-size 3`, including provider totals
+- `keyword-magic --keyword 'email marketing' --page-size 3`
+- `backlink-links --domain openai.com`
+- `domain-ai-visibility --domain openai.com`
+- `projects`
+- `keyword-gap --domains '["openai.com","anthropic.com"]' --limit 3`
+
+A real MCP SDK client connected through stdio, enumerated 48 read-only tools,
+rejected injected authentication arguments, and read `keyword_overview` with
+an authenticated result. The observed US volume for `email marketing` was 33,100
+at verification time; Semrush data changes.
+
+Live responses stayed outside the repository. The source publication audit
+compared tracked files against actual stored cookies and the daemon token and
+found no credential values.
+
+## Package evidence
+
+`npm pack` produced a 14.4 MB package, approximately 33.9 MB unpacked, containing
+the JavaScript executable, five daemon binaries, licenses and branding. An install
+into a separate temporary prefix ran `semrush --version` and passed a live
+`semrush doctor --json` without relying on source-tree modules.
+
+Linux arm64 has native execution evidence on this host. Other daemon targets are
+cross-compiled. GitHub CI runs packed-package installation, setup and daemon
+shutdown on Linux, macOS and Windows; its status must be checked separately.
+The checks above do not prove all 48 reports are available on every Semrush plan,
+indefinite session validity, or native execution on every compiled architecture.

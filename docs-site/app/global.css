@@ -1,0 +1,27 @@
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+@theme { --color-fd-background: #000; --color-fd-foreground: #fff; --color-fd-card: #000; --color-fd-muted: #101010; --color-fd-primary: #ff8a3d; --color-fd-primary-foreground: #000; }
+:root, .dark { --color-fd-background: #000; --color-fd-foreground: #fff; --color-fd-card: #000; }
+html, body { background: #000; color: #fff; min-height: 100%; }
+body { margin: 0; font-family: Arial, Helvetica, sans-serif; }
+a:focus-visible, button:focus-visible { outline: 2px solid #ff8a3d; outline-offset: 5px; }
+.home { max-width: 1120px; margin: 0 auto; padding: 0 32px 64px; }
+.home nav { display: flex; align-items: center; justify-content: space-between; padding: 28px 0; border-bottom: 1px solid #262626; }
+.home nav a, .home footer a { text-decoration: none; }
+.home .brand { display: flex; align-items: center; gap: 12px; font-weight: 700; }
+.home .links { display: flex; gap: 28px; }
+.hero { padding: 100px 0 64px; display: grid; grid-template-columns: 1fr 0.8fr; gap: 64px; align-items: center; }
+.hero h1 { font-size: clamp(40px, 5vw, 64px); line-height: 1.02; letter-spacing: -0.065em; font-weight: 600; margin: 0 0 28px; }
+.hero p { font-size: 18px; line-height: 1.6; max-width: 440px; }
+.install { padding: 18px 0; border-top: 1px solid #303030; border-bottom: 1px solid #303030; margin: 28px 0; font: 15px ui-monospace, monospace; overflow-x: auto; }
+.home .primary { display: inline-block; background: #fff; color: #000; padding: 13px 18px; text-decoration: none; font-weight: 600; }
+.terminal { border-top: 1px solid #303030; border-bottom: 1px solid #303030; padding: 24px 0; font: 13px/1.8 ui-monospace, monospace; overflow: auto; }
+.terminal .prompt { color: #ff8a3d; }
+.coverage { border-top: 1px solid #262626; padding: 36px 0; }
+.coverage h2 { font-size: 24px; letter-spacing: -.025em; margin: 0 0 24px; }
+.coverage dl { display: grid; grid-template-columns: 180px 1fr; gap: 18px 32px; font-size: 15px; line-height: 1.6; }
+.coverage dt { font-weight: 600; }.coverage dd { margin: 0; }
+.home footer { padding-top: 28px; border-top: 1px solid #262626; display: flex; gap: 24px; flex-wrap: wrap; font-size: 13px; }
+@media(max-width:760px) { .home { padding: 0 20px 40px; }.hero { grid-template-columns: 1fr; padding: 64px 0 40px; gap: 32px; }.coverage dl { grid-template-columns: 1fr; gap: 8px; }.coverage dd { margin-bottom: 16px; }.home .links { gap: 16px; } }
+@media(prefers-reduced-motion:reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }

@@ -1,0 +1,247 @@
+--- a/internal/core/config.go
++++ b/internal/core/config.go
+@@ -96,8 +96,8 @@
+ 		if _, exists := out[p.Name]; exists {
+ 			return nil, errors.New("duplicate provider name")
+ 		}
+-		if p.Kind != "http" && p.Kind != "oauth2" {
+-			return nil, fmt.Errorf("provider %s: kind must be http or oauth2", p.Name)
++		if p.Kind != "http" && p.Kind != "oauth2" && p.Kind != "static" {
++			return nil, fmt.Errorf("provider %s: kind must be http, oauth2 or static", p.Name)
+ 		}
+ 		if len(p.Origins) == 0 || len(p.Origins) > 32 {
+ 			return nil, errors.New("a provider needs 1–32 explicit origins")
+@@ -118,70 +118,80 @@
+ 			seen[origin] = true
+ 			p.Origins[i] = origin
+ 		}
+-		if _, err := p.allowed(p.RefreshURL); err != nil {
+-			return nil, fmt.Errorf("provider %s refresh URL: %w", p.Name, err)
+-		}
+-		if p.RefreshIntervalSeconds < 1 || p.RefreshIntervalSeconds > 86400*30 {
+-			return nil, errors.New("refresh_interval_seconds must be 1–2592000")
+-		}
+-		if p.RefreshBeforeSeconds == 0 {
+-			p.RefreshBeforeSeconds = 60
+-		}
+-		if p.RefreshBeforeSeconds < 0 || p.RefreshBeforeSeconds > 86400 {
+-			return nil, errors.New("invalid refresh_before_seconds")
+-		}
+-		if p.TimeoutSeconds == 0 {
+-			p.TimeoutSeconds = 20
+-		}
+-		if p.TimeoutSeconds < 1 || p.TimeoutSeconds > 120 {
+-			return nil, errors.New("timeout_seconds must be 1–120")
+-		}
+-		if p.Kind == "oauth2" {
+-			if p.RefreshMethod != "" || len(p.RefreshHeaders) > 0 || p.BodyFormat != "" || len(p.Body) > 0 || p.Response != (ResponseMapping{}) {
+-				return nil, errors.New("oauth2 uses its standard request and response; use kind http for custom flows")
+-			}
+-			if p.ClientAuth == "" {
+-				p.ClientAuth = "none"
+-			}
+-			if p.ClientAuth != "none" && p.ClientAuth != "basic" && p.ClientAuth != "body" {
+-				return nil, errors.New("invalid client_auth")
+-			}
+-			if p.ClientAuth != "none" && (p.ClientID == "" || p.ClientSecretEnv == "") {
+-				return nil, errors.New("confidential OAuth clients need client_id and client_secret_env")
+-			}
+-			if p.ClientSecretEnv != "" {
+-				p.secret = os.Getenv(p.ClientSecretEnv)
+-				if p.secret == "" {
+-					return nil, fmt.Errorf("provider %s: client secret environment variable is missing", p.Name)
+-				}
+-			}
++		if p.Kind == "static" {
++			// A static provider stores credentials without inventing provider renewal.
++			if p.RefreshURL != "" || p.RefreshIntervalSeconds != 0 || p.RefreshMethod != "" || len(p.RefreshHeaders) != 0 || len(p.Body) != 0 || p.BodyFormat != "" || p.Response != (ResponseMapping{}) || p.ClientID != "" || p.ClientSecretEnv != "" || p.ClientAuth != "" || p.RetrySafe || p.RefreshBeforeSeconds != 0 {
++				return nil, errors.New("static providers cannot configure renewal")
++			}
++			if p.TimeoutSeconds == 0 { p.TimeoutSeconds = 20 }
++			if p.TimeoutSeconds < 1 || p.TimeoutSeconds > 120 { return nil, errors.New("invalid timeout_seconds") }
+ 		} else {
+-			if p.RefreshMethod == "" {
+-				p.RefreshMethod = "POST"
+-			}
+-			if p.RefreshMethod != "POST" && p.RefreshMethod != "GET" {
+-				return nil, errors.New("refresh_method must be GET or POST")
+-			}
+-			if p.BodyFormat == "" {
+-				p.BodyFormat = "none"
+-			}
+-			if p.BodyFormat != "none" && p.BodyFormat != "form" && p.BodyFormat != "json" {
+-				return nil, errors.New("body_format must be none, form or json")
+-			}
+-			if p.BodyFormat == "none" && len(p.Body) > 0 || p.RefreshMethod == "GET" && p.BodyFormat != "none" {
+-				return nil, errors.New("request body configuration conflicts with refresh method")
+-			}
+-			for _, pointer := range []string{p.Response.AccessToken, p.Response.RefreshToken, p.Response.ExpiresIn, p.Response.ExpiresAt, p.Response.Success} {
+-				if pointer != "" && !strings.HasPrefix(pointer, "/") {
+-					return nil, errors.New("response selectors must be RFC 6901 JSON pointers starting with /")
+-				}
+-			}
+-			for k, v := range p.RefreshHeaders {
+-				if forbiddenHeader(k) || strings.EqualFold(k, "Cookie") || !validHeader(k, v) {
+-					return nil, errors.New("invalid refresh header")
+-				}
+-			}
+-		}
++			if _, err := p.allowed(p.RefreshURL); err != nil {
++				return nil, fmt.Errorf("provider %s refresh URL: %w", p.Name, err)
++			}
++			if p.RefreshIntervalSeconds < 1 || p.RefreshIntervalSeconds > 86400*30 {
++				return nil, errors.New("refresh_interval_seconds must be 1–2592000")
++			}
++			if p.RefreshBeforeSeconds == 0 {
++				p.RefreshBeforeSeconds = 60
++			}
++			if p.RefreshBeforeSeconds < 0 || p.RefreshBeforeSeconds > 86400 {
++				return nil, errors.New("invalid refresh_before_seconds")
++			}
++			if p.TimeoutSeconds == 0 {
++				p.TimeoutSeconds = 20
++			}
++			if p.TimeoutSeconds < 1 || p.TimeoutSeconds > 120 {
++				return nil, errors.New("timeout_seconds must be 1–120")
++			}
++			if p.Kind == "oauth2" {
++				if p.RefreshMethod != "" || len(p.RefreshHeaders) > 0 || p.BodyFormat != "" || len(p.Body) > 0 || p.Response != (ResponseMapping{}) {
++					return nil, errors.New("oauth2 uses its standard request and response; use kind http for custom flows")
++				}
++				if p.ClientAuth == "" {
++					p.ClientAuth = "none"
++				}
++				if p.ClientAuth != "none" && p.ClientAuth != "basic" && p.ClientAuth != "body" {
++					return nil, errors.New("invalid client_auth")
++				}
++				if p.ClientAuth != "none" && (p.ClientID == "" || p.ClientSecretEnv == "") {
++					return nil, errors.New("confidential OAuth clients need client_id and client_secret_env")
++				}
++				if p.ClientSecretEnv != "" {
++					p.secret = os.Getenv(p.ClientSecretEnv)
++					if p.secret == "" {
++						return nil, fmt.Errorf("provider %s: client secret environment variable is missing", p.Name)
++					}
++				}
++			} else {
++				if p.RefreshMethod == "" {
++					p.RefreshMethod = "POST"
++				}
++				if p.RefreshMethod != "POST" && p.RefreshMethod != "GET" {
++					return nil, errors.New("refresh_method must be GET or POST")
++				}
++				if p.BodyFormat == "" {
++					p.BodyFormat = "none"
++				}
++				if p.BodyFormat != "none" && p.BodyFormat != "form" && p.BodyFormat != "json" {
++					return nil, errors.New("body_format must be none, form or json")
++				}
++				if p.BodyFormat == "none" && len(p.Body) > 0 || p.RefreshMethod == "GET" && p.BodyFormat != "none" {
++					return nil, errors.New("request body configuration conflicts with refresh method")
++				}
++				for _, pointer := range []string{p.Response.AccessToken, p.Response.RefreshToken, p.Response.ExpiresIn, p.Response.ExpiresAt, p.Response.Success} {
++					if pointer != "" && !strings.HasPrefix(pointer, "/") {
++						return nil, errors.New("response selectors must be RFC 6901 JSON pointers starting with /")
++					}
++				}
++				for k, v := range p.RefreshHeaders {
++					if forbiddenHeader(k) || strings.EqualFold(k, "Cookie") || !validHeader(k, v) {
++						return nil, errors.New("invalid refresh header")
++					}
++				}
++			}
++		}
++
+ 		raw, _ := json.Marshal(p)
+ 		sum := sha256.Sum256(raw)
+ 		p.hash = hex.EncodeToString(sum[:])
+--- a/internal/core/manager.go
++++ b/internal/core/manager.go
+@@ -181,6 +181,7 @@
+ 	}
+ 	now := time.Now().UTC()
+ 	s := &State{ID: id, Provider: p.Name, ConfigHash: p.hash, Status: "ready", CreatedAt: now, UpdatedAt: now, NextRefresh: now, AccessToken: in.AccessToken, RefreshToken: in.RefreshToken, AccessExpiresAt: in.AccessExpiresAt, Secrets: map[string]string{}}
++	if p.Kind == "static" { s.NextRefresh = time.Time{} }
+ 	for k, v := range in.Secrets {
+ 		if checkID(k) != nil || len(v) > 64<<10 {
+ 			return Metadata{}, invalid("Invalid secret name or size.")
+@@ -340,6 +341,7 @@
+ }
+ 
+ func nextRefreshAfterRenewal(s, before *State, p *Provider, now time.Time) time.Time {
++	if p.Kind == "static" { return time.Time{} }
+ 	next := now.Add(time.Duration(p.RefreshIntervalSeconds) * time.Second)
+ 	consider := func(exp time.Time, unchanged bool) {
+ 		if unchanged || exp.IsZero() || !exp.After(now) {
+@@ -397,6 +399,14 @@
+ 	}
+ 	now := time.Now().UTC()
+ 	s := e.state
++	p := m.providers[s.Provider]
++	if p == nil || s.ConfigHash != p.hash {
++		return problem(409, "configuration_error", "Provider configuration does not match the imported session.")
++	}
++	if p.Kind == "static" {
++		if force { return problem(409, "reauth_required", "Static sessions cannot renew; import authorized credentials again.") }
++		return nil
++	}
+ 	stillValid := s.AccessExpiresAt.IsZero() || now.Before(s.AccessExpiresAt)
+ 	if s.Status == "retry_wait" && now.Before(s.NextRefresh) {
+ 		usable := s.AccessToken != "" && stillValid
+@@ -415,10 +425,6 @@
+ 	}
+ 	if !force && s.Status == "ready" && now.Before(s.NextRefresh) && stillValid {
+ 		return nil
+-	}
+-	p := m.providers[s.Provider]
+-	if p == nil || s.ConfigHash != p.hash {
+-		return problem(409, "configuration_error", "Provider configuration does not match the imported session.")
+ 	}
+ 	// Build before journaling so missing credentials or bad templates don't create
+ 	// an ambiguous network outcome. Client disconnects cannot interrupt persistence.
+@@ -764,7 +770,7 @@
+ 			if !e.mu.TryLock() {
+ 				continue
+ 			}
+-			due := !e.deleted && (e.dirty || ((e.state.Status == "ready" || e.state.Status == "retry_wait") && !time.Now().Before(e.state.NextRefresh)))
++			due := !e.deleted && (e.dirty || ((e.state.Status == "ready" || e.state.Status == "retry_wait") && !e.state.NextRefresh.IsZero() && !time.Now().Before(e.state.NextRefresh)))
+ 			if !due {
+ 				e.mu.Unlock()
+ 				continue
+--- /dev/null
++++ b/internal/core/static_test.go
+@@ -0,0 +1,34 @@
++package core
++
++import (
++ "net/http"
++ "net/http/httptest"
++ "strings"
++ "sync/atomic"
++ "testing"
++ "time"
++)
++
++func TestStaticStoresCookiesWithoutRenewal(t *testing.T) {
++ var calls atomic.Int32
++ upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { calls.Add(1); w.WriteHeader(500) }))
++ defer upstream.Close()
++ p := Provider{Name: "test", Kind: "static", Origins: []string{upstream.URL}, AllowHTTPLoopback: true}
++ m, vault, _ := managerFor(t, p)
++ meta, err := m.Import("alice", Import{Provider:"test", CookieOrigin:upstream.URL, CookieHeader:"session=secret"})
++ if err != nil { t.Fatal(err) }
++ if !meta.NextRefresh.IsZero() { t.Fatal("static import must not schedule renewal") }
++ headers, err := m.Headers("alice", upstream.URL)
++ if err != nil || headers.Headers["Cookie"] != "session=secret" { t.Fatalf("headers failed: %v", err) }
++ if _, err := m.Headers("alice", "https://untrusted.example"); err == nil { t.Fatal("origin restriction lost") }
++ if _, err := m.Refresh("alice"); err == nil { t.Fatal("static refresh must fail explicitly") }
++ if _, err := m.Capture("alice", upstream.URL, []string{"session=rotated; Path=/"}); err != nil { t.Fatal(err) }
++ restored, err := NewManager(vault, Config{Providers: []Provider{p}})
++ if err != nil { t.Fatal(err) }
++ headers, err = restored.Headers("alice", upstream.URL)
++ if err != nil || !strings.Contains(headers.Headers["Cookie"],"rotated") { t.Fatal("rotation not persisted") }
++ if calls.Load() != 0 { t.Fatal("storage made a network request") }
++ expired := "old=expired; Path=/; Expires=" + time.Now().Add(-time.Hour).UTC().Format(http.TimeFormat)
++ if _, err := restored.Capture("alice", upstream.URL, []string{expired}); err != nil { t.Fatal(err) }
++ if _, err := compileProviders(Config{Providers: []Provider{{Name:"bad",Kind:"static",Origins:[]string{upstream.URL},RefreshURL:upstream.URL,AllowHTTPLoopback:true}}}); err == nil { t.Fatal("static renewal configuration accepted") }
++}

@@ -1,0 +1,48 @@
+---
+title: MCP
+description: Connect agents to the same 48 read-only reports.
+---
+
+First complete `semrush setup` and authentication. Add this to your MCP client's configuration:
+
+```json
+{
+  "mcpServers": {
+    "semrush": {
+      "command": "semrush",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+If your client cannot find global npm executables, use the absolute path printed by `command -v semrush`, or configure:
+
+```json
+{
+  "mcpServers": {
+    "semrush": {
+      "command": "npx",
+      "args": ["-y", "semrush-cli@0.1.0", "mcp"]
+    }
+  }
+}
+```
+
+Tool names use underscores, such as `domain_overview`, `keyword_magic` and `backlink_gap`. Their inputs use the same schema keys as the CLI, with underscores instead of hyphens.
+
+```json
+{
+  "name": "keyword_magic",
+  "arguments": {
+    "keyword": "email marketing",
+    "database": "us",
+    "page": 2,
+    "page_size": 20
+  }
+}
+```
+
+The server sends only MCP protocol messages to stdout. Tools are annotated read-only. Account changes, login, daemon management, arbitrary URLs and JavaScript execution are not exposed. Report calls can still consume normal account allowances.
+
+Tool errors have `isError: true`. Reimport an expired session and restart or reconnect the MCP process. Each process owns and cleans up its transient browser.

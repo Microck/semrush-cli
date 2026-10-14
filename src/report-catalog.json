@@ -1,0 +1,1988 @@
+{
+  "account_status": {
+    "method": "user.GetInfo",
+    "description": "Signed-in account and report limits.",
+    "transport": "keyword",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {},
+      "title": "EmptyQuery",
+      "type": "object"
+    }
+  },
+  "keyword_overview": {
+    "method": "keywords.GetInfo",
+    "description": "Volume, difficulty, CPC, intent and trends.",
+    "transport": "keyword",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "keyword": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Keyword",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^[a-z]{2}$",
+          "title": "Database",
+          "type": "string"
+        }
+      },
+      "required": [
+        "keyword"
+      ],
+      "title": "KeywordQuery",
+      "type": "object"
+    }
+  },
+  "keyword_ideas": {
+    "method": "ideas.GetKeywords",
+    "description": "Overview sample of related keywords or questions.",
+    "transport": "keyword",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "keyword": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Keyword",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^[a-z]{2}$",
+          "title": "Database",
+          "type": "string"
+        },
+        "questions_only": {
+          "default": false,
+          "title": "Questions Only",
+          "type": "boolean"
+        },
+        "limit": {
+          "default": 10,
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "keyword"
+      ],
+      "title": "IdeasQuery",
+      "type": "object"
+    }
+  },
+  "keyword_ideas_summary": {
+    "method": "ideas.GetKeywordsSummary",
+    "description": "Total related keyword count and volume.",
+    "transport": "keyword",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "keyword": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Keyword",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^[a-z]{2}$",
+          "title": "Database",
+          "type": "string"
+        },
+        "questions_only": {
+          "default": false,
+          "title": "Questions Only",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "keyword"
+      ],
+      "title": "IdeasSummaryQuery",
+      "type": "object"
+    }
+  },
+  "keyword_serp": {
+    "method": "serp.GetURLs",
+    "description": "Ranked URLs and SERP features.",
+    "transport": "keyword",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "keyword": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Keyword",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^[a-z]{2}$",
+          "title": "Database",
+          "type": "string"
+        },
+        "limit": {
+          "default": 10,
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "keyword"
+      ],
+      "title": "KeywordListQuery",
+      "type": "object"
+    }
+  },
+  "keyword_ads": {
+    "method": "adwords.GetCopies",
+    "description": "Search ad copies for a keyword.",
+    "transport": "keyword",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "keyword": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Keyword",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^[a-z]{2}$",
+          "title": "Database",
+          "type": "string"
+        },
+        "limit": {
+          "default": 10,
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "keyword"
+      ],
+      "title": "KeywordListQuery",
+      "type": "object"
+    }
+  },
+  "keyword_clusters": {
+    "method": "clusters.Get",
+    "description": "Keyword topics and search intents.",
+    "transport": "keyword",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "keyword": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Keyword",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^[a-z]{2}$",
+          "title": "Database",
+          "type": "string"
+        }
+      },
+      "required": [
+        "keyword"
+      ],
+      "title": "KeywordQuery",
+      "type": "object"
+    }
+  },
+  "keyword_magic": {
+    "method": "ideas.GetKeywords",
+    "description": "Paginated Keyword Magic research with filters and sorting.",
+    "transport": "magic",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "keyword": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Keyword",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^[a-z]{2}$",
+          "title": "Database",
+          "type": "string"
+        },
+        "questions_only": {
+          "default": false,
+          "title": "Questions Only",
+          "type": "boolean"
+        },
+        "mode": {
+          "default": 4,
+          "description": "Web Keyword Magic matching mode",
+          "maximum": 4,
+          "minimum": 0,
+          "title": "Mode",
+          "type": "integer"
+        },
+        "currency": {
+          "default": "USD",
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "sort_field": {
+          "default": "similarity_score",
+          "pattern": "^[a-z_]+$",
+          "title": "Sort Field",
+          "type": "string"
+        },
+        "descending": {
+          "default": true,
+          "title": "Descending",
+          "type": "boolean"
+        },
+        "filters": {
+          "additionalProperties": true,
+          "description": "Keyword Magic web filter object",
+          "title": "Filters",
+          "type": "object"
+        },
+        "groups": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Groups",
+          "type": "array"
+        },
+        "page": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Page",
+          "type": "integer"
+        },
+        "page_size": {
+          "default": 100,
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Page Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "keyword"
+      ],
+      "title": "MagicQuery",
+      "type": "object"
+    }
+  },
+  "keyword_magic_summary": {
+    "method": "ideas.GetKeywordsSummary",
+    "description": "Keyword Magic totals for matching filters.",
+    "transport": "magic",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "keyword": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Keyword",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^[a-z]{2}$",
+          "title": "Database",
+          "type": "string"
+        },
+        "questions_only": {
+          "default": false,
+          "title": "Questions Only",
+          "type": "boolean"
+        },
+        "mode": {
+          "default": 4,
+          "description": "Web Keyword Magic matching mode",
+          "maximum": 4,
+          "minimum": 0,
+          "title": "Mode",
+          "type": "integer"
+        },
+        "currency": {
+          "default": "USD",
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "sort_field": {
+          "default": "similarity_score",
+          "pattern": "^[a-z_]+$",
+          "title": "Sort Field",
+          "type": "string"
+        },
+        "descending": {
+          "default": true,
+          "title": "Descending",
+          "type": "boolean"
+        },
+        "filters": {
+          "additionalProperties": true,
+          "description": "Keyword Magic web filter object",
+          "title": "Filters",
+          "type": "object"
+        },
+        "groups": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Groups",
+          "type": "array"
+        }
+      },
+      "required": [
+        "keyword"
+      ],
+      "title": "MagicSummaryQuery",
+      "type": "object"
+    }
+  },
+  "keyword_magic_groups": {
+    "method": "ideas.GetGroups",
+    "description": "Keyword Magic topic groups.",
+    "transport": "magic",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "keyword": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Keyword",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^[a-z]{2}$",
+          "title": "Database",
+          "type": "string"
+        },
+        "questions_only": {
+          "default": false,
+          "title": "Questions Only",
+          "type": "boolean"
+        },
+        "mode": {
+          "default": 4,
+          "description": "Web Keyword Magic matching mode",
+          "maximum": 4,
+          "minimum": 0,
+          "title": "Mode",
+          "type": "integer"
+        },
+        "currency": {
+          "default": "USD",
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "sort_field": {
+          "default": "similarity_score",
+          "pattern": "^[a-z_]+$",
+          "title": "Sort Field",
+          "type": "string"
+        },
+        "descending": {
+          "default": true,
+          "title": "Descending",
+          "type": "boolean"
+        },
+        "filters": {
+          "additionalProperties": true,
+          "description": "Keyword Magic web filter object",
+          "title": "Filters",
+          "type": "object"
+        },
+        "groups": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Groups",
+          "type": "array"
+        },
+        "page": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Page",
+          "type": "integer"
+        },
+        "page_size": {
+          "default": 100,
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Page Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "keyword"
+      ],
+      "title": "MagicQuery",
+      "type": "object"
+    }
+  },
+  "domain_overview": {
+    "method": "organic.Summary",
+    "description": "Search metrics and backlink summary.",
+    "transport": "domain",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "description": "Bare domain, e.g. openai.com",
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^(mobile-)?[a-z]{2}$",
+          "title": "Database",
+          "type": "string"
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "DomainQuery",
+      "type": "object"
+    }
+  },
+  "domain_keywords": {
+    "method": "organic.Positions",
+    "description": "Paginated organic rankings with filters, sorting and totals.",
+    "transport": "domain",
+    "total_method": "organic.PositionsTotal",
+    "web_report": "organic.positions",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "description": "Bare domain, e.g. openai.com",
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^(mobile-)?[a-z]{2}$",
+          "title": "Database",
+          "type": "string"
+        },
+        "date": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Unix snapshot timestamp from snapshot_dates; omit for latest",
+          "title": "Date"
+        },
+        "search_type": {
+          "default": "domain",
+          "pattern": "^(domain|subdomain|subfolder|url)$",
+          "title": "Search Type",
+          "type": "string"
+        },
+        "date_type": {
+          "default": "daily",
+          "pattern": "^(daily|monthly)$",
+          "title": "Date Type",
+          "type": "string"
+        },
+        "page": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Page",
+          "type": "integer"
+        },
+        "page_size": {
+          "default": 100,
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Page Size",
+          "type": "integer"
+        },
+        "sort_field": {
+          "default": "trafficPercent",
+          "pattern": "^[a-zA-Z]+$",
+          "title": "Sort Field",
+          "type": "string"
+        },
+        "descending": {
+          "default": true,
+          "title": "Descending",
+          "type": "boolean"
+        },
+        "filters": {
+          "additionalProperties": true,
+          "description": "Organic report web filter object",
+          "title": "Filters",
+          "type": "object"
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "DomainReportQuery",
+      "type": "object"
+    }
+  },
+  "domain_pages": {
+    "method": "organic.PagesV3",
+    "description": "Paginated top organic pages with totals.",
+    "transport": "domain",
+    "total_method": "organic.PagesTotalV3",
+    "web_report": "organic.pages",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "description": "Bare domain, e.g. openai.com",
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^(mobile-)?[a-z]{2}$",
+          "title": "Database",
+          "type": "string"
+        },
+        "date": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Unix snapshot timestamp from snapshot_dates; omit for latest",
+          "title": "Date"
+        },
+        "search_type": {
+          "default": "domain",
+          "pattern": "^(domain|subdomain|subfolder|url)$",
+          "title": "Search Type",
+          "type": "string"
+        },
+        "date_type": {
+          "default": "daily",
+          "pattern": "^(daily|monthly)$",
+          "title": "Date Type",
+          "type": "string"
+        },
+        "page": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Page",
+          "type": "integer"
+        },
+        "page_size": {
+          "default": 100,
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Page Size",
+          "type": "integer"
+        },
+        "sort_field": {
+          "default": "traffic",
+          "pattern": "^[a-zA-Z]+$",
+          "title": "Sort Field",
+          "type": "string"
+        },
+        "descending": {
+          "default": true,
+          "title": "Descending",
+          "type": "boolean"
+        },
+        "filters": {
+          "additionalProperties": true,
+          "description": "Organic report web filter object",
+          "title": "Filters",
+          "type": "object"
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "DomainPagesQuery",
+      "type": "object"
+    }
+  },
+  "domain_subdomains": {
+    "method": "organic.Subdomains",
+    "description": "Paginated organic subdomain traffic and keyword totals.",
+    "transport": "domain",
+    "total_method": "organic.SubdomainsTotal",
+    "web_report": "organic.subdomains",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "description": "Bare domain, e.g. openai.com",
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^(mobile-)?[a-z]{2}$",
+          "title": "Database",
+          "type": "string"
+        },
+        "date": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Unix snapshot timestamp from snapshot_dates; omit for latest",
+          "title": "Date"
+        },
+        "search_type": {
+          "default": "domain",
+          "pattern": "^(domain|subdomain|subfolder|url)$",
+          "title": "Search Type",
+          "type": "string"
+        },
+        "date_type": {
+          "default": "daily",
+          "pattern": "^(daily|monthly)$",
+          "title": "Date Type",
+          "type": "string"
+        },
+        "page": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Page",
+          "type": "integer"
+        },
+        "page_size": {
+          "default": 100,
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Page Size",
+          "type": "integer"
+        },
+        "sort_field": {
+          "default": "traffic",
+          "pattern": "^[a-zA-Z]+$",
+          "title": "Sort Field",
+          "type": "string"
+        },
+        "descending": {
+          "default": true,
+          "title": "Descending",
+          "type": "boolean"
+        },
+        "filters": {
+          "additionalProperties": true,
+          "description": "Organic report web filter object",
+          "title": "Filters",
+          "type": "object"
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "DomainPagesQuery",
+      "type": "object"
+    }
+  },
+  "domain_position_changes": {
+    "method": "organic.PositionChangesV2",
+    "description": "Paginated ranking changes with totals.",
+    "transport": "domain",
+    "total_method": "organic.PositionChangesTotalV2",
+    "web_report": "organic.changes",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "description": "Bare domain, e.g. openai.com",
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^(mobile-)?[a-z]{2}$",
+          "title": "Database",
+          "type": "string"
+        },
+        "date": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Unix snapshot timestamp from snapshot_dates; omit for latest",
+          "title": "Date"
+        },
+        "search_type": {
+          "default": "domain",
+          "pattern": "^(domain|subdomain|subfolder|url)$",
+          "title": "Search Type",
+          "type": "string"
+        },
+        "date_type": {
+          "default": "daily",
+          "pattern": "^(daily|monthly)$",
+          "title": "Date Type",
+          "type": "string"
+        },
+        "page": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Page",
+          "type": "integer"
+        },
+        "page_size": {
+          "default": 100,
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Page Size",
+          "type": "integer"
+        },
+        "sort_field": {
+          "default": "changeOfTraffic",
+          "pattern": "^[a-zA-Z]+$",
+          "title": "Sort Field",
+          "type": "string"
+        },
+        "descending": {
+          "default": true,
+          "title": "Descending",
+          "type": "boolean"
+        },
+        "filters": {
+          "additionalProperties": true,
+          "description": "Organic report web filter object",
+          "title": "Filters",
+          "type": "object"
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "DomainChangesQuery",
+      "type": "object"
+    }
+  },
+  "domain_competitors": {
+    "method": "organic.Competitors",
+    "description": "Paginated organic search competitors and totals.",
+    "transport": "domain",
+    "total_method": "organic.CompetitorsTotal",
+    "web_report": "organic.competitors",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "description": "Bare domain, e.g. openai.com",
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^(mobile-)?[a-z]{2}$",
+          "title": "Database",
+          "type": "string"
+        },
+        "date": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Unix snapshot timestamp from snapshot_dates; omit for latest",
+          "title": "Date"
+        },
+        "search_type": {
+          "default": "domain",
+          "pattern": "^(domain|subdomain|subfolder|url)$",
+          "title": "Search Type",
+          "type": "string"
+        },
+        "date_type": {
+          "default": "daily",
+          "pattern": "^(daily|monthly)$",
+          "title": "Date Type",
+          "type": "string"
+        },
+        "page": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Page",
+          "type": "integer"
+        },
+        "page_size": {
+          "default": 100,
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Page Size",
+          "type": "integer"
+        },
+        "sort_field": {
+          "default": "competitionLvl",
+          "pattern": "^[a-zA-Z]+$",
+          "title": "Sort Field",
+          "type": "string"
+        },
+        "descending": {
+          "default": true,
+          "title": "Descending",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "DomainCompetitorsQuery",
+      "type": "object"
+    }
+  },
+  "domain_backlinks": {
+    "method": "backlinks.Overview",
+    "description": "Backlink summary, sample links and anchors.",
+    "transport": "domain",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "description": "Bare domain, e.g. openai.com",
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "DomainIdentityQuery",
+      "type": "object"
+    }
+  },
+  "domain_ai_visibility": {
+    "method": "organic.AiSeoSummary",
+    "description": "AI visibility, mentions and citations.",
+    "transport": "domain",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "description": "Bare domain, e.g. openai.com",
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "DomainIdentityQuery",
+      "type": "object"
+    }
+  },
+  "domain_ai_countries": {
+    "method": "organic.AiDistributionByCountry",
+    "description": "AI visibility and mentions by country.",
+    "transport": "domain",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "description": "Bare domain, e.g. openai.com",
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "DomainIdentityQuery",
+      "type": "object"
+    }
+  },
+  "domain_ai_sources": {
+    "method": "organic.AiTopSources",
+    "description": "Top AI citation sources with offset and limit.",
+    "transport": "domain",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "description": "Bare domain, e.g. openai.com",
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^(mobile-)?[a-z]{2}$",
+          "title": "Database",
+          "type": "string"
+        },
+        "limit": {
+          "default": 20,
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "offset": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "AiSourcesQuery",
+      "type": "object"
+    }
+  },
+  "domain_trends": {
+    "method": "organic.OverviewTrend",
+    "description": "Daily or monthly organic and paid search trends.",
+    "transport": "domain",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "description": "Bare domain, e.g. openai.com",
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^(mobile-)?[a-z]{2}$",
+          "title": "Database",
+          "type": "string"
+        },
+        "date_type": {
+          "default": "monthly",
+          "pattern": "^(daily|monthly)$",
+          "title": "Date Type",
+          "type": "string"
+        },
+        "global_data": {
+          "default": false,
+          "title": "Global Data",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "DomainTrendQuery",
+      "type": "object"
+    }
+  },
+  "domain_paid_keywords": {
+    "method": "adwords.PositionsOverview",
+    "description": "Paid keyword overview sample; account permissions apply.",
+    "transport": "domain",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "description": "Bare domain, e.g. openai.com",
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^(mobile-)?[a-z]{2}$",
+          "title": "Database",
+          "type": "string"
+        },
+        "limit": {
+          "default": 5,
+          "maximum": 10,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "DomainListQuery",
+      "type": "object"
+    }
+  },
+  "domain_paid_competitors": {
+    "method": "adwords.CompetitorsOverview",
+    "description": "Paid search competitors; account permissions apply.",
+    "transport": "domain",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "description": "Bare domain, e.g. openai.com",
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^(mobile-)?[a-z]{2}$",
+          "title": "Database",
+          "type": "string"
+        },
+        "limit": {
+          "default": 5,
+          "maximum": 10,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "DomainListQuery",
+      "type": "object"
+    }
+  },
+  "domain_topics": {
+    "method": "organic.TopicsResult",
+    "description": "Organic search topics already available for a domain.",
+    "transport": "domain",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "description": "Bare domain, e.g. openai.com",
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^(mobile-)?[a-z]{2}$",
+          "title": "Database",
+          "type": "string"
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "DomainQuery",
+      "type": "object"
+    }
+  },
+  "domain_topics_status": {
+    "method": "organic.TopicsStatus",
+    "description": "Availability of domain organic topics.",
+    "transport": "domain",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "description": "Bare domain, e.g. openai.com",
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^(mobile-)?[a-z]{2}$",
+          "title": "Database",
+          "type": "string"
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "DomainQuery",
+      "type": "object"
+    }
+  },
+  "databases": {
+    "method": "user.Databases",
+    "description": "Search databases and account access.",
+    "transport": "direct",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {},
+      "title": "EmptyQuery",
+      "type": "object"
+    }
+  },
+  "snapshot_dates": {
+    "method": "organic.SnapshotDates",
+    "description": "Available historical domain snapshots.",
+    "transport": "direct",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "database": {
+          "default": "us",
+          "pattern": "^(mobile-)?[a-z]{2}$",
+          "title": "Database",
+          "type": "string"
+        },
+        "global_data": {
+          "default": false,
+          "title": "Global Data",
+          "type": "boolean"
+        }
+      },
+      "title": "HistoryQuery",
+      "type": "object"
+    }
+  },
+  "report_permissions": {
+    "method": "dpa.UserPermissions",
+    "description": "Account history, export and research permissions.",
+    "transport": "domain",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "database": {
+          "default": "us",
+          "pattern": "^(mobile-)?[a-z]{2}$",
+          "title": "Database",
+          "type": "string"
+        }
+      },
+      "title": "DatabaseQuery",
+      "type": "object"
+    }
+  },
+  "backlink_links": {
+    "method": "backlinks",
+    "description": "Paginated backlinks with provider caps and totals.",
+    "transport": "backlink",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "target_type": {
+          "default": "root_domain",
+          "pattern": "^(root_domain|domain|url)$",
+          "title": "Target Type",
+          "type": "string"
+        },
+        "filters": {
+          "default": "",
+          "description": "Web backlink filter, e.g. +|type||nofollow",
+          "title": "Filters",
+          "type": "string"
+        },
+        "page": {
+          "default": 0,
+          "description": "Zero-based provider page",
+          "minimum": 0,
+          "title": "Page",
+          "type": "integer"
+        },
+        "sort_field": {
+          "default": "",
+          "pattern": "^[a-z_]*$",
+          "title": "Sort Field",
+          "type": "string"
+        },
+        "descending": {
+          "default": true,
+          "title": "Descending",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "BacklinkListQuery",
+      "type": "object"
+    }
+  },
+  "backlink_referring_domains": {
+    "method": "backlinks_refdomains",
+    "description": "Paginated referring domains.",
+    "transport": "backlink",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "target_type": {
+          "default": "root_domain",
+          "pattern": "^(root_domain|domain|url)$",
+          "title": "Target Type",
+          "type": "string"
+        },
+        "filters": {
+          "default": "",
+          "description": "Web backlink filter, e.g. +|type||nofollow",
+          "title": "Filters",
+          "type": "string"
+        },
+        "page": {
+          "default": 0,
+          "description": "Zero-based provider page",
+          "minimum": 0,
+          "title": "Page",
+          "type": "integer"
+        },
+        "sort_field": {
+          "default": "",
+          "pattern": "^[a-z_]*$",
+          "title": "Sort Field",
+          "type": "string"
+        },
+        "descending": {
+          "default": true,
+          "title": "Descending",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "BacklinkListQuery",
+      "type": "object"
+    }
+  },
+  "backlink_history": {
+    "method": "historical",
+    "description": "Historical backlink and referring-domain trends.",
+    "transport": "backlink_overview",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "target_type": {
+          "default": "root_domain",
+          "pattern": "^(root_domain|domain|url)$",
+          "title": "Target Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "BacklinkQuery",
+      "type": "object"
+    }
+  },
+  "backlink_competitors": {
+    "method": "competitors",
+    "description": "Competitors sharing a backlink profile.",
+    "transport": "backlink_overview",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "target_type": {
+          "default": "root_domain",
+          "pattern": "^(root_domain|domain|url)$",
+          "title": "Target Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "BacklinkQuery",
+      "type": "object"
+    }
+  },
+  "backlink_top_pages": {
+    "method": "backlinks_pages",
+    "description": "Paginated indexed pages ranked by referring domains.",
+    "transport": "backlink",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "target_type": {
+          "default": "root_domain",
+          "pattern": "^(root_domain|domain|url)$",
+          "title": "Target Type",
+          "type": "string"
+        },
+        "filters": {
+          "default": "",
+          "description": "Web backlink filter, e.g. +|type||nofollow",
+          "title": "Filters",
+          "type": "string"
+        },
+        "page": {
+          "default": 0,
+          "description": "Zero-based provider page",
+          "minimum": 0,
+          "title": "Page",
+          "type": "integer"
+        },
+        "sort_field": {
+          "default": "",
+          "pattern": "^[a-z_]*$",
+          "title": "Sort Field",
+          "type": "string"
+        },
+        "descending": {
+          "default": true,
+          "title": "Descending",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "BacklinkListQuery",
+      "type": "object"
+    }
+  },
+  "backlink_anchors": {
+    "method": "backlinks_anchors",
+    "description": "Paginated anchor texts and backlink counts.",
+    "transport": "backlink",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "target_type": {
+          "default": "root_domain",
+          "pattern": "^(root_domain|domain|url)$",
+          "title": "Target Type",
+          "type": "string"
+        },
+        "filters": {
+          "default": "",
+          "description": "Web backlink filter, e.g. +|type||nofollow",
+          "title": "Filters",
+          "type": "string"
+        },
+        "page": {
+          "default": 0,
+          "description": "Zero-based provider page",
+          "minimum": 0,
+          "title": "Page",
+          "type": "integer"
+        },
+        "sort_field": {
+          "default": "",
+          "pattern": "^[a-z_]*$",
+          "title": "Sort Field",
+          "type": "string"
+        },
+        "descending": {
+          "default": true,
+          "title": "Descending",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "BacklinkListQuery",
+      "type": "object"
+    }
+  },
+  "backlink_outgoing_domains": {
+    "method": "backlinks_outgoing_domains",
+    "description": "Paginated outbound domains and outgoing link counts.",
+    "transport": "backlink",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "target_type": {
+          "default": "root_domain",
+          "pattern": "^(root_domain|domain|url)$",
+          "title": "Target Type",
+          "type": "string"
+        },
+        "filters": {
+          "default": "",
+          "description": "Web backlink filter, e.g. +|type||nofollow",
+          "title": "Filters",
+          "type": "string"
+        },
+        "page": {
+          "default": 0,
+          "description": "Zero-based provider page",
+          "minimum": 0,
+          "title": "Page",
+          "type": "integer"
+        },
+        "sort_field": {
+          "default": "",
+          "pattern": "^[a-z_]*$",
+          "title": "Sort Field",
+          "type": "string"
+        },
+        "descending": {
+          "default": true,
+          "title": "Descending",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "BacklinkListQuery",
+      "type": "object"
+    }
+  },
+  "backlink_countries": {
+    "method": "geodomains",
+    "description": "Referring-domain country distribution.",
+    "transport": "backlink_overview",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "target_type": {
+          "default": "root_domain",
+          "pattern": "^(root_domain|domain|url)$",
+          "title": "Target Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "BacklinkQuery",
+      "type": "object"
+    }
+  },
+  "backlink_authority": {
+    "method": "ascore",
+    "description": "Authority score and supporting metrics.",
+    "transport": "backlink_overview",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "target_type": {
+          "default": "root_domain",
+          "pattern": "^(root_domain|domain|url)$",
+          "title": "Target Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "BacklinkQuery",
+      "type": "object"
+    }
+  },
+  "backlink_categories": {
+    "method": "category-profile",
+    "description": "Referring-domain category profile.",
+    "transport": "backlink_overview",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "target_type": {
+          "default": "root_domain",
+          "pattern": "^(root_domain|domain|url)$",
+          "title": "Target Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "BacklinkQuery",
+      "type": "object"
+    }
+  },
+  "keyword_gap": {
+    "method": "/spectrum/v1/Gap/KeywordsList",
+    "description": "Paginated organic keyword gap between two to five sites.",
+    "transport": "gap",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "database": {
+          "default": "us",
+          "pattern": "^(mobile-)?[a-z]{2}$",
+          "title": "Database",
+          "type": "string"
+        },
+        "domains": {
+          "description": "Two to five root domains, first is your site",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 5,
+          "minItems": 2,
+          "title": "Domains",
+          "type": "array"
+        },
+        "filters": {
+          "default": "",
+          "description": "Semrush spectrum filter expression",
+          "title": "Filters",
+          "type": "string"
+        },
+        "gap_type": {
+          "default": 2,
+          "description": "Semrush web gap type, default 2",
+          "maximum": 7,
+          "minimum": 1,
+          "title": "Gap Type",
+          "type": "integer"
+        },
+        "limit": {
+          "default": 100,
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "offset": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "domains"
+      ],
+      "title": "GapQuery",
+      "type": "object"
+    }
+  },
+  "keyword_gap_totals": {
+    "method": "/spectrum/v1/Gap/KeywordsTotals",
+    "description": "Counts for keyword overlap and opportunity types.",
+    "transport": "gap",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "database": {
+          "default": "us",
+          "pattern": "^(mobile-)?[a-z]{2}$",
+          "title": "Database",
+          "type": "string"
+        },
+        "domains": {
+          "description": "Two to five root domains, first is your site",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 5,
+          "minItems": 2,
+          "title": "Domains",
+          "type": "array"
+        },
+        "filters": {
+          "default": "",
+          "description": "Semrush spectrum filter expression",
+          "title": "Filters",
+          "type": "string"
+        }
+      },
+      "required": [
+        "domains"
+      ],
+      "title": "GapSummaryQuery",
+      "type": "object"
+    }
+  },
+  "keyword_gap_overlap": {
+    "method": "/spectrum/v1/Gap/Overlaps",
+    "description": "Organic keyword profile overlaps.",
+    "transport": "gap",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "database": {
+          "default": "us",
+          "pattern": "^(mobile-)?[a-z]{2}$",
+          "title": "Database",
+          "type": "string"
+        },
+        "domains": {
+          "description": "Two to five root domains, first is your site",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 5,
+          "minItems": 2,
+          "title": "Domains",
+          "type": "array"
+        },
+        "filters": {
+          "default": "",
+          "description": "Semrush spectrum filter expression",
+          "title": "Filters",
+          "type": "string"
+        }
+      },
+      "required": [
+        "domains"
+      ],
+      "title": "GapSummaryQuery",
+      "type": "object"
+    }
+  },
+  "backlink_gap": {
+    "method": "backlinks_matrix",
+    "description": "Paginated link-building prospects shared by competitors but missing from your site.",
+    "transport": "backlink_gap",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domains": {
+          "description": "Two to five root domains, first is your site",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 5,
+          "minItems": 2,
+          "title": "Domains",
+          "type": "array"
+        },
+        "page": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Page",
+          "type": "integer"
+        },
+        "limit": {
+          "default": 100,
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "filters": {
+          "default": "+|backlinksnum_0|Eq|0",
+          "description": "Web filter; default finds referring domains missing from your site",
+          "title": "Filters",
+          "type": "string"
+        },
+        "sort_field": {
+          "default": "matchesnum",
+          "pattern": "^[a-z_]+$",
+          "title": "Sort Field",
+          "type": "string"
+        },
+        "descending": {
+          "default": true,
+          "title": "Descending",
+          "type": "boolean"
+        },
+        "sort_target": {
+          "default": 0,
+          "maximum": 4,
+          "minimum": 0,
+          "title": "Sort Target",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "domains"
+      ],
+      "title": "BacklinkGapQuery",
+      "type": "object"
+    }
+  },
+  "backlink_comparison": {
+    "method": "backlinks_comparison",
+    "description": "Compare backlink history, country distribution and domain zones.",
+    "transport": "backlink_gap",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domains": {
+          "description": "Two to five root domains, first is your site",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 5,
+          "minItems": 2,
+          "title": "Domains",
+          "type": "array"
+        }
+      },
+      "required": [
+        "domains"
+      ],
+      "title": "BacklinkComparisonQuery",
+      "type": "object"
+    }
+  },
+  "projects": {
+    "method": "/apis/v4-raw/crossroad/api/v0/crossroad/list",
+    "description": "Existing projects and folder access, with pagination.",
+    "transport": "projects",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "limit": {
+          "default": 15,
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "offset": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        },
+        "filters": {
+          "additionalProperties": true,
+          "description": "Project list web filter object",
+          "title": "Filters",
+          "type": "object"
+        }
+      },
+      "title": "ProjectListQuery",
+      "type": "object"
+    }
+  },
+  "ai_capabilities": {
+    "method": "/ai-seo/api/v2/user/user_capabilities",
+    "description": "Account AI Visibility Toolkit access and limits.",
+    "transport": "post",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {},
+      "title": "EmptyQuery",
+      "type": "object"
+    }
+  },
+  "audit_campaigns": {
+    "method": "/siteaudit/api/campaigns/seolist",
+    "description": "Existing Site Audit campaigns; does not start a crawl.",
+    "transport": "get",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {},
+      "title": "EmptyQuery",
+      "type": "object"
+    }
+  },
+  "folders": {
+    "method": "/apis/v4-raw/folders/api/v0/folders/selector-list",
+    "description": "Accessible project folders.",
+    "transport": "get",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {},
+      "title": "EmptyQuery",
+      "type": "object"
+    }
+  },
+  "saved_keyword_lists": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/list/all",
+    "description": "Existing saved keyword lists.",
+    "transport": "post",
+    "total_method": "",
+    "web_report": "domain.overview",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {},
+      "title": "EmptyQuery",
+      "type": "object"
+    }
+  }
+}
