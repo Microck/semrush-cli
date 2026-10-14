@@ -153,6 +153,10 @@ test('real browser and Galleton complete the stateful project lifecycle with exa
     const semrush = yield* Semrush;
     const created = yield* semrush.report(yield* parseReport('project_create', { name: 'Fixture project', domain: 'example.com', confirm: true }));
     expect(created.data).toEqual({ folder: { id: '9223372036854775807', properties: { name: 'Fixture project', domain: 'example.com' } } });
+    const beforeUpdate = observed.filter(entry => entry.startsWith('PUT ')).length;
+    const refused = yield* semrush.report(yield* parseReport('project_update', { folder_id: '9223372036854775807', domain: 'other.example.com', confirm: true })).pipe(Effect.flip);
+    expect(refused.message).toContain('already has a website');
+    expect(observed.filter(entry => entry.startsWith('PUT '))).toHaveLength(beforeUpdate);
     yield* semrush.report(yield* parseReport('project_update', { folder_id: '9223372036854775807', name: 'Renamed fixture', confirm: true }));
     yield* semrush.report(yield* parseReport('project_set_tags', { folder_id: '9223372036854775807', tags: ['fixture'], confirm: true }));
     const current = yield* semrush.report(yield* parseReport('project_get', { folder_id: '9223372036854775807' }));

@@ -84,6 +84,12 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     const params = planned?.body ?? reportParameters(definition, query);
     let reportData: Schema.Json | undefined;
     if (planned) {
+      // The web UI only allows adding a website to a project that has none.
+      if (name === 'project_update' && query.domain !== undefined) {
+        const current = yield* request('/apis/v4-raw/folders/api/v0/folders/folder', { folder_id: query.folder_id ?? null }, 'GET');
+        if (!objectValue(current) || !objectValue(current.folder)) return yield* Effect.fail(new ReportError({ message: 'Project metadata unavailable. Inspect the project before adding a website.' }));
+        if (Predicate.isString(current.folder.domain) && current.folder.domain.length > 0) return yield* Effect.fail(new ReportError({ message: 'This project already has a website. The Semrush web UI only allows adding a website when none is set.' }));
+      }
       reportData = yield* request(planned.path, planned.body, planned.method);
     } else if (['keyword', 'domain', 'direct', 'magic'].includes(family)) reportData = yield* rpc(definition.method, params, family, definition.web_report);
     else {
