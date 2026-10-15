@@ -1,0 +1,74 @@
+---
+title: Keyword lists
+description: Manage Keyword Strategy Builder lists, keywords, tags and clustering.
+---
+
+These commands use the current Keyword Strategy Builder API. Its basket IDs
+are distinct from project folder IDs and the older Saved Keywords collections.
+Use `BasketID` and `Owner.ID` from `keyword-lists` when selecting a list. Shared
+lists retain their owner's ID. Semrush enforces the list's access permissions.
+
+## Create and manage lists
+
+```sh
+semrush-cli keyword-list-limits --json
+semrush-cli keyword-lists --page 1 --page-size 100 --json
+semrush-cli keyword-list-create --name 'research' --dry-run
+semrush-cli keyword-list-create --name 'research' --confirm --json
+semrush-cli keyword-list-get --basket-id 456 --owner-id 123 --json
+semrush-cli keyword-list-rename --basket-id 456 --owner-id 123 --name 'new name' --confirm
+```
+
+Regular list creation adds an empty list. It does not start strategy generation
+or clustering. List reads support a name filter, ownership bitmask, pagination
+and sorting. The default ownership value `7` includes owned and shared lists.
+`keyword-list-delete --basket-id 456 --confirm` permanently deletes one of your
+lists. The MCP tool carries a destructive annotation.
+
+Every write requires `--confirm`, or MCP `confirm:true`. Use `--dry-run` or
+`dry_run:true` to inspect the request before authentication. RPC previews omit
+runtime credentials. No command accepts API keys or arbitrary RPC methods.
+
+## Keywords and tags
+
+```sh
+semrush-cli keyword-list-import --basket-id 456 --owner-id 123 --keywords '["email marketing","seo"]' --database us --confirm
+semrush-cli keyword-list-keywords --basket-id 456 --owner-id 123 --page 1 --page-size 20 --json
+semrush-cli keyword-list-summary --basket-id 456 --owner-id 123 --json
+semrush-cli keyword-list-add-tags --basket-id 456 --owner-id 123 --keywords '["seo"]' --tags '["opportunity"]' --confirm
+semrush-cli keyword-list-tags --basket-id 456 --owner-id 123 --json
+semrush-cli keyword-list-remove-tags --basket-id 456 --owner-id 123 --keywords '["seo"]' --tags '["opportunity"]' --confirm
+```
+
+Keyword selections use a JSON array of phrases and a database flag. Import can
+also attach a common tag array with `--tags`. Account keyword limits apply.
+Keyword reads support pagination, sorting and the web API's `--filters` object.
+Omitted filter fields become empty arrays. Available fields are `ClusterIDs`,
+`Databases`, `Phrase`, `CompetitionLevel`, `Cpc`, `Difficulty`, `SERPFeatures`,
+`Volume`, `ClickPotential`, `Tags` and `Intents`.
+
+To remove phrases, use `keyword-list-delete-keywords` with the same selection
+flags and `--confirm`. It returns an `UndoID`. Restore that deletion with
+`keyword-list-undo-delete --undo-id <UndoID> --confirm`. Restoration uses the
+current account's permissions and the provider's undo lifetime.
+
+## Generation and metric refresh
+
+```sh
+semrush-cli keyword-strategy-create --name 'example strategy' --domain example.com --dry-run
+semrush-cli keyword-strategy-create --name 'topic strategy' --seed-keywords '["email marketing"]' --database us --confirm
+semrush-cli keyword-list-update-metrics --basket-id 456 --owner-id 123 --keywords '["seo"]' --confirm
+semrush-cli keyword-list-cluster-forecast --basket-id 456 --owner-id 123 --json
+semrush-cli keyword-list-cluster --basket-id 456 --owner-id 123 --confirm
+semrush-cli keyword-list-cluster-status --basket-id 456 --owner-id 123 --json
+```
+
+Strategy generation accepts a domain, seed phrases, or both, plus optional
+competitors and database selection. It creates a structured list and consumes
+the clustering allowance. Metric refresh consumes the update allowance. These
+operations are asynchronous. Read their status or refreshed data explicitly;
+the CLI does not retry writes or poll automatically.
+
+List IDs and owner IDs must be exact JSON integers within JavaScript's safe
+integer range. The input schema rejects larger numbers rather than rounding.
+Project folder IDs keep their separate decimal-string representation.

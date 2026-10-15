@@ -14,6 +14,7 @@ export interface Query { [key: string]: Schema.Json; }
 /** Fixed request shapes observed in semrush-web-mcp. No arbitrary RPC or URL input. */
 export function reportParameters(definition: Report, q: Query): Query {
   const family = definition.transport;
+  if (family === 'kwm') return keywordListParameters(definition, q);
   if (family === 'project_web') return projectParameters(definition, q);
   if (family === 'magic') return magicParameters(definition, q);
   if (family === 'keyword') return keywordParameters(definition, q);
@@ -121,8 +122,9 @@ function projectParameters(definition: Report, q: Query): Query {
   return Object.fromEntries(Object.entries(q).filter(([key]) => key !== 'confirm' && key !== 'dry_run'));
 }
 
-/** Paths come only from the catalog; folder IDs pass the decimal-string input schema. */
-export function projectRequest(definition: Report, query: Query) {
+/** Fixed public request plans. RPC credentials enter only inside the browser layer. */
+export function webRequest(definition: Report, query: Query) {
+  if (definition.transport === 'kwm') return { method: 'POST', path: '/kwm/rpc', body: rpcBody(definition.method, reportParameters(definition, query)) };
   return {
     method: definition.http_method,
     path: definition.method.replace('{folder_id}', String(query.folder_id)),
@@ -132,6 +134,44 @@ export function projectRequest(definition: Report, query: Query) {
 
 export function previewMutation(name: string, definition: Report, query: Query) {
   return definition.mutation && query.dry_run === true
-    ? { dry_run: true, report: name, request: projectRequest(definition, query) }
+    ? { dry_run: true, report: name, request: webRequest(definition, query) }
     : undefined;
+}
+
+
+/** One JSON-RPC envelope for execution and credential-free previews. */
+export function rpcBody(method: string, params: Query): Query { return { id: 1, jsonrpc: '2.0', method, params }; }
+
+/** Keyword Strategy Builder's casing differs from the keyword-research API. */
+function keywordListParameters(definition: Report, q: Query): Query {
+  const method = definition.method;
+  if (method === 'user.GetInfo') return {};
+  if (method === 'baskets.BasketsGetAll') return {
+    Order: { Direction: q.descending ? 1 : 0, Field: q.sort_field ?? null },
+    Page: { Number: q.page ?? null, Size: q.page_size ?? null },
+    Filter: { Name: q.name_filter ?? '', OwningType: q.ownership ?? 7 },
+  };
+  if (method === 'baskets.BasketCreate') return {
+    Name: q.name ?? null,
+    Clusterization: 'seed_keywords' in q ? { Databases: [q.database ?? 'us'], Domain: q.domain ?? '', Competitors: q.competitors ?? [], SeedPhrases: q.seed_keywords ?? [] } : null,
+  };
+  if (method === 'baskets.BasketDelete') return { BasketIDs: [q.basket_id ?? null] };
+  if (method === 'baskets.KeywordsDeleteUndo') return { UndoID: q.undo_id ?? null };
+  const shared: Query = { BasketID: q.basket_id ?? null, OwnerID: q.owner_id ?? null };
+  if (method === 'baskets.BasketGetClusterizationStatuses') return { BasketIDs: [shared] };
+  if (method === 'baskets.BasketRename') return { ...shared, Name: q.name ?? null };
+  if ('keywords' in q) {
+    const phrases = Array.isArray(q.keywords) ? q.keywords : [];
+    if (method === 'baskets.KeywordsImport') return { ...shared, Keywords: phrases.map(Phrase => ({ Phrase, Database: q.database ?? 'us', Tags: q.tags ?? [] })) };
+    const params: Query = { ...shared, KeywordIDs: phrases.map(Phrase => ({ Phrase, Database: q.database ?? 'us' })) };
+    if ('tags' in q) params.Tags = q.tags ?? [];
+    return params;
+  }
+  if ('filters' in q) {
+    const filter: Query = Object.fromEntries(['ClusterIDs', 'Databases', 'Phrase', 'CompetitionLevel', 'Cpc', 'Difficulty', 'SERPFeatures', 'Volume', 'ClickPotential', 'Tags', 'Intents'].map(key => [key, []]));
+    Object.assign(filter, q.filters);
+    if (method === 'baskets.KeywordsGetSummary') return { ...shared, Filter: filter };
+    return { ...shared, Filter: filter, Order: { Direction: q.descending ? 1 : 0, Field: q.sort_field ?? null }, Page: { Number: q.page ?? null, Size: q.page_size ?? null } };
+  }
+  return shared;
 }

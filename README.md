@@ -19,7 +19,7 @@ built with TypeScript + Effect. sessions stored in Galleton.
 
 ## why
 
-62 operations with the same input schemas in the CLI and MCP. JSON output for
+81 operations with the same input schemas in the CLI and MCP. JSON output for
 scripts, account totals and pagination, project management, and encrypted session storage.
 no Semrush developer API key or Python runtime required.
 
@@ -74,6 +74,22 @@ automatic Site Audit/Position Tracking setup are separate, explicit commands.
 See [projects](https://semrush.micr.dev/docs/projects) and
 [web UI coverage](https://semrush.micr.dev/docs/coverage).
 
+## keyword lists
+
+```sh
+semrush-cli keyword-lists --json
+semrush-cli keyword-list-create --name 'research' --confirm --json
+semrush-cli keyword-list-import --basket-id 456 --owner-id 123 --keywords '["email marketing"]' --confirm
+semrush-cli keyword-list-keywords --basket-id 456 --owner-id 123 --page-size 20 --json
+semrush-cli keyword-list-add-tags --basket-id 456 --owner-id 123 --keywords '["email marketing"]' --tags '["opportunity"]' --confirm
+semrush-cli keyword-strategy-create --name 'example strategy' --domain example.com --dry-run
+```
+
+Builder list IDs and owner IDs come from `keyword-lists`. Regular list creation
+and structured strategy generation are separate commands. Metric refresh and
+clustering require explicit confirmation and consume account allowances.
+See [keyword lists](https://semrush.micr.dev/docs/keyword-lists).
+
 ## commands
 
 ```sh
@@ -97,6 +113,7 @@ semrush-cli domain-keywords --help
 | Gaps | Keyword overlaps and gaps, backlink prospects and profile comparisons |
 | Backlinks | Links, referring domains, anchors, indexed pages, outbound domains, history and authority |
 | AI visibility | Visibility, mentions, citation sources and country distribution |
+| Keyword lists | Create, read, rename/delete, import, metrics, tags, deletion/undo, clustering and structured strategy generation |
 | Projects | Create, inspect, rename, delete, leave, tags, pinning, toolkit status, dashboard metrics and explicit SEO setup |
 | Account | Limits, permissions, databases, snapshots, folders, saved lists and audit campaigns |
 
@@ -122,9 +139,9 @@ Complete setup and authentication, then configure your MCP client:
 ```
 
 Use an absolute executable path if your client does not inherit the terminal's
-PATH. `npx -y semrush-cli@0.2.0 mcp` also works. MCP tool names use underscores,
+PATH. `npx -y semrush-cli@0.3.0 mcp` also works. MCP tool names use underscores,
 for example `keyword_overview` and `domain_keywords`. Input schemas and reports
-match the CLI. The 54 read tools carry read-only annotations. The 8 write tools require
+match the CLI. The 62 read tools carry read-only annotations. The 19 write tools require
 `confirm:true`, or accept `dry_run:true` to preview the request. Delete and leave
 also carry destructive annotations. Login, arbitrary URLs and JavaScript
 execution are not MCP tools.

@@ -2613,5 +2613,967 @@
         "folder_id"
       ]
     }
+  },
+  "keyword_list_limits": {
+    "method": "user.GetInfo",
+    "description": "Read Keyword Strategy Builder list and clustering allowances.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    }
+  },
+  "keyword_lists": {
+    "method": "baskets.BasketsGetAll",
+    "description": "Read regular and structured keyword lists with pagination and ownership filters.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "page": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        },
+        "page_size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 100
+        },
+        "sort_field": {
+          "type": "string",
+          "minLength": 1,
+          "default": "updated_at"
+        },
+        "descending": {
+          "type": "boolean",
+          "default": true
+        },
+        "name_filter": {
+          "type": "string",
+          "default": ""
+        },
+        "ownership": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 7,
+          "default": 7,
+          "description": "Web ownership bitmask. 7 includes owned and shared lists."
+        }
+      },
+      "required": []
+    }
+  },
+  "keyword_list_create": {
+    "method": "baskets.BasketCreate",
+    "description": "Create an empty regular keyword list. Does not cluster or generate a strategy.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "\\S"
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Preview without authentication or network access."
+        }
+      },
+      "required": [
+        "name"
+      ]
+    }
+  },
+  "keyword_list_get": {
+    "method": "baskets.BasketsGetByShareID",
+    "description": "Read one keyword list and its permissions.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id"
+      ]
+    }
+  },
+  "keyword_list_rename": {
+    "method": "baskets.BasketRename",
+    "description": "Rename a keyword list.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "\\S"
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Preview without authentication or network access."
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id",
+        "name"
+      ]
+    }
+  },
+  "keyword_list_delete": {
+    "method": "baskets.BasketDelete",
+    "description": "Permanently delete one of your keyword lists.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Preview without authentication or network access."
+        }
+      },
+      "required": [
+        "basket_id"
+      ]
+    }
+  },
+  "keyword_list_keywords": {
+    "method": "baskets.KeywordsGetByFilter",
+    "description": "Read filtered, paginated keyword-list metrics.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        },
+        "page_size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 100
+        },
+        "sort_field": {
+          "type": "string",
+          "minLength": 1,
+          "default": "phrase"
+        },
+        "descending": {
+          "type": "boolean",
+          "default": true
+        },
+        "filters": {
+          "type": "object",
+          "description": "Keyword Strategy Builder Filter object. Unspecified fields default to empty arrays.",
+          "properties": {
+            "ClusterIDs": {
+              "type": "array"
+            },
+            "Databases": {
+              "type": "array"
+            },
+            "Phrase": {
+              "type": "array"
+            },
+            "CompetitionLevel": {
+              "type": "array"
+            },
+            "Cpc": {
+              "type": "array"
+            },
+            "Difficulty": {
+              "type": "array"
+            },
+            "SERPFeatures": {
+              "type": "array"
+            },
+            "Volume": {
+              "type": "array"
+            },
+            "ClickPotential": {
+              "type": "array"
+            },
+            "Tags": {
+              "type": "array"
+            },
+            "Intents": {
+              "type": "array"
+            }
+          },
+          "additionalProperties": false,
+          "default": {}
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id"
+      ]
+    }
+  },
+  "keyword_list_summary": {
+    "method": "baskets.KeywordsGetSummary",
+    "description": "Read keyword totals, volume and difficulty for the selected filters.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        },
+        "filters": {
+          "type": "object",
+          "description": "Keyword Strategy Builder Filter object. Unspecified fields default to empty arrays.",
+          "properties": {
+            "ClusterIDs": {
+              "type": "array"
+            },
+            "Databases": {
+              "type": "array"
+            },
+            "Phrase": {
+              "type": "array"
+            },
+            "CompetitionLevel": {
+              "type": "array"
+            },
+            "Cpc": {
+              "type": "array"
+            },
+            "Difficulty": {
+              "type": "array"
+            },
+            "SERPFeatures": {
+              "type": "array"
+            },
+            "Volume": {
+              "type": "array"
+            },
+            "ClickPotential": {
+              "type": "array"
+            },
+            "Tags": {
+              "type": "array"
+            },
+            "Intents": {
+              "type": "array"
+            }
+          },
+          "additionalProperties": false,
+          "default": {}
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id"
+      ]
+    }
+  },
+  "keyword_list_import": {
+    "method": "baskets.KeywordsImport",
+    "description": "Import phrases into a regular keyword list. Account keyword limits apply.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        },
+        "keywords": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "database": {
+          "type": "string",
+          "pattern": "^[a-z]{2}(?:-[a-z]{2})?$",
+          "default": "us"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Preview without authentication or network access."
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id",
+        "keywords"
+      ]
+    }
+  },
+  "keyword_list_delete_keywords": {
+    "method": "baskets.KeywordsDeleteByIDs",
+    "description": "Delete selected phrases from a keyword list. Returns an undo ID.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        },
+        "keywords": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "database": {
+          "type": "string",
+          "pattern": "^[a-z]{2}(?:-[a-z]{2})?$",
+          "default": "us"
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Preview without authentication or network access."
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id",
+        "keywords"
+      ]
+    }
+  },
+  "keyword_list_undo_delete": {
+    "method": "baskets.KeywordsDeleteUndo",
+    "description": "Restore a keyword deletion using its returned UndoID.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "undo_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Preview without authentication or network access."
+        }
+      },
+      "required": [
+        "undo_id"
+      ]
+    }
+  },
+  "keyword_list_update_metrics": {
+    "method": "baskets.KeywordsRequestUpdateByIDs",
+    "description": "Request fresh metrics for selected phrases. Consumes the update allowance.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        },
+        "keywords": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "database": {
+          "type": "string",
+          "pattern": "^[a-z]{2}(?:-[a-z]{2})?$",
+          "default": "us"
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Preview without authentication or network access."
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id",
+        "keywords"
+      ]
+    }
+  },
+  "keyword_list_tags": {
+    "method": "baskets.GetBasketTags",
+    "description": "Read keyword tags and their usage in a list.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id"
+      ]
+    }
+  },
+  "keyword_list_add_tags": {
+    "method": "baskets.KeywordsAddTags",
+    "description": "Add tags to selected phrases.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        },
+        "keywords": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "database": {
+          "type": "string",
+          "pattern": "^[a-z]{2}(?:-[a-z]{2})?$",
+          "default": "us"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "uniqueItems": true,
+          "default": [],
+          "minItems": 1
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Preview without authentication or network access."
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id",
+        "keywords",
+        "tags"
+      ]
+    }
+  },
+  "keyword_list_remove_tags": {
+    "method": "baskets.KeywordsDeleteTags",
+    "description": "Remove tags from selected phrases.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        },
+        "keywords": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "database": {
+          "type": "string",
+          "pattern": "^[a-z]{2}(?:-[a-z]{2})?$",
+          "default": "us"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "uniqueItems": true,
+          "default": [],
+          "minItems": 1
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Preview without authentication or network access."
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id",
+        "keywords",
+        "tags"
+      ]
+    }
+  },
+  "keyword_list_cluster": {
+    "method": "baskets.RunClusterization",
+    "description": "Start clustering a keyword list. Consumes the clustering allowance.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Preview without authentication or network access."
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id"
+      ]
+    }
+  },
+  "keyword_list_cluster_forecast": {
+    "method": "baskets.BasketGetClusterizationForecast",
+    "description": "Read the clustering forecast for a keyword list.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id"
+      ]
+    }
+  },
+  "keyword_list_cluster_status": {
+    "method": "baskets.BasketGetClusterizationStatuses",
+    "description": "Read the current clustering status for a keyword list.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id"
+      ]
+    }
+  },
+  "keyword_strategy_create": {
+    "method": "baskets.BasketCreate",
+    "description": "Generate a structured keyword strategy from a domain or seed phrases. Consumes the clustering allowance.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "\\S"
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253,
+          "pattern": "^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z]{2,63}$",
+          "description": "Domain or subdomain, without protocol or path."
+        },
+        "database": {
+          "type": "string",
+          "pattern": "^[a-z]{2}(?:-[a-z]{2})?$",
+          "default": "us"
+        },
+        "seed_keywords": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "default": [],
+          "uniqueItems": true
+        },
+        "competitors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 253,
+            "pattern": "^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z]{2,63}$",
+            "description": "Domain or subdomain, without protocol or path."
+          },
+          "default": [],
+          "uniqueItems": true
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Preview without authentication or network access."
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "domain"
+          ]
+        },
+        {
+          "required": [
+            "seed_keywords"
+          ],
+          "properties": {
+            "seed_keywords": {
+              "minItems": 1
+            }
+          }
+        }
+      ]
+    }
   }
 }

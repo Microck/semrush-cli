@@ -23,7 +23,7 @@ If your client cannot find global npm executables, use the absolute path printed
   "mcpServers": {
     "semrush": {
       "command": "npx",
-      "args": ["-y", "semrush-cli@0.2.0", "mcp"]
+      "args": ["-y", "semrush-cli@0.3.0", "mcp"]
     }
   }
 }
@@ -43,7 +43,7 @@ Tool names use underscores, such as `domain_overview`, `keyword_magic` and `back
 }
 ```
 
-The server sends only MCP protocol messages to stdout. The 54 read tools have `readOnlyHint:true`. The 8 project write tools have
+The server sends only MCP protocol messages to stdout. The 62 read tools have `readOnlyHint:true`. The 19 write tools have
 `readOnlyHint:false` and require `confirm:true`. Delete and leave also have
 `destructiveHint:true`. Use `dry_run:true` to validate and inspect a write without
 connecting to Semrush. A write without confirmation fails before authentication.

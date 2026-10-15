@@ -6,10 +6,10 @@ import { Semrush } from './browser-service.js';
 import { Sessions } from './session-service.js';
 import { origin } from './session-layer.js';
 import { ReportError, SessionError } from './errors.js';
-import { reportParameters, projectRequest, type Query } from './report-parameters.js';
+import { reportParameters, webRequest, rpcBody, type Query } from './report-parameters.js';
 import type { ReportRequest } from './validation.js';
 
-const transportPaths = new Map([['domain', '/dpa/rpc'], ['direct', '/dpa/rpc'], ['magic', '/kmtgw/v2/webapi'], ['keyword', '/kwogw/v2/webapi']]);
+const transportPaths = new Map([['domain', '/dpa/rpc'], ['direct', '/dpa/rpc'], ['magic', '/kmtgw/v2/webapi'], ['keyword', '/kwogw/v2/webapi'], ['kwm', '/kwm/rpc']]);
 const json = JSONbig({ storeAsString: true, protoAction: 'error', constructorAction: 'error' });
 const safeBrowserError = () => new ReportError({ message: 'Semrush browser request failed. Run semrush-cli doctor. If your session expired, sign in again with semrush-cli auth login.' });
 const browserCall = <A>(run: () => Promise<A>) => Effect.tryPromise({ try: run, catch: safeBrowserError });
@@ -69,7 +69,9 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
   });
   const rpc = Effect.fn('Semrush.rpc')(function* (method: string, params: Query, transport = 'keyword', webReport = 'domain.overview') {
     const payload = transport === 'domain' ? { request_id: randomUUID(), report: webReport, args: params, ...auth } : transport === 'direct' ? { ...params, ...auth } : params;
-    const body = yield* request(transportPaths.get(transport) ?? '/kwogw/v2/webapi', { id: 1, jsonrpc: '2.0', method, params: payload });
+    const rpcParams = transport === 'kwm' ? { ...payload, ...(method.startsWith('user.') ? { api_key: auth.apiKey, user_id: auth.userId } : { APIKey: auth.apiKey, UserID: auth.userId }) } : payload;
+    const extra: Record<string, string> = transport === 'kwm' ? { 'api-key': auth.apiKey, 'user-id': String(auth.userId) } : {};
+    const body = yield* request(transportPaths.get(transport) ?? '/kwogw/v2/webapi', rpcBody(method, rpcParams), 'POST', extra);
     if (!objectValue(body) || !('result' in body)) return yield* Effect.fail(new ReportError({ message: `Semrush ${method}: missing report result.` }));
     return body.result ?? null;
   });
@@ -80,7 +82,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     }));
     if (!valid) return yield* Effect.fail(new SessionError({ message: 'Semrush session expired. Run semrush-cli auth login or import a signed-in browser.' }));
     const family = definition.transport;
-    const planned = family === 'project_web' ? projectRequest(definition, query) : undefined;
+    const planned = family === 'project_web' ? webRequest(definition, query) : undefined;
     const params = planned?.body ?? reportParameters(definition, query);
     let reportData: Schema.Json | undefined;
     if (planned) {
@@ -91,7 +93,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
         if (Predicate.isString(current.folder.domain) && current.folder.domain.length > 0) return yield* Effect.fail(new ReportError({ message: 'This project already has a website. The Semrush web UI only allows adding a website when none is set.' }));
       }
       reportData = yield* request(planned.path, planned.body, planned.method);
-    } else if (['keyword', 'domain', 'direct', 'magic'].includes(family)) reportData = yield* rpc(definition.method, params, family, definition.web_report);
+    } else if (['keyword', 'domain', 'direct', 'magic', 'kwm'].includes(family)) reportData = yield* rpc(definition.method, params, family, definition.web_report);
     else {
       const extra: Record<string, string> = {};
       if (family === 'gap') {

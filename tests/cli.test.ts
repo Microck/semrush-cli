@@ -14,8 +14,8 @@ test('built CLI runs help and version without credentials', async () => {
 test('built catalog distinguishes read reports and project writes', async () => {
   const { stdout, stderr } = await cli(['reports', '--json']);
   const listed = JSON.parse(stdout);
-  expect(listed).toHaveLength(62);
-  expect(listed.filter((entry: { read_only: boolean }) => !entry.read_only)).toHaveLength(8);
+  expect(listed).toHaveLength(81);
+  expect(listed.filter((entry: { read_only: boolean }) => !entry.read_only)).toHaveLength(19);
   expect(stderr).toBe('');
 });
 test('invalid usage fails before attempting authentication', async () => {
@@ -39,7 +39,7 @@ test('MCP advertises write safety and previews without an authenticated runtime'
   try {
     await client.connect(transport);
     const listed = await client.listTools();
-    expect(listed.tools).toHaveLength(62);
+    expect(listed.tools).toHaveLength(81);
     expect(listed.tools.find(tool => tool.name === 'project_delete')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
     expect(listed.tools.find(tool => tool.name === 'project_create')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false });
     const preview = await client.callTool({ name: 'project_create', arguments: { name: 'example', dry_run: true } });
@@ -49,4 +49,12 @@ test('MCP advertises write safety and previews without an authenticated runtime'
     expect(denied.isError).toBe(true);
     expect(denied.content).toEqual([{ type: 'text', text: expect.stringContaining('confirm:true') }]);
   } finally { await client.close(); }
+});
+
+
+test('keyword list dry runs never acquire credentials and expose no RPC auth fields', async () => {
+  const preview = JSON.parse((await cli(['keyword-list-create', '--name', 'example', '--dry-run', '--json'])).stdout);
+  expect(preview).toEqual({ dry_run: true, report: 'keyword_list_create', request: { method: 'POST', path: '/kwm/rpc', body: { id: 1, jsonrpc: '2.0', method: 'baskets.BasketCreate', params: { Name: 'example', Clusterization: null } } } });
+  await expect(cli(['keyword-list-create', '--name', 'example'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('--confirm') });
+  await expect(cli(['keyword-list-get', '--basket-id', '9007199254740992', '--owner-id', '123'])).rejects.toMatchObject({ code: 2, stdout: '' });
 });

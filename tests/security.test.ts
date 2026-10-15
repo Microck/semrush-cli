@@ -43,3 +43,12 @@ test('project validation rejects write consent bypasses, path injection and empt
   expect(preview.query.folder_id).toBe('9223372036854775807');
   expect(preview.definition.destructive).toBe(true);
 });
+
+
+test('strategy generation requires a real domain or seed selection before authentication', async () => {
+  const invalid: Query[] = [{ name: 'strategy', confirm: true }, { name: 'strategy', seed_keywords: [], confirm: true }, { name: 'strategy', domain: 'https://example.com', confirm: true }];
+  for (const input of invalid) await expect(Effect.runPromise(parseReport('keyword_strategy_create', input))).rejects.toThrow();
+  const preview = await Effect.runPromise(parseReport('keyword_strategy_create', { name: 'strategy', seed_keywords: ['seo'], dry_run: true }));
+  expect(preview.query.seed_keywords).toEqual(['seo']);
+  expect(preview.query.database).toBe('us');
+});

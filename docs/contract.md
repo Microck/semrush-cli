@@ -44,3 +44,33 @@ the command fails with exit 2 before opening a browser. `--dry-run` or MCP
 network access. Dry runs need no confirmation. IDs are decimal strings and never
 arbitrary paths. No operation retries a write. The response envelope remains
 `{authenticated:true, report, data}` for all completed operations.
+
+## Keyword Strategy Builder lists
+
+`keyword-lists` reads the current builder's paginated lists. These are distinct
+from the older Saved Keywords collection exposed by `saved-keyword-lists`.
+`keyword-list-create --name <name> --confirm` creates an empty regular list.
+It does not generate a strategy or start clustering. Read commands inspect list
+metadata, keywords, summary, tags, clustering forecast and clustering status.
+Writes rename/delete a list, import/delete keywords, undo a deletion, add/remove
+tags, request metric updates and explicitly start clustering.
+
+List-scoped operations take `--basket-id` and `--owner-id`. Both come from
+`keyword-lists` (`BasketID` and `Owner.ID`). Builder IDs are safe JSON integers;
+the schema rejects values beyond JavaScript's exact integer range. Project
+folder IDs retain their separate decimal-string contract. Keyword selections
+use a JSON array of phrases plus a database flag. Advanced filters use the web
+client's documented field names and preserve pagination and sort controls.
+
+All writes require confirmation and support dry runs before authentication.
+RPC previews omit runtime credentials; the browser adds them only at execution.
+Only fixed catalog RPC methods are exposed. There is no arbitrary RPC command.
+Clustering and metric updates consume account allowances and never run
+implicitly when creating or importing into a list.
+
+`keyword-strategy-create --name <name> --domain <domain> --confirm` explicitly
+starts generation of a structured strategy. `--seed-keywords` accepts a JSON
+phrase array; supply a domain, at least one seed phrase, or both. Optional
+competitors and database selection match the web creation request. This consumes
+the clustering allowance. It is separate from empty regular list creation so no
+read or ordinary list-create command starts generation implicitly.

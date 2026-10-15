@@ -91,3 +91,18 @@ purple sidebar and code surfaces, a loaded logo and no page errors. At 390px,
 the home page has no horizontal overflow. White text on the primary background
 has a measured contrast of 12.36:1. The coverage page lists remaining web-only
 workflows rather than claiming full-suite parity.
+
+
+## Keyword Strategy Builder expansion
+
+Live reads verified the builder's list and account-limit RPC methods. A disposable
+regular list passed creation, listing, metadata read, rename, one-phrase import,
+tag addition, keyword/summary/tag reads, phrase deletion, undo and tag removal.
+The exact test list was deleted and its absence checked. No existing list changed.
+Structured strategy generation, metric refresh and clustering were not started
+against the live account. Their fixed request contracts have source-derived
+coverage; execution consumes account allowances.
+
+The public npm 0.2.0 archive became available after asynchronous registry
+processing and matched the verified GitHub/local archive byte-for-byte, SHA-256
+`58d074aaaab9c5a516b50c02cde8f92fcaa5705aafaa83b09885318aeb1c2db4`.

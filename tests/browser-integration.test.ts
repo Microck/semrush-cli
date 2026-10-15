@@ -5,7 +5,7 @@ import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterAll, beforeAll, expect, test } from 'vitest';
-import { ConfigProvider, Effect, Layer, Predicate } from 'effect';
+import { ConfigProvider, Effect, Layer, Predicate, type Schema } from 'effect';
 import { Galleton } from '../src/vendor/galleton.js';
 import { makeSessionsLayer } from '../src/session-layer.js';
 import { makeSemrushLayer } from '../src/browser-layer.js';
@@ -23,6 +23,9 @@ let fixtureURL: string;
 let authenticated = true;
 let failReport = false;
 const observed: string[] = [];
+let keywordList: { BasketID: number; Owner: { ID: number }; Name: string } | undefined;
+let listKeywords: { Phrase: string; Database: string; Tags: string[] }[] = [];
+let deletedKeywords: typeof listKeywords = [];
 const folderPath = '/apis/v4-raw/folders/api/v0/folders';
 let savedProject: { id: string; name: string; domain?: string; tags?: { name: string }[] } | undefined;
 const fixture = createServer(async (request, response) => {
@@ -65,6 +68,53 @@ const fixture = createServer(async (request, response) => {
       response.writeHead(204); response.end(); return;
     }
     response.writeHead(404); response.end('{}'); return;
+  }
+  if (url.pathname === '/kwm/rpc') {
+    let encoded = '';
+    for await (const chunk of request) encoded += chunk;
+    const rpc = JSON.parse(encoded);
+    const params = rpc.params;
+    observed.push(rpc.method);
+    response.setHeader('Content-Type', 'application/json');
+    expect(request.headers['api-key']).toBe('fixture-secret');
+    expect(request.headers['user-id']).toBe('123');
+    expect(params.APIKey).toBe('fixture-secret');
+    expect(params.UserID).toBe(123);
+    expect(params).not.toHaveProperty('confirm');
+    expect(params).not.toHaveProperty('dry_run');
+    let reply: Schema.Json = null;
+    switch (rpc.method) {
+      case 'baskets.BasketCreate':
+        expect(params.Name).toBe('Fixture keyword list');
+        expect(params.Clusterization).toBeNull();
+        keywordList = { BasketID: 456, Owner: { ID: 123 }, Name: params.Name };
+        reply = { BasketID: 456, Name: params.Name }; break;
+      case 'baskets.BasketsGetAll':
+        reply = { Summary: { MyOwn: keywordList ? 1 : 0 }, Lists: keywordList ? [keywordList] : [] }; break;
+      case 'baskets.BasketsGetByShareID':
+        expect(params.BasketID).toBe(456); expect(params.OwnerID).toBe(123); reply = keywordList ?? null; break;
+      case 'baskets.BasketRename':
+        if (keywordList) keywordList.Name = params.Name; break;
+      case 'baskets.KeywordsImport':
+        listKeywords.push(...params.Keywords); reply = { added_keywords_count: params.Keywords.length }; break;
+      case 'baskets.KeywordsGetByFilter':
+        expect(params.Filter.Phrase).toEqual([]); expect(params.Page.Number).toBe(1);
+        reply = { Keywords: listKeywords }; break;
+      case 'baskets.KeywordsAddTags':
+        for (const keyword of listKeywords) if (params.KeywordIDs.some((id: { Phrase: string }) => id.Phrase === keyword.Phrase)) keyword.Tags.push(...params.Tags);
+        reply = listKeywords; break;
+      case 'baskets.KeywordsDeleteByIDs':
+        deletedKeywords = listKeywords.filter(keyword => params.KeywordIDs.some((id: { Phrase: string }) => id.Phrase === keyword.Phrase));
+        listKeywords = listKeywords.filter(keyword => !deletedKeywords.includes(keyword));
+        reply = { UndoID: 'fixture-undo', DeletedKeywordIDs: params.KeywordIDs }; break;
+      case 'baskets.KeywordsDeleteUndo':
+        expect(params.UndoID).toBe('fixture-undo'); listKeywords.push(...deletedKeywords); deletedKeywords = [];
+        reply = listKeywords; break;
+      case 'baskets.BasketDelete':
+        expect(params.BasketIDs).toEqual([456]); keywordList = undefined; listKeywords = []; break;
+      default: response.end(JSON.stringify({ error: { code: -32601, message: 'Unsupported fixture method' } })); return;
+    }
+    response.end(JSON.stringify({ jsonrpc: '2.0', id: rpc.id, result: reply })); return;
   }
   if (url.pathname === '/kwogw/v2/webapi') {
     let body = '';
@@ -163,5 +213,26 @@ test('real browser and Galleton complete the stateful project lifecycle with exa
     expect(current.data).toEqual({ folder: { id: '9223372036854775807', name: 'Renamed fixture', domain: 'example.com', tags: [{ name: 'fixture' }] } });
     expect((yield* semrush.report(yield* parseReport('project_delete', { folder_id: '9223372036854775807', confirm: true }))).data).toBeNull();
     expect(savedProject).toBeUndefined();
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+
+test('real browser and Galleton manage keyword lists, import, tags, deletion and undo', async () => {
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const semrush = yield* Semrush;
+    const target = { basket_id: 456, owner_id: 123 };
+    const created = yield* semrush.report(yield* parseReport('keyword_list_create', { name: 'Fixture keyword list', confirm: true }));
+    expect(created.data).toEqual({ BasketID: 456, Name: 'Fixture keyword list' });
+    yield* semrush.report(yield* parseReport('keyword_list_rename', { ...target, name: 'Renamed list', confirm: true }));
+    expect((yield* semrush.report(yield* parseReport('keyword_list_get', target))).data).toMatchObject({ Name: 'Renamed list' });
+    yield* semrush.report(yield* parseReport('keyword_list_import', { ...target, keywords: ['fixture keyword'], tags: [], confirm: true }));
+    yield* semrush.report(yield* parseReport('keyword_list_add_tags', { ...target, keywords: ['fixture keyword'], tags: ['fixture'], confirm: true }));
+    expect((yield* semrush.report(yield* parseReport('keyword_list_keywords', target))).data).toEqual({ Keywords: [{ Phrase: 'fixture keyword', Database: 'us', Tags: ['fixture'] }] });
+    const deleted = yield* semrush.report(yield* parseReport('keyword_list_delete_keywords', { ...target, keywords: ['fixture keyword'], confirm: true }));
+    expect(deleted.data).toMatchObject({ UndoID: 'fixture-undo' }); expect(listKeywords).toHaveLength(0);
+    yield* semrush.report(yield* parseReport('keyword_list_undo_delete', { undo_id: 'fixture-undo', confirm: true }));
+    expect(listKeywords).toHaveLength(1);
+    yield* semrush.report(yield* parseReport('keyword_list_delete', { basket_id: 456, confirm: true }));
+    expect(keywordList).toBeUndefined(); expect(listKeywords).toHaveLength(0);
   }).pipe(Effect.provide(fixtureLayer()))));
 }, 30000);
