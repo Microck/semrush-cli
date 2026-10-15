@@ -34,7 +34,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--color-fd-primar
 .home .brand { display: flex; align-items: center; gap: 12px; font-weight: 700; }
 .home .links { display: flex; gap: 28px; }
 .hero { padding: 100px 0 64px; display: grid; grid-template-columns: 1fr 0.8fr; gap: 64px; align-items: center; }
-.hero h1 { font-size: clamp(40px, 5vw, 64px); line-height: 1.02; letter-spacing: -0.035em; font-weight: 600; margin: 0 0 28px; }
+.hero h1 { font-size: clamp(36px, 4.4vw, 56px); line-height: 1.02; letter-spacing: -0.035em; font-weight: 600; margin: 0 0 28px; }
 .hero p { font-size: 18px; line-height: 1.6; max-width: 440px; }
 .install { padding: 18px 0; border-top: 1px solid var(--color-fd-border); border-bottom: 1px solid var(--color-fd-border); margin: 28px 0; font: 15px ui-monospace, monospace; overflow-x: auto; }
 .home .primary { display: inline-block; background: #fff; color: var(--color-fd-background); padding: 13px 18px; text-decoration: none; font-weight: 600; }
