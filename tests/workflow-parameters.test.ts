@@ -177,3 +177,19 @@ test('tracking alert request types are catalog-owned and rule writes require exp
   await expect(preview('position_trigger_create', { ...rule, threshold: 101 })).rejects.toThrow('<=');
   await expect(preview('position_trigger_create', { ...rule, dry_run: false })).rejects.toThrow('--confirm');
 });
+
+
+test('tracking comparison keeps composite target IDs, native intersection codes and target sort keys', async () => {
+  const dates = { campaign_id: '123_456', date_begin: '20261015', date_end: '20261015' };
+  expect((await preview('position_distribution', { ...dates, competitors: ['*.example.com/*'] })).body).not.toHaveProperty('limit');
+  expect((await preview('position_competitors', { ...dates, main_competitor: 'example.com' })).path).toBe('/tracking/web-api/reports/competitors');
+  expect((await preview('position_distribution', { ...dates, competitors: ['*.example.com/*'], sort_field: 'top10' })).body).toMatchObject({ 'sort[field]': 'top10', 'sort[top]': 'all' });
+  await expect(preview('position_distribution', { ...dates, competitors: ['*.example.com/*'], sort_field: 'visibility', sort_top: 'improved' })).rejects.toThrow('allowed values');
+  const selected = { ...dates, competitors: ['*.example.com/*'], target_ids: ['123_456', '123_789'] };
+  const all = await preview('position_targets_compare', selected);
+  expect(all).toMatchObject({ method: 'GET', path: '/tracking/web-api/reports/multi_overview', body: { 'targets[]': selected.target_ids, main_target: dates.campaign_id, 'competitors[]': selected.competitors, 'sort[target]': 0, 'sort[field]': 'position' } });
+  expect(all.body).not.toHaveProperty('target_ids'); expect(all.body).not.toHaveProperty('intersection_type'); expect(all.body).not.toHaveProperty('main_competitor');
+  for (const intersection_type of ['shared','not_in_main','only_in_main']) expect((await preview('position_targets_compare', { ...selected, intersection_type })).body).toHaveProperty('intersection_type', intersection_type);
+  await expect(preview('position_targets_compare', { ...selected, target_ids: ['123_456','123_456'] })).rejects.toThrow('duplicate');
+  await expect(preview('position_targets_compare', { ...selected, target_ids: ['123'] })).rejects.toThrow('pattern');
+});

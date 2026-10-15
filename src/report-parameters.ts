@@ -337,6 +337,22 @@ function publicParameters(definition: Report, query: Query): Query {
   return Object.fromEntries(Object.entries(query).filter(([key]) => !['confirm', 'dry_run'].includes(key) && !definition.method.includes(`{${key}}`)));
 }
 
+/** Native JSON tracking reports use repeated selections and bracketed sorting keys. */
+function trackingReportParameters(definition: Report, query: Query): Query {
+  const parameters = publicParameters(definition, query);
+  if ('competitors' in parameters) { parameters['competitors[]'] = parameters.competitors ?? []; delete parameters.competitors; }
+  if ('target_ids' in parameters) {
+    parameters['targets[]'] = parameters.target_ids ?? []; delete parameters.target_ids;
+    parameters.main_target = query.campaign_id ?? null;
+    if (parameters.intersection_type === 'all') delete parameters.intersection_type;
+  }
+  for (const field of ['field', 'order', 'date', 'competitor', 'target', 'top']) {
+    const key = `sort_${field}`;
+    if (key in parameters) { parameters[`sort[${field}]`] = parameters[key] ?? null; delete parameters[key]; }
+  }
+  return parameters;
+}
+
 /** Current Position Tracking wizard uses cookie-authenticated incremental writes, never billing. */
 function trackingParameters(definition: Report, query: Query): Query {
   if ('request_type' in definition) {
@@ -373,15 +389,6 @@ function trackingParameters(definition: Report, query: Query): Query {
   }
   if (definition.method.endsWith('/campaign_set_competitors')) return { competitors: Array.isArray(query.competitors) ? query.competitors.map(domain => ({ domain, url: domain })) : [] };
   if (definition.method.endsWith('/get_locations')) return { q: query.query ?? '' };
-  if (definition.method.startsWith('/tracking/web-api/reports/')) {
-    const parameters = publicParameters(definition, query);
-    parameters['competitors[]'] = parameters.competitors ?? [];
-    delete parameters.competitors;
-    for (const field of ['field', 'order', 'date', 'competitor']) {
-      const key = `sort_${field}`;
-      if (key in parameters) { parameters[`sort[${field}]`] = parameters[key] ?? null; delete parameters[key]; }
-    }
-    return parameters;
-  }
+  if (definition.method.startsWith('/tracking/web-api/reports/')) return trackingReportParameters(definition, query);
   return publicParameters(definition, query);
 }

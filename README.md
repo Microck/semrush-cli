@@ -75,7 +75,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 
 ## command surface
 
-192 operations, available as cli commands and mcp tools. 133 reads and 59 writes that need explicit confirmation.
+195 operations, available as cli commands and mcp tools. 136 reads and 59 writes that need explicit confirmation.
 
 | command | what it does |
 | --- | --- |
@@ -119,6 +119,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 | `position-alerts`, `position-alert-counts`, `position-triggers`, `position-trigger-count` | read alerts, rules and counts |
 | `position-trigger-create`, `position-trigger-update`, `position-trigger-delete` | create, replace or delete an alert rule |
 | `position-overview`, `position-pages`, `position-overview-trend` | rankings, landing pages and trends |
+| `position-distribution`, `position-competitors`, `position-targets-compare` | ranking buckets, competitor discovery and device/location comparisons |
 | `audit-status`, `audit-snapshots`, `audit-snapshot` | check progress and read audit results |
 | `audit-pages`, `audit-page`, `audit-issue`, `audit-history` | inspect crawled pages, issues and crawl history |
 | `audit-recrawl`, `audit-abort`, `audit-finalize` | recrawl a page, cancel a crawl or process results early |
@@ -372,6 +373,24 @@ semrush position-configure --campaign-id 456_789 --domain example.org --url-type
 `position-configure` reads the current target and preserves fields you omit. address changes require both `--domain` and `--url-type`. `--volume-type` accepts `national`, `regional` or `local`. an empty business name clears it. brands must contain at least one name; this command cannot clear the brand list because semrush ignores an empty array. engine, device and location changes remain outside this command.
 
 new targets need time to collect rankings. use the dates from `position-info` for ranking, page and trend reports. competitor writes replace the whole list. see [position tracking](https://semrush.micr.dev/docs/position-tracking) for locations, tags, keyword deletion and report inputs.
+
+### tracking competitors and targets
+
+read ranking buckets for selected websites, discover competitors or compare your device and location targets. use dates within the history returned by `position-info`, in `YYYYMMDD` format:
+
+```bash
+semrush position-distribution --campaign-id 456_789 --date-begin 20261001 --date-end 20261015 \
+  --competitors '["*.example.com/*"]' --sort-field top10 --sort-top new
+semrush position-competitors --campaign-id 456_789 --date-begin 20261001 --date-end 20261015 \
+  --main-competitor example.com --url-type rootdomain --sort-field matches --limit 20 --offset 0
+semrush position-targets-compare --campaign-id 456_789 --date-begin 20261001 --date-end 20261015 \
+  --competitors '["*.example.com/*"]' --target-ids '["456_789","456_790"]' \
+  --intersection-type shared --sort-target 1
+```
+
+distribution returns the selected competitors without pagination. `--sort-top` accepts `all`, `new`, `lost`, `improved` or `declined` when sorting a top-position bucket. competitor discovery takes a website and url type; it supports `--limit` and `--offset`.
+
+target comparison takes exactly one website pattern and complete target ids from `position-targets`. keep those composite ids as strings. choose `all`, `shared`, `not_in_main` or `only_in_main` for the keyword intersection. `--sort-target` starts at zero and selects a target in your array, so `1` sorts by the second target. use `--help` for each report's sort fields.
 
 ### tracking alerts
 

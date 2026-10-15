@@ -9974,5 +9974,398 @@
         "trigger_id"
       ]
     }
+  },
+  "position_distribution": {
+    "method": "/tracking/web-api/reports/rankings_distribution",
+    "description": "Read selected competitors' ranking distribution and top-position buckets.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "auth_parameter": "api_key",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$"
+        },
+        "date_begin": {
+          "type": "string",
+          "pattern": "^[0-9]{8}$",
+          "description": "Date as YYYYMMDD within the campaign history."
+        },
+        "date_end": {
+          "type": "string",
+          "pattern": "^[0-9]{8}$",
+          "description": "Date as YYYYMMDD within the campaign history."
+        },
+        "competitors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "minItems": 1,
+          "maxItems": 20,
+          "description": "Tracking target patterns, for example *.example.com/*. Read position-info for campaign targets."
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "organic",
+            "adwords"
+          ],
+          "default": "organic"
+        },
+        "volume_level": {
+          "type": "string",
+          "enum": [
+            "national",
+            "local"
+          ],
+          "default": "national"
+        },
+        "sort_field": {
+          "type": "string",
+          "enum": [
+            "visibility",
+            "traffic",
+            "top3",
+            "top10",
+            "top20",
+            "top50",
+            "top100"
+          ],
+          "default": "traffic"
+        },
+        "sort_order": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ],
+          "default": "desc"
+        },
+        "sort_date": {
+          "type": "string",
+          "enum": [
+            "begin",
+            "end",
+            "diff"
+          ],
+          "default": "end"
+        },
+        "sort_top": {
+          "type": "string",
+          "enum": [
+            "all",
+            "new",
+            "lost",
+            "improved",
+            "declined"
+          ]
+        }
+      },
+      "required": [
+        "campaign_id",
+        "date_begin",
+        "date_end",
+        "competitors"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "sort_field": {
+                "enum": [
+                  "top3",
+                  "top10",
+                  "top20",
+                  "top50",
+                  "top100"
+                ]
+              }
+            },
+            "required": [
+              "sort_field"
+            ]
+          },
+          "then": {
+            "properties": {
+              "sort_top": {
+                "default": "all"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "sort_top"
+            ]
+          },
+          "then": {
+            "properties": {
+              "sort_field": {
+                "enum": [
+                  "top3",
+                  "top10",
+                  "top20",
+                  "top50",
+                  "top100"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "position_targets_compare": {
+    "method": "/tracking/web-api/reports/multi_overview",
+    "description": "Compare tracked keyword rankings across explicitly selected device/location targets.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "auth_parameter": "api_key",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$"
+        },
+        "date_begin": {
+          "type": "string",
+          "pattern": "^[0-9]{8}$",
+          "description": "Date as YYYYMMDD within the campaign history."
+        },
+        "date_end": {
+          "type": "string",
+          "pattern": "^[0-9]{8}$",
+          "description": "Date as YYYYMMDD within the campaign history."
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "organic",
+            "adwords"
+          ],
+          "default": "organic"
+        },
+        "volume_level": {
+          "type": "string",
+          "enum": [
+            "national",
+            "local"
+          ],
+          "default": "national"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 20
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "sort_field": {
+          "type": "string",
+          "enum": [
+            "position",
+            "keyword",
+            "volume"
+          ],
+          "default": "position"
+        },
+        "sort_order": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ],
+          "default": "asc"
+        },
+        "sort_date": {
+          "type": "string",
+          "enum": [
+            "begin",
+            "end",
+            "diff"
+          ],
+          "default": "end"
+        },
+        "target_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9]+_[0-9]+$"
+          },
+          "minItems": 1,
+          "maxItems": 20,
+          "uniqueItems": true,
+          "description": "Complete campaign IDs from position-targets for selected locations/devices."
+        },
+        "intersection_type": {
+          "type": "string",
+          "enum": [
+            "all",
+            "shared",
+            "not_in_main",
+            "only_in_main"
+          ],
+          "default": "all"
+        },
+        "sort_target": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 19,
+          "default": 0
+        },
+        "competitors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "minItems": 1,
+          "maxItems": 1,
+          "description": "Tracking target patterns, for example *.example.com/*. Read position-info for campaign targets."
+        }
+      },
+      "required": [
+        "campaign_id",
+        "date_begin",
+        "date_end",
+        "target_ids",
+        "competitors"
+      ]
+    }
+  },
+  "position_competitors": {
+    "method": "/tracking/web-api/reports/competitors",
+    "description": "Discover competing websites for an explicit tracked website.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "auth_parameter": "api_key",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$"
+        },
+        "date_begin": {
+          "type": "string",
+          "pattern": "^[0-9]{8}$",
+          "description": "Date as YYYYMMDD within the campaign history."
+        },
+        "date_end": {
+          "type": "string",
+          "pattern": "^[0-9]{8}$",
+          "description": "Date as YYYYMMDD within the campaign history."
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "organic",
+            "adwords"
+          ],
+          "default": "organic"
+        },
+        "volume_level": {
+          "type": "string",
+          "enum": [
+            "national",
+            "local"
+          ],
+          "default": "national"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 20
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "sort_field": {
+          "type": "string",
+          "enum": [
+            "visibility",
+            "traffic",
+            "matches",
+            "average_position"
+          ],
+          "default": "visibility"
+        },
+        "sort_order": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ],
+          "default": "desc"
+        },
+        "sort_date": {
+          "type": "string",
+          "enum": [
+            "begin",
+            "end",
+            "diff"
+          ],
+          "default": "end"
+        },
+        "main_competitor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "Tracked website or URL matching url_type, for example example.com."
+        },
+        "url_type": {
+          "type": "string",
+          "enum": [
+            "rootdomain",
+            "subdomain",
+            "subfolder",
+            "url"
+          ],
+          "default": "rootdomain"
+        },
+        "sort_competitor": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 19,
+          "default": 0
+        }
+      },
+      "required": [
+        "campaign_id",
+        "date_begin",
+        "date_end",
+        "main_competitor"
+      ]
+    }
   }
 }

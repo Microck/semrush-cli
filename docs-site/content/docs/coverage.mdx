@@ -3,7 +3,7 @@ title: Web UI coverage
 description: Supported web workflows, evidence and remaining gaps.
 ---
 
-The CLI has 192 fixed operations: 133 reads and 59 confirmed writes.
+The CLI has 195 fixed operations: 136 reads and 59 confirmed writes.
 It uses your web session and the current web UI's request contracts. Account
 permissions and quotas apply to both interfaces. This is not full Semrush suite
 parity. The table distinguishes implemented workflows from remaining gaps.
@@ -23,7 +23,7 @@ parity. The table distinguishes implemented workflows from remaining gaps.
 | Project dashboard | Toolkit status, metric values and detail URLs | Third-party integration setup |
 | SEO setup | Create an SEO project and explicitly start automatic Site Audit/Position Tracking setup | Protected-site audit setup |
 | Site Audit | Discovery, limits, public-site settings, schedules, launch, page and issue tables, page recrawl, execution status, abort/finalize, structure, performance, linking, history, snapshots, CSV/XLSX exports | Protected-site authentication, Google Analytics connections and crawled-links export |
-| Position Tracking | Target creation, locations, limits, keyword add/delete/tags, competitor replacement, partial address/business/brand/volume settings edits, campaign settings reads, alert listing/counts, rule lifecycle, rankings, pages, visibility/distribution/cannibalization trends | Engine/device/language/location replacement, Tier 3 crawl schedules, brand-list clearing, alert-event changes, notes, target comparison and UI exports |
+| Position Tracking | Target creation, locations, limits, keyword add/delete/tags, competitor replacement, partial address/business/brand/volume settings edits, campaign settings reads, alert listing/counts, rule lifecycle, rankings, pages, ranking distribution, competitor discovery, target comparison, visibility/distribution/cannibalization trends | Engine/device/language/location replacement, Tier 3 crawl schedules, brand-list clearing, alert-event changes, notes and paid-only UI exports |
 | Keyword Strategy Builder | Domain strategy lifecycle, presets, filtered page opportunities, page URLs/SERPs, existing/recommended keywords, keyword deletion and CSV/XLSX exports; seed-based basket lifecycle, topics/pages, paginated clusters, favorites, selected-cluster deletion and metric refresh, keyword import, tags, deletion/undo, clustering, four native export selections and owner-aware selected keyword/cluster copy/move | Mind-map image exports, content generation and connected tracking actions |
 | Saved Keywords | Create, rename, delete/undo collections; keyword import, filters, metrics, tags, workflow labels, copy/move, deletion/undo, metadata and CSV/semicolon CSV/XLSX exports | Content generation and connected tracking actions |
 | Local, social and content products | Project toolkit status and available dashboard metrics | Product-specific management and connected services |
@@ -109,3 +109,17 @@ fresh target had no alert events. All 133 reads and 58 of 59 writes now have liv
 execution evidence across versioned passes. Shared-project leave remains
 unverified. The native crawl-scheduling form requires SEO Tier 3, above the
 verification account's plan.
+
+
+The trial account's native Position Tracking export menu requires a paid
+subscription. A matching native request returned HTTP 403, error code 1001,
+"action is not allowed". Tracking exports remain unsupported and unverified.
+
+
+The tracking-report pass verified ranking distribution, competitor discovery and
+target comparison. Competitor pagination returned disjoint pages from 55 sites.
+All supported sort fields, both discovery sort directions, distribution change
+selectors and four comparison modes passed. Desktop and mobile comparison
+returned positive ranks for the same phrase. All 136 reads and 58 of 59 writes
+have live execution evidence across versioned passes. Shared-project leave
+remains unverified.

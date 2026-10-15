@@ -1,8 +1,56 @@
 # Verification
 
-Current source verification: 2026-10-15. The 0.11.0 source suite passed 140 tests. Live responses and credentials remain
+Current source verification: 2026-10-15. The 0.12.0 source suite passed 142 tests in a private Raft container. Live responses and credentials remain
 outside the repository. Evidence below distinguishes local fixtures, native CI
 and real account execution.
+
+## Version 0.12.0 tracking report verification
+
+All three new reads passed authenticated calls on owned example.com targets.
+Competitor discovery returned 55 websites. Two ten-row pages had consistent
+totals and no overlap. All four sort fields passed in both directions.
+Distribution returned the selected domain's ranking buckets. All seven sort
+fields and all five top-bucket change selectors passed native calls.
+
+Comparison returned the tracked phrase with desktop position 1 and mobile
+position 2. All four intersection modes passed. The shared fixture produced
+positive ranks in `all` and `shared`, and no rows in the two exclusive modes.
+Position, keyword and volume sorting passed for both target indexes. Composite
+target IDs and the provider's native envelope remain unchanged. All 136 reads
+and 58 of 59 writes have live execution evidence across versioned passes.
+Shared-project leave still lacks a shared-account fixture.
+
+The current source passed all 142 tests, strict TypeScript, Oxlint, generated
+reference checks and executable packaging in an isolated private container.
+Local runs under host memory pressure timed out; no assertion or timeout was
+weakened. The container used the real published Galleton SDK and a temporary
+vault for the authorized session. Three independent simplification reviews
+found no changes needed. The owned project was absent from the folder list,
+and both target IDs were absent from campaign discovery after deletion. Detailed
+responses and credentials remain outside the repository.
+
+## Version 0.11.0 published artifacts
+
+The public npm archive matches the tested release archive:
+SHA-256 `a4f0560c389b7e06ddfd8e77b1d30a161e0905a77f330766e2cb54d6c19f0b38`.
+The [CI run](https://github.com/Microck/semrush-cli/actions/runs/38808788238)
+passed source, docs and installation/setup on Linux, macOS and Windows.
+Fresh packed and installed public npm processes advertised 192 tools and passed
+authenticated reads. The global command reported 0.11.0. The
+[GitHub release](https://github.com/Microck/semrush-cli/releases/tag/v0.11.0)
+includes the archive and checksum. The production alert guide passed a Chromium
+check at 390px with its new heading, HTTP 200, no page errors and no horizontal
+overflow. Registry processing delayed availability after npm accepted publication;
+the archive was checked after the version became public.
+
+## Position Tracking export access check
+
+Rankings and landing-page reads passed on a disposable target with collected
+data. The native export request returned HTTP 403 with error code 1001, "action
+is not allowed". The native UI's export menu states "Export is only available
+for paid Semrush users" and offers an upgrade. The account is on a trial.
+Unpublished export operations were removed rather than claiming positive live
+verification. No purchase or alternate transport was used.
 
 ## Version 0.11.0 tracking alert verification
 

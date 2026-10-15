@@ -138,10 +138,51 @@ Responses preserve the provider's native `status` and `data` envelope. The
 rankings report's `data.keywords` contains tracked phrases, tags, positions and
 landing URLs. `data.total`, `limit` and `offset` support pagination.
 
+## Discover competitors and compare targets
+
+Read the ranking distribution for the selected domain patterns:
+
+```sh
+semrush position-distribution --campaign-id 456_789 \
+  --date-begin 20261015 --date-end 20261015 \
+  --competitors '["*.example.com/*"]' --sort-field top10 --sort-top new
+```
+
+Distribution returns top-3, top-10, top-20, top-50 and top-100 buckets.
+`--sort-top` selects a change category when sorting a top bucket. It does not
+filter the report. This report has no pagination.
+
+Discover competing websites with the tracked address rather than a wildcard:
+
+```sh
+semrush position-competitors --campaign-id 456_789 \
+  --date-begin 20261015 --date-end 20261015 \
+  --main-competitor example.com --limit 20 --offset 0 --sort-field matches
+```
+
+Use `--url-type` for a subdomain, subfolder or URL. Read `data.total` and increase
+`--offset` to fetch further pages. Sort fields are visibility, traffic, matches
+and average position. Competitor rows keep the native string `competitor` field.
+
+Use `position-targets --project-id 456` to get the complete campaign IDs for
+comparison. Choose collected dates shared by the selected targets:
+
+```sh
+semrush position-targets-compare --campaign-id 456_789 \
+  --date-begin 20261015 --date-end 20261015 \
+  --competitors '["*.example.com/*"]' \
+  --target-ids '["456_789","456_790"]' --intersection-type shared \
+  --sort-field position --sort-target 1
+```
+
+Comparison accepts exactly one domain pattern and up to 20 distinct target IDs.
+The campaign ID sets the reference target. Intersection modes are `all`,
+`shared`, `not_in_main` and `only_in_main`. `--sort-target` is the zero-based
+index in the supplied target array. Keyword rows identify each target with its
+native `id`, including both parts of the campaign ID.
+
 Engine, device, language and location replacement, crawl schedules, alert-event
-changes, notes,
-target comparison and tracking exports
-still require the web UI. Current request contracts were checked against the
+changes, notes and tracking exports still require the web UI. Current request contracts were checked against the
 tracking dashboard and wizard, then verified on a disposable account target.
 
 The current native crawl-scheduling form disables saving below SEO Tier 3.

@@ -321,3 +321,30 @@ Primary sources are the tracking 1.280.2 entry module's GlobalStore and Main
 modules and `lazy/components/firstTriggerModal.e1bff77a57ae04ec2e14.js`.
 The native crawl-scheduling form disables saving unless the account has SEO
 Tier 3; scheduling remains outside this batch pending account capability proof.
+
+## Position Tracking export access
+
+The trial account's native export menu states that exports require a paid
+Semrush subscription. A native report export returned HTTP 403 with error code
+1001, "action is not allowed". These exports remain unexposed and unverified;
+no alternate transport or subscription purchase was used.
+
+## Position Tracking distribution and target comparison
+
+Rankings distribution and competitor discovery use fixed GET paths
+`/tracking/web-api/reports/rankings_distribution` and
+`/tracking/web-api/reports/competitors`. They preserve native result
+objects rather than rendering charts. Distribution selects explicit competitors
+without report pagination. Competitor discovery retains pagination and uses
+`main_competitor` plus `url_type` for its reference website.
+
+Target comparison uses `/tracking/web-api/reports/multi_overview`, a reference
+`campaign_id`, the same ID as `main_target`, explicit repeated `targets[]`
+selectors and one repeated `competitors[]` tracking pattern. Target IDs are complete
+composite campaign strings. Sorting uses native `sort[field]`, `sort[order]`,
+`sort[date]` and `sort[target]` keys. Native intersection codes are `shared`,
+`not_in_main` and `only_in_main`; all-keyword mode omits `intersection_type`.
+
+Primary sources are the Position Tracking 1.280.2 entry module's report sagas,
+`api/utils.ts`, `api/endpoint.ts` and `tracking-shared/api/utils.ts`. These are
+JSON report reads. Paid-only export and email-delivery paths are not used.

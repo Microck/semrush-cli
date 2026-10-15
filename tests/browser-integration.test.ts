@@ -332,6 +332,26 @@ let trackingVolume = 'national';
 async function serveTrackingFixture(request: IncomingMessage, response: ServerResponse, url: URL) {
   expect(request.headers.cookie).toContain('session=authorized');
   response.setHeader('Content-Type', 'application/json');
+  if (url.pathname.startsWith('/tracking/web-api/reports/')) {
+    expect(request.method).toBe('GET'); expect(url.searchParams.get('api_key')).toBe('fixture-secret');
+    expect(url.searchParams.get('date_begin')).toBe('20261015');
+    if (url.pathname.endsWith('/multi_overview')) {
+      expect(url.searchParams.getAll('targets[]')).toEqual(['789_42', '789_43']);
+      expect(url.searchParams.get('main_target')).toBe('789_42');
+      expect(url.searchParams.getAll('competitors[]')).toEqual(['*.example.com/*']);
+      expect(url.searchParams.has('main_competitor')).toBe(false);
+      expect(url.searchParams.get('sort[target]')).toBe('0');
+      expect(url.searchParams.get('intersection_type')).toBe('shared');
+      response.end(JSON.stringify({ status: 'ok', data: { keywords: [{ keyword: 'fixture', targets: [{ id: '789_42', positions: [{ date: '20261015', position: 1 }] }, { id: '789_43', positions: [{ date: '20261015', position: 2 }] }] }] } })); return;
+    }
+    if (url.pathname.endsWith('/competitors')) {
+      expect(url.searchParams.get('main_competitor')).toBe('example.com');
+      expect(url.searchParams.get('url_type')).toBe('rootdomain');
+      response.end(JSON.stringify({ status: 'ok', data: { total: 1, competitors: [{ competitor: 'example.org' }] } })); return;
+    }
+    expect(url.searchParams.getAll('competitors[]')).toEqual(['*.example.com/*']);
+    response.end(JSON.stringify({ status: 'ok', data: { competitors: [{ mask: '*.example.com/*', tops: { top3: { all: 1 } } }] } })); return;
+  }
   if (url.pathname.endsWith('/info')) {
     expect(request.method).toBe('GET'); expect(url.searchParams.get('api_key')).toBe('fixture-secret');
     response.end(JSON.stringify({ status: 'ok', data: { can_edit: trackingEditable,
@@ -656,5 +676,20 @@ test('tracking alert lists preserve unread state and confirmed rules complete a 
       expect(failed.message).toContain('target is read-only');
       expect(failed.message).not.toContain('fixture-secret');
     }
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+
+test('native tracking distribution, competitor discovery and target comparison preserve selected report data', async () => {
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const service = yield* Semrush;
+    const selection = { campaign_id: '789_42', date_begin: '20261015', date_end: '20261015' };
+    const call = (name: string, query: Query) => Effect.gen(function* () { return yield* service.report(yield* parseReport(name, query)); });
+    const distribution = yield* call('position_distribution', { ...selection, competitors: ['*.example.com/*'] });
+    expect(distribution.data).toMatchObject({ data: { competitors: [{ mask: '*.example.com/*', tops: { top3: { all: 1 } } }] } });
+    const competitors = yield* call('position_competitors', { ...selection, main_competitor: 'example.com' });
+    expect(competitors.data).toMatchObject({ data: { competitors: [{ competitor: 'example.org' }] } });
+    const comparison = yield* call('position_targets_compare', { ...selection, competitors: ['*.example.com/*'], target_ids: ['789_42', '789_43'], intersection_type: 'shared' });
+    expect(comparison.data).toMatchObject({ data: { keywords: [{ targets: [{ id: '789_42' }, { id: '789_43' }] }] } });
   }).pipe(Effect.provide(fixtureLayer()))));
 }, 30000);
