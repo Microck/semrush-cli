@@ -229,6 +229,38 @@ export function previewMutation(name: string, definition: Report, query: Query) 
 /** One JSON-RPC envelope for execution and credential-free previews. */
 export function rpcBody(method: string, params: Query): Query { return { id: 1, jsonrpc: '2.0', method, params }; }
 
+/** Basket page filters differ from keyword-row filters and from domain strategies. */
+function seedPageFilters(value: Schema.Json | undefined): Query {
+  const filters: Query = { Phrase: [], TopicName: [], Volume: [], Difficulty: [], Intents: [], Includes: [], IsFavorite: { Value: false } };
+  return Object.assign(filters, value);
+}
+
+function basketKeywordFilters(value: Schema.Json | undefined): Query {
+  const filters: Query = Object.fromEntries(['ClusterIDs', 'Databases', 'Phrase', 'CompetitionLevel', 'Cpc', 'Difficulty', 'SERPFeatures', 'Volume', 'ClickPotential', 'Tags', 'Intents'].map(key => [key, []]));
+  return Object.assign(filters, value);
+}
+
+/** Fixed seed-based page and export contracts from the current Keyword Strategy Builder client. */
+function seedResultParameters(definition: Report, q: Query): Query {
+  const method = definition.method;
+  const shared = { BasketID: q.basket_id ?? null, OwnerID: q.owner_id ?? null };
+  if (method.startsWith('export_v2.')) {
+    const selection: Query = 'cluster_ids' in q ? { ClusterIDs: q.cluster_ids ?? [] } : 'keywords' in q ? {
+      KeywordIDs: Array.isArray(q.keywords) ? q.keywords.map(Phrase => ({ Phrase, Database: q.database ?? 'us' })) : [],
+    } : { Filter: 'page_filters' in q ? seedPageFilters(q.page_filters) : basketKeywordFilters(q.filters) };
+    return { ...shared, ...selection, Format: q.format === 'xlsx' ? 0 : q.format === 'csv_semicolon' ? 2 : 1, Filename: q.filename ?? 'semrush-keyword-list' };
+  }
+  if ('cluster_ids' in q) return { ...shared, ClusterIDs: q.cluster_ids ?? [] };
+  if ('page_id' in q) return { ...shared, ID: q.page_id ?? null };
+  if (method === 'baskets.BasketGetPagePresetCounts') return shared;
+  const order = { Direction: q.descending ? 1 : 0, Field: q.sort_field ?? null };
+  if (method === 'baskets.BasketGetClusterKeywords') return { ...shared, ClusterID: q.cluster_id ?? null,
+    Page: { Number: q.page ?? 1, Size: q.page_size ?? 100 }, Order: order };
+  const parameters: Query = { ...shared, Preset: q.preset ?? 1, Filter: seedPageFilters(q.page_filters), Order: [order] };
+  if (method === 'baskets.BasketGetClusters') { parameters.ParentID = q.parent_id ?? null; parameters.Page = { Number: q.page ?? 1, Size: q.page_size ?? 20 }; }
+  return parameters;
+}
+
 /** Keyword Strategy Builder's casing differs from the keyword-research API. */
 function keywordListParameters(definition: Report, q: Query): Query {
   const method = definition.method;
@@ -244,6 +276,7 @@ function keywordListParameters(definition: Report, q: Query): Query {
   };
   if (method === 'baskets.BasketDelete') return { BasketIDs: [q.basket_id ?? null] };
   if (method === 'baskets.KeywordsDeleteUndo') return { UndoID: q.undo_id ?? null };
+  if (method.startsWith('export_v2.') || 'page_filters' in q || 'cluster_ids' in q || 'page_id' in q || 'cluster_id' in q || method === 'baskets.BasketGetPagePresetCounts') return seedResultParameters(definition, q);
   const shared: Query = { BasketID: q.basket_id ?? null, OwnerID: q.owner_id ?? null };
   if (method === 'baskets.BasketGetClusterizationStatuses') return { BasketIDs: [shared] };
   if (method === 'baskets.BasketRename') return { ...shared, Name: q.name ?? null };
@@ -255,8 +288,7 @@ function keywordListParameters(definition: Report, q: Query): Query {
     return params;
   }
   if ('filters' in q) {
-    const filter: Query = Object.fromEntries(['ClusterIDs', 'Databases', 'Phrase', 'CompetitionLevel', 'Cpc', 'Difficulty', 'SERPFeatures', 'Volume', 'ClickPotential', 'Tags', 'Intents'].map(key => [key, []]));
-    Object.assign(filter, q.filters);
+    const filter = basketKeywordFilters(q.filters);
     if (method === 'baskets.KeywordsGetSummary') return { ...shared, Filter: filter };
     return { ...shared, Filter: filter, Order: { Direction: q.descending ? 1 : 0, Field: q.sort_field ?? null }, Page: { Number: q.page ?? null, Size: q.page_size ?? null } };
   }

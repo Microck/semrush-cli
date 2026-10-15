@@ -148,3 +148,69 @@ the CLI does not retry writes or poll automatically.
 List IDs and owner IDs must be exact JSON integers within JavaScript's safe
 integer range. The input schema rejects larger numbers rather than rounding.
 Project folder IDs keep their separate decimal-string representation.
+
+
+## Read seed-based pages and clusters
+
+Use the basket and owner IDs from a completed structured strategy. These
+operations use the seed-based API, with different page filters and preset codes
+from domain strategies. Read native preset counts first. Preset `1` includes all
+pages; pass another returned numeric code explicitly when needed.
+
+```sh
+semrush keyword-list-page-presets --basket-id 456 --owner-id 123 --json
+semrush keyword-list-pages --basket-id 456 --owner-id 123 --json
+semrush keyword-list-clusters --basket-id 456 --owner-id 123 --page 1 --page-size 20 --json
+semrush keyword-list-clusters --basket-id 456 --owner-id 123 --parent-id 789 --json
+semrush keyword-list-clusters-get --basket-id 456 --owner-id 123 --cluster-ids '[789]' --json
+semrush keyword-list-page --basket-id 456 --owner-id 123 --page-id 789 --json
+semrush keyword-list-cluster-keywords --basket-id 456 --owner-id 123 --cluster-id 789 --json
+```
+
+Page results return `data.Pages` and `data.Topics`. Each page has a numeric `ID`.
+Use that ID as `page_id` or `cluster_id`; neither is a domain strategy page ID.
+Cluster pagination starts at page 1. Page reads return the native topic/page
+structure without CLI pagination. Sorting supports `seed_relevancy`,
+`metrics_score_v2`, `kdv`, `volume`, `kd` and `keywords`.
+
+`--page-filters` accepts `Phrase`, `TopicName`, `Volume`, `Difficulty`, `Intents`,
+`Includes` and `IsFavorite`. These differ from the keyword-row `--filters` used
+by `keyword-list-keywords`. For example:
+
+```sh
+semrush keyword-list-pages --basket-id 456 --owner-id 123 --page-filters '{"Phrase":[{"IsInverted":false,"Operation":1,"Value":"email"}]}' --json
+semrush keyword-list-pages --basket-id 456 --owner-id 123 --page-filters '{"IsFavorite":{"Value":true}}' --json
+semrush keyword-list-page-favorite --basket-id 456 --owner-id 123 --page-id 789 --confirm
+semrush keyword-list-page-unfavorite --basket-id 456 --owner-id 123 --page-id 789 --confirm
+semrush keyword-list-clusters-update-metrics --basket-id 456 --owner-id 123 --cluster-ids '[789]' --confirm
+semrush keyword-list-clusters-updated --basket-id 456 --owner-id 123 --cluster-ids '[789]' --json
+```
+
+String predicates use `IsInverted`, `Operation` and `Value`; operation 0 is exact
+matching and 1 is contains matching. Numeric predicates use the same fields;
+operation 1 is a lower bound and 0 is an upper bound. Metric refresh consumes
+the account's update allowance. Read refreshed values explicitly; the CLI does
+not poll automatically. `keyword-list-clusters-delete --basket-id 456
+--owner-id 123 --cluster-ids '[789]' --confirm` deletes selected clusters and
+their keywords. The CLI has no cluster-delete undo command.
+
+## Export seed-based keywords
+
+Choose one of four native selections. All support `csv`, `csv_semicolon` and
+`xlsx`. They require `--output` and refuse an existing destination.
+
+```sh
+semrush keyword-list-export --basket-id 456 --owner-id 123 --output keywords.csv
+semrush keyword-list-export --basket-id 456 --owner-id 123 --filters '{"ClusterIDs":[789]}' --format xlsx --output keywords.xlsx
+semrush keyword-list-export-keywords --basket-id 456 --owner-id 123 --keywords '["email marketing"]' --database us --output selected.csv
+semrush keyword-list-export-pages --basket-id 456 --owner-id 123 --page-filters '{"IsFavorite":{"Value":true}}' --output favorites.csv
+semrush keyword-list-export-clusters --basket-id 456 --owner-id 123 --cluster-ids '[789]' --format csv_semicolon --output cluster.csv
+```
+
+`keyword-list-export` exports matching keyword rows. Its `--filters` uses the
+same contract as `keyword-list-keywords`. `keyword-list-export-pages` exports
+keywords matching native page filters, while `keyword-list-export-clusters`
+selects explicit numeric cluster IDs. `keyword-list-export-keywords` selects
+phrases in one database. Exports do not change collection membership.
+MCP returns chunked resources; it never returns the download address or its
+runtime credentials. See [MCP exports](/docs/mcp#read-an-export).

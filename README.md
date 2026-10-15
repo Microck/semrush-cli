@@ -75,7 +75,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 
 ## command surface
 
-165 operations, available as cli commands and mcp tools. 118 reads and 47 writes that need explicit confirmation.
+180 operations, available as cli commands and mcp tools. 129 reads and 51 writes that need explicit confirmation.
 
 | command | what it does |
 | --- | --- |
@@ -98,6 +98,11 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 | `saved-keywords-export` | download native csv, semicolon csv or xlsx files |
 | `keyword-lists`, `keyword-list-keywords` | read keyword strategy builder baskets |
 | `keyword-strategy-create`, `keyword-list-cluster` | generate a seed-based strategy or cluster a list |
+| `keyword-list-page-presets`, `keyword-list-pages`, `keyword-list-clusters` | read native seed-based topics, page opportunities and paginated clusters |
+| `keyword-list-clusters-get`, `keyword-list-cluster-keywords`, `keyword-list-page` | inspect selected clusters, their keywords and page details |
+| `keyword-list-page-favorite`, `keyword-list-page-unfavorite` | save or remove a page favorite |
+| `keyword-list-clusters-delete`, `keyword-list-clusters-update-metrics`, `keyword-list-clusters-updated` | delete selected clusters or refresh and read their metrics |
+| `keyword-list-export`, `keyword-list-export-keywords`, `keyword-list-export-pages`, `keyword-list-export-clusters` | export filtered keyword rows, page selections or selected phrases and clusters |
 | `domain-strategies`, `domain-strategy-get`, `domain-strategy-summary`, `domain-strategy-status` | find domain strategies and read generation status |
 | `domain-strategy-create`, `domain-strategy-rename`, `domain-strategy-delete` | start domain strategy generation, rename or delete strategies |
 | `domain-strategy-presets`, `domain-strategy-pages`, `domain-strategy-pages-summary` | filter and page through existing or new page opportunities |
@@ -232,7 +237,41 @@ semrush keyword-list-cluster --basket-id 123 --owner-id 456 --confirm
 
 use `BasketID` and `Owner.ID` from the builder results. regular saved collections can share an underlying basket id with keyword strategy builder, but the request fields differ. saved keywords takes string `list_id`; builder commands take numeric `--basket-id` and `--owner-id`. project ids are separate.
 
-strategy generation, clustering and metric updates can consume your account allowance. read their status explicitly; the cli doesn't poll automatically. see [keyword lists](https://semrush.micr.dev/docs/keyword-lists).
+strategy generation, clustering and metric updates can consume your account allowance. read their status explicitly; the cli doesn't poll automatically.
+
+once a seed-based strategy finishes, inspect its topics, page opportunities and clusters:
+
+```bash
+semrush keyword-list-page-presets --basket-id 123 --owner-id 456
+semrush keyword-list-pages --basket-id 123 --owner-id 456 --preset 1
+semrush keyword-list-clusters --basket-id 123 --owner-id 456 --page 1 --page-size 20
+```
+
+page results use `data.Pages` with numeric `ID` fields. copy a page id to inspect or favorite it:
+
+```bash
+semrush keyword-list-page --basket-id 123 --owner-id 456 --page-id 789
+semrush keyword-list-page-favorite --basket-id 123 --owner-id 456 --page-id 789 --confirm
+semrush keyword-list-page-unfavorite --basket-id 123 --owner-id 456 --page-id 789 --confirm
+```
+
+seed-based topics and pages use a different api from domain strategies. use native preset codes from `keyword-list-page-presets`. clusters use one-based `--page` and accept `--parent-id` to narrow the topic. `--page-filters` accepts the native page filter object, separate from keyword rows' `--filters`. for example, `--page-filters '{"IsFavorite":{"Value":true}}'` selects favorites.
+
+use `keyword-list-cluster-keywords --cluster-id 789` to read a cluster's keywords. `keyword-list-clusters-get`, `keyword-list-clusters-delete`, `keyword-list-clusters-update-metrics` and `keyword-list-clusters-updated` take `--cluster-ids '[789]'`. include `--basket-id` and `--owner-id` on each. deletion removes the selected clusters and their keywords. deletion and metric refresh need `--confirm`.
+
+exports support `csv`, `csv_semicolon` and `xlsx`. `keyword-list-export` exports keyword rows matching `--filters`; `keyword-list-export-pages` exports keywords matching `--page-filters`. selected keyword exports use phrases and a database. selected cluster exports use numeric ids:
+
+```bash
+semrush keyword-list-export --basket-id 123 --owner-id 456 --output keywords.csv
+semrush keyword-list-export-pages --basket-id 123 --owner-id 456 \
+  --page-filters '{"IsFavorite":{"Value":true}}' --format xlsx --output favorites.xlsx
+semrush keyword-list-export-keywords --basket-id 123 --owner-id 456 \
+  --keywords '["email marketing"]' --database us --output selected-keywords.csv
+semrush keyword-list-export-clusters --basket-id 123 --owner-id 456 \
+  --cluster-ids '[789]' --format csv_semicolon --output clusters.csv
+```
+
+`--output` is required and refuses an existing file. mcp exports return artifact resources. see [keyword lists](https://semrush.micr.dev/docs/keyword-lists) for native filters and selection inputs.
 
 ### domain strategies
 

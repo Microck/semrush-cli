@@ -29,8 +29,14 @@ export function redact(value: Schema.Json, secrets: string[]): Schema.Json {
   return value;
 }
 
-/** Provider export capabilities stay within the current Semrush download endpoint. */
-const nativeExportURL = Effect.fn('Semrush.nativeExportURL')(function* (value: Schema.Json | undefined, browserOrigin: string) {
+/** Resolve the two native export contracts without exposing credential-bearing capabilities. */
+const nativeExportURL = Effect.fn('Semrush.nativeExportURL')(function* (kind: string, value: Schema.Json | undefined, browserOrigin: string, auth: BootstrapAuth) {
+  if (kind === 'export_id') {
+    if (!objectValue(value) || !Predicate.isString(value.ExportID) || !value.ExportID) return yield* Effect.fail(new ReportError({ message: 'Semrush did not return an export identifier.' }));
+    const address = new URL('/kwm/download-export-v2', browserOrigin);
+    address.search = new URLSearchParams({ userId: String(auth.userId), apiKey: auth.apiKey, exportId: value.ExportID }).toString();
+    return address.href;
+  }
   if (!objectValue(value) || !Predicate.isString(value.url)) return yield* Effect.fail(new ReportError({ message: 'Semrush did not return an export download URL.' }));
   const href = value.url;
   const destination = yield* Effect.try({ try: () => new URL(href), catch: () => new ReportError({ message: 'Semrush returned an invalid export URL.' }) });
@@ -229,8 +235,8 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       reportData = yield* request(path, planned.body, planned.method, {}, responseType);
     } else if (['keyword', 'domain', 'direct', 'magic', 'kwm', 'ksb'].includes(family)) {
       reportData = yield* rpc(definition.method, params, family, definition.web_report);
-      if ('response_type' in definition && definition.response_type === 'download_url') {
-        const href = yield* nativeExportURL(reportData, browserOrigin);
+      if ('response_type' in definition && ['download_url', 'export_id'].includes(definition.response_type)) {
+        const href = yield* nativeExportURL(definition.response_type, reportData, browserOrigin, auth);
         const artifact = yield* Effect.scoped(downloadExport({ method: 'GET', path: href, body: {} }, query.format));
         yield* captureCookies(context, sessions.capture, browserOrigin);
         return { authenticated: true as const, report: name, data: null, artifact };

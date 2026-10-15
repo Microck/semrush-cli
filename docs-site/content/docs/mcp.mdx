@@ -25,7 +25,7 @@ Alternatively, configure:
   "mcpServers": {
     "semrush": {
       "command": "npx",
-      "args": ["-y", "semrush-cli@0.8.0", "mcp"]
+      "args": ["-y", "semrush-cli@0.9.0", "mcp"]
     }
   }
 }
@@ -45,7 +45,7 @@ Tool names use underscores, such as `domain_overview`, `keyword_magic` and `back
 }
 ```
 
-The server sends only MCP protocol messages to stdout. The 118 read tools have `readOnlyHint:true`. The 47 write tools have
+The server sends only MCP protocol messages to stdout. The 129 read tools have `readOnlyHint:true`. The 51 write tools have
 `readOnlyHint:false` and require `confirm:true`. Delete and leave also have
 `destructiveHint:true`. Use `dry_run:true` to validate and inspect a write without
 connecting to Semrush. A write without confirmation fails before authentication.
@@ -55,6 +55,11 @@ Tool errors have `isError: true`. Reimport an expired session and restart or rec
 
 
 ## Read an export
+
+Call `keyword_list_export`, `keyword_list_export_pages`,
+`keyword_list_export_keywords` or `keyword_list_export_clusters` with
+`basket_id` and `owner_id` to export a seed-based basket. Each uses the
+selection documented in [keyword lists](/docs/keyword-lists#read-seed-based-pages-and-clusters).
 
 Call `domain_strategy_export` with a numeric `strategy_id` and a basename
 `filename`, or `saved_keywords_export` with a decimal-string `list_id`. Both

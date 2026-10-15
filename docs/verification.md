@@ -1,8 +1,49 @@
 # Verification
 
-Current source verification: 2026-10-15. The 0.8.0 source suite passed 131 tests. Live responses and credentials remain
+Current source verification: 2026-10-15. The 0.9.0 source suite passed 134 tests. Live responses and credentials remain
 outside the repository. Evidence below distinguishes local fixtures, native CI
 and real account execution.
+
+## Version 0.9.0 seed-based strategy verification
+
+All 15 new operations passed authenticated live calls. The owned strategy
+completed with 10 topics and 243 pages. Native page/preset reads, paginated
+clusters with disjoint pages, selected-cluster reads, page details, keyword
+reads and text filters returned populated data. Favorite and removal passed
+readback checks. Selected-cluster metric refresh passed; the explicit cluster
+deletion removed its ID and reduced the page count.
+
+Four native export selections each passed CSV, semicolon CSV and XLSX checks.
+Full keyword and page-filter exports contained 1,979 rows; selected-cluster
+exports contained two rows, and the selected-phrase export contained one row.
+The roughly 3.9 MB CSV files passed complete MCP resource chunk reads. All four
+XLSX files passed ZIP/workbook integrity checks. The provider uses numeric
+format codes; an initial string-format probe failed visibly and the mapping
+was corrected against the native client. No alternate transport was added.
+
+The real Chromium/Galleton/HTTP fixture checks opaque export-ID encoding,
+runtime-only credentials, missing-ID errors, favorite state, metric refresh,
+cluster deletion and all export selection contracts. Three review passes found
+one fixture clarity issue, fixed by decoding the favorite flag directly.
+
+Across versioned passes, all 129 reads and 50 of 51 writes have live execution
+evidence. Shared-project leave remains unverified. No purchase, subscription
+change or outreach was performed. The owned seed strategy was deleted and its
+ID checked absent; unrelated account data was preserved. Strict TypeScript,
+Oxlint, generated-reference checks, packaging and all 134 tests passed.
+
+## Version 0.8.0 published artifacts
+
+The public npm archive matches the tested release archive:
+SHA-256 `339548fca738c8223ef2920fc177f6b70c49d0e9f55bc13ab95aac2026b31a3e`.
+The [CI run](https://github.com/Microck/semrush-cli/actions/runs/38797493837)
+passed source, docs and installation/setup on Linux, macOS and Windows.
+Fresh packed and installed public npm processes advertised 165 tools and
+passed authenticated reads. The global command reported 0.8.0.
+The [GitHub release](https://github.com/Microck/semrush-cli/releases/tag/v0.8.0)
+is visible with its archive and checksum. The updated keyword-list guide
+passed a production Chromium check at 390px: HTTP 200, new workflow headings,
+no page errors and no horizontal overflow.
 
 ## Version 0.8.0 domain-strategy verification
 

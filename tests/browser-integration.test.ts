@@ -13,6 +13,7 @@ import { Semrush } from '../src/browser-service.js';
 import { Exports, exportsLive } from '../src/exports.js';
 import { parseReport } from '../src/validation.js';
 import type { Query } from '../src/report-parameters.js';
+import { makeSeedFixture } from './seed-strategy-fixture.js';
 import { makeDomainFixture } from './domain-strategy-fixture.js';
 import { makeSavedFixture, savedPath } from './saved-keywords-fixture.js';
 
@@ -39,6 +40,7 @@ const folderPath = '/apis/v4-raw/folders/api/v0/folders';
 let savedProject: { id: string; name: string; domain?: string; tags?: { name: string }[] } | undefined;
 const serveSavedFixture = makeSavedFixture();
 const serveDomainFixture = makeDomainFixture();
+const serveSeedFixture = makeSeedFixture();
 const fixture = createServer(async (request, response) => {
   const url = new URL(request.url ?? '/', fixtureURL);
   if (url.pathname === '/robots.txt') { response.end('User-agent: *\nDisallow: /'); return; }
@@ -66,6 +68,7 @@ const fixture = createServer(async (request, response) => {
   if (url.pathname.startsWith('/tracking/web-api/')) { await serveTrackingFixture(request, response, url); return; }
   if (url.pathname.startsWith('/siteaudit/api/') || url.pathname === '/siteaudit/private/polling') { await serveAuditFixture(request, response, url); return; }
   if (url.pathname.startsWith('/ksb/')) { await serveDomainFixture(request, response, url); return; }
+  if (url.pathname === '/kwm/download-export-v2') { await serveSeedFixture(request, response, url); return; }
   if (url.pathname === '/kwm/rpc') {
     let encoded = '';
     for await (const chunk of request) encoded += chunk;
@@ -79,6 +82,7 @@ const fixture = createServer(async (request, response) => {
     expect(params.UserID).toBe(123);
     expect(params).not.toHaveProperty('confirm');
     expect(params).not.toHaveProperty('dry_run');
+    if (await serveSeedFixture(request, response, url, rpc)) return;
     let reply: Schema.Json = null;
     switch (rpc.method) {
       case 'baskets.BasketCreate':
@@ -510,5 +514,40 @@ test('domain opportunities preserve presets, keyword deletion and native redirec
     const bytes = yield* (yield* Exports).read(exported.artifact.uri);
     expect(Buffer.from(bytes.blob, 'base64').toString('utf8')).toBe('url,keyword\nhttps://example.com/python,python ideas\n');
     yield* call('domain_strategy_delete', { strategy_ids: [654], confirm: true });
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+
+test('seed-based pages, selected cluster writes and opaque export IDs use the real browser boundary', async () => {
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const service = yield* Semrush;
+    const selected = { basket_id: 456, owner_id: 123 };
+    const call = (name: string, input: Query = {}) => Effect.gen(function* () { return yield* service.report(yield* parseReport(name, { ...selected, ...input })); });
+    expect((yield* call('keyword_list_page_presets')).data).toEqual([{ Preset: 1, Count: 2 }]);
+    expect((yield* call('keyword_list_pages')).data).toMatchObject({ TotalPagesCount: 2, Pages: [{ ID: 1008 }, { ID: 1009 }] });
+    expect((yield* call('keyword_list_clusters')).data).toMatchObject([{ ID: 1008 }, { ID: 1009 }]);
+    expect((yield* call('keyword_list_clusters_get', { cluster_ids: [1008] })).data).toMatchObject([{ ID: 1008 }]);
+    expect((yield* call('keyword_list_cluster_keywords', { cluster_id: 1008 })).data).toMatchObject([{ Phrase: 'email marketing' }]);
+    expect((yield* call('keyword_list_page', { page_id: 1008 })).data).toMatchObject({ ID: 1008, Refs: ['https://example.com/email'] });
+    yield* call('keyword_list_page_favorite', { page_id: 1008, confirm: true });
+    expect((yield* call('keyword_list_pages', { page_filters: { IsFavorite: { Value: true } } })).data).toMatchObject({ Pages: [{ ID: 1008, IsFavorite: true }] });
+    yield* call('keyword_list_page_unfavorite', { page_id: 1008, confirm: true });
+    expect((yield* call('keyword_list_pages', { page_filters: { IsFavorite: { Value: true } } })).data).toMatchObject({ Pages: [] });
+    yield* call('keyword_list_clusters_update_metrics', { cluster_ids: [1008], confirm: true });
+    expect((yield* call('keyword_list_clusters_updated', { cluster_ids: [1008] })).data).toMatchObject([{ ID: 1008, UpdatedAt: 'after' }]);
+    const missing = yield* call('keyword_list_export', { filename: 'missing' }).pipe(Effect.flip);
+    expect(missing.message).toContain('export identifier');
+    expect(yield* (yield* Exports).list()).toEqual([]);
+    for (const [name, input] of [['keyword_list_export', {}], ['keyword_list_export_pages', {}],
+      ['keyword_list_export_keywords', { keywords: ['email marketing'], database: 'us' }], ['keyword_list_export_clusters', { cluster_ids: [1008] }]] satisfies [string, Query][]) {
+      const exported = yield* call(name, input);
+      if (!exported.artifact) throw new Error('Expected seed export artifact');
+      expect(exported.data).toBeNull(); expect(JSON.stringify(exported)).not.toContain('fixture-secret');
+      expect(JSON.stringify(exported)).not.toContain('fixture-export');
+      const bytes = yield* (yield* Exports).read(exported.artifact.uri);
+      expect(Buffer.from(bytes.blob, 'base64').toString('utf8')).toBe('Keyword,Volume\nemail marketing,5000\n');
+    }
+    yield* call('keyword_list_clusters_delete', { cluster_ids: [1009], confirm: true });
+    expect((yield* call('keyword_list_clusters')).data).toMatchObject([{ ID: 1008 }]);
   }).pipe(Effect.provide(fixtureLayer()))));
 }, 30000);

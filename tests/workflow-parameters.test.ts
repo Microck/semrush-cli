@@ -1,11 +1,12 @@
 import { Effect } from 'effect';
 import { expect, test } from 'vitest';
 import { parseReport } from '../src/validation.js';
+import type { Query } from '../src/report-parameters.js';
 import { webRequest } from '../src/report-parameters.js';
 
 // Request contracts from the current Site Audit components and Position Tracking wizard.
 // See docs/contract.md; the live probe uses the same bounded public-domain fixture.
-const preview = async (name: string, input: Record<string, string | number | boolean | (string | number)[]>) => {
+const preview = async (name: string, input: Query) => {
   const parsed = await Effect.runPromise(parseReport(name, input));
   return webRequest(parsed.definition, parsed.query);
 };
@@ -92,4 +93,38 @@ test('domain page filters, intent codes and exports match the current audit clie
   await expect(preview('domain_strategy_pages', { strategy_id: 123, volume_min: 100, volume_max: 10 })).rejects.toThrow('must not exceed');
   await expect(preview('domain_strategy_keywords_delete', { keyword_ids: [], dry_run: true })).rejects.toThrow('fewer');
   for (const filename of ['../export', 'folder\\export', 'two\nlines']) await expect(preview('domain_strategy_export', { strategy_id: 123, filename })).rejects.toThrow('pattern');
+});
+
+
+test('seed-based page requests match captured native UI calls without using domain preset codes', async () => {
+  const selected = { basket_id: 456, owner_id: 123 };
+  expect((await preview('keyword_list_pages', selected)).body).toEqual({ id: 1, jsonrpc: '2.0', method: 'baskets.BasketGetPages', params: {
+    BasketID: 456, OwnerID: 123, Preset: 1, Filter: { Phrase: [], TopicName: [], Volume: [], Difficulty: [], Intents: [], Includes: [], IsFavorite: { Value: false } },
+    Order: [{ Direction: 1, Field: 'metrics_score_v2' }],
+  } });
+  expect((await preview('keyword_list_clusters', { ...selected, parent_id: 789, page: 2, page_size: 10, descending: false, sort_field: 'volume' })).body).toMatchObject({ params: {
+    ParentID: 789, Page: { Number: 2, Size: 10 }, Order: [{ Direction: 0, Field: 'volume' }],
+  } });
+  expect((await preview('keyword_list_cluster_keywords', { ...selected, cluster_id: 789 })).body).toMatchObject({ params: {
+    ClusterID: 789, Page: { Number: 1, Size: 100 }, Order: { Direction: 1, Field: 'difficulty' },
+  } });
+  for (const name of ['keyword_list_page_favorite', 'keyword_list_page_unfavorite']) {
+    await expect(preview(name, { ...selected, page_id: 789 })).rejects.toThrow('--confirm');
+    expect((await preview(name, { ...selected, page_id: 789, dry_run: true })).body).toMatchObject({ params: { BasketID: 456, OwnerID: 123, ID: 789 } });
+  }
+  await expect(preview('keyword_list_clusters_delete', { ...selected, cluster_ids: [], dry_run: true })).rejects.toThrow('fewer');
+  await expect(preview('keyword_list_pages', { ...selected, page_filters: { unknown: [] } })).rejects.toThrow('additional');
+});
+
+test('seed exports keep page and keyword filters separate and match native export selection formats', async () => {
+  const selected = { basket_id: 456, owner_id: 123 };
+  expect((await preview('keyword_list_export_keywords', { ...selected, keywords: ['email marketing'], database: 'us', format: 'csv_semicolon' })).body).toEqual({
+    id: 1, jsonrpc: '2.0', method: 'export_v2.ExportKeywordsByIDs', params: {
+      BasketID: 456, OwnerID: 123, KeywordIDs: [{ Phrase: 'email marketing', Database: 'us' }], Format: 2, Filename: 'semrush-keyword-list',
+    },
+  });
+  expect((await preview('keyword_list_export_pages', { ...selected, page_filters: { IsFavorite: { Value: true } } })).body).toMatchObject({ params: { Filter: { IsFavorite: { Value: true }, TopicName: [] }, Format: 1 } });
+  expect((await preview('keyword_list_export', { ...selected, filters: { ClusterIDs: [789] } })).body).toMatchObject({ params: { Filter: { ClusterIDs: [789], Databases: [] } } });
+  expect((await preview('keyword_list_export_clusters', { ...selected, cluster_ids: [789], format: 'xlsx' })).body).toMatchObject({ params: { ClusterIDs: [789], Format: 0 } });
+  await expect(preview('keyword_list_export_keywords', { ...selected, keywords: [] })).rejects.toThrow('fewer');
 });

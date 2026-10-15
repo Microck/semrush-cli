@@ -224,3 +224,38 @@ output. GET files use native browser downloads, matching the UI and avoiding
 the alias's browser CORS restriction. JSON POST exports use a fetched Blob.
 Each export owns a temporary browser page; closing that scope aborts pending
 network work and releases its Blob URLs, listeners and native download file.
+
+## Seed-based strategy pages and exports
+
+Seed-based `/kwm/rpc` baskets retain `BasketID` and `OwnerID` selectors.
+The current client uses `baskets.BasketGetPagePresetCounts`,
+`baskets.BasketGetPages`, `baskets.BasketGetClusters`,
+`baskets.BasketGetClustersByIDs`, `baskets.BasketGetClusterKeywords` and
+`baskets.GetPage`. Pages return topics and page totals; flat cluster reads add
+`ParentID`, one-based `Page`, and an array of `Order` clauses. Presets use native
+integer codes 1 through 5; read the current preset counts rather than reusing
+the domain API's codes. Page and cluster IDs are numeric safe JSON integers.
+
+Page filters have `Phrase`, `TopicName`, `Volume`, `Difficulty`, `Intents`,
+`Includes` and `IsFavorite`. String/number predicates use `IsInverted`,
+`Operation` and `Value`; intent predicates use `IsInverted` and `Value`.
+`IsFavorite` is an object with a boolean `Value`. Page ordering uses
+`seed_relevancy`, `metrics_score_v2`, `kdv`, `volume`, `kd` or `keywords`.
+
+`baskets.SetFavoritePage` and `baskets.ResetFavoritePage` use a selected page
+`ID`. `baskets.BasketDeleteClusters` and
+`baskets.KeywordsRequestUpdateByClusterIDs` use explicit `ClusterIDs` arrays.
+All require confirmation; deletion is destructive. Metric refresh consumes
+the account allowance. `baskets.BasketGetClustersUpdated` reads those IDs.
+
+Four native export contracts return `ExportID`:
+`export_v2.ExportKeywordsByFilter`, `export_v2.ExportKeywordsByIDs`,
+`export_v2.ExportKeywordsByClusters` and
+`export_v2.ExportKeywordsByClusterIDs`. They use integer `Format` (0 XLSX, 1 CSV, 2 semicolon CSV) and `Filename`. Keyword selections use phrase/database `KeywordIDs`;
+cluster selections use numeric `ClusterIDs`. Filtered keyword exports use the
+keyword filter contract; page exports use the page filter contract.
+
+The browser constructs the fixed `/kwm/download-export-v2` address with runtime
+`userId`, `apiKey` and the returned `exportId`. Neither credentials nor that
+address appear in previews or tool output. Native GET downloads return the same
+CLI file and MCP resource artifacts as other exports.

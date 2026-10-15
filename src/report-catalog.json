@@ -7929,5 +7929,1347 @@
       ]
     },
     "response_type": "download_url"
+  },
+  "keyword_list_page_presets": {
+    "method": "baskets.BasketGetPagePresetCounts",
+    "description": "Read native seed-based page preset counts.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id"
+      ]
+    }
+  },
+  "keyword_list_pages": {
+    "method": "baskets.BasketGetPages",
+    "description": "Read seed-based topics, page opportunities and totals.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        },
+        "preset": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5,
+          "default": 1,
+          "description": "Native preset code from keyword-list-page-presets."
+        },
+        "page_filters": {
+          "type": "object",
+          "additionalProperties": false,
+          "default": {},
+          "properties": {
+            "Phrase": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "IsInverted": {
+                    "type": "boolean"
+                  },
+                  "Operation": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1
+                    ]
+                  },
+                  "Value": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "IsInverted",
+                  "Operation",
+                  "Value"
+                ]
+              }
+            },
+            "TopicName": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "IsInverted": {
+                    "type": "boolean"
+                  },
+                  "Operation": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1
+                    ]
+                  },
+                  "Value": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "IsInverted",
+                  "Operation",
+                  "Value"
+                ]
+              }
+            },
+            "Includes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "IsInverted": {
+                    "type": "boolean"
+                  },
+                  "Operation": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1
+                    ]
+                  },
+                  "Value": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "IsInverted",
+                  "Operation",
+                  "Value"
+                ]
+              }
+            },
+            "Volume": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "IsInverted": {
+                    "type": "boolean"
+                  },
+                  "Operation": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1
+                    ]
+                  },
+                  "Value": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "IsInverted",
+                  "Operation",
+                  "Value"
+                ]
+              }
+            },
+            "Difficulty": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "IsInverted": {
+                    "type": "boolean"
+                  },
+                  "Operation": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1
+                    ]
+                  },
+                  "Value": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "IsInverted",
+                  "Operation",
+                  "Value"
+                ]
+              }
+            },
+            "Intents": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "IsInverted": {
+                    "type": "boolean"
+                  },
+                  "Value": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "IsInverted",
+                  "Value"
+                ]
+              }
+            },
+            "IsFavorite": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "Value": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "Value"
+              ]
+            }
+          }
+        },
+        "sort_field": {
+          "type": "string",
+          "enum": [
+            "seed_relevancy",
+            "metrics_score_v2",
+            "kdv",
+            "volume",
+            "kd",
+            "keywords"
+          ],
+          "default": "metrics_score_v2"
+        },
+        "descending": {
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id"
+      ]
+    }
+  },
+  "keyword_list_clusters": {
+    "method": "baskets.BasketGetClusters",
+    "description": "Read paginated seed-based clusters with optional parent and page filters.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        },
+        "preset": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5,
+          "default": 1,
+          "description": "Native preset code from keyword-list-page-presets."
+        },
+        "page_filters": {
+          "type": "object",
+          "additionalProperties": false,
+          "default": {},
+          "properties": {
+            "Phrase": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "IsInverted": {
+                    "type": "boolean"
+                  },
+                  "Operation": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1
+                    ]
+                  },
+                  "Value": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "IsInverted",
+                  "Operation",
+                  "Value"
+                ]
+              }
+            },
+            "TopicName": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "IsInverted": {
+                    "type": "boolean"
+                  },
+                  "Operation": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1
+                    ]
+                  },
+                  "Value": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "IsInverted",
+                  "Operation",
+                  "Value"
+                ]
+              }
+            },
+            "Includes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "IsInverted": {
+                    "type": "boolean"
+                  },
+                  "Operation": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1
+                    ]
+                  },
+                  "Value": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "IsInverted",
+                  "Operation",
+                  "Value"
+                ]
+              }
+            },
+            "Volume": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "IsInverted": {
+                    "type": "boolean"
+                  },
+                  "Operation": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1
+                    ]
+                  },
+                  "Value": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "IsInverted",
+                  "Operation",
+                  "Value"
+                ]
+              }
+            },
+            "Difficulty": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "IsInverted": {
+                    "type": "boolean"
+                  },
+                  "Operation": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1
+                    ]
+                  },
+                  "Value": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "IsInverted",
+                  "Operation",
+                  "Value"
+                ]
+              }
+            },
+            "Intents": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "IsInverted": {
+                    "type": "boolean"
+                  },
+                  "Value": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "IsInverted",
+                  "Value"
+                ]
+              }
+            },
+            "IsFavorite": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "Value": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "Value"
+              ]
+            }
+          }
+        },
+        "sort_field": {
+          "type": "string",
+          "enum": [
+            "seed_relevancy",
+            "metrics_score_v2",
+            "kdv",
+            "volume",
+            "kd",
+            "keywords"
+          ],
+          "default": "kdv"
+        },
+        "descending": {
+          "type": "boolean",
+          "default": true
+        },
+        "parent_id": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        },
+        "page_size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 20
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id"
+      ]
+    }
+  },
+  "keyword_list_clusters_get": {
+    "method": "baskets.BasketGetClustersByIDs",
+    "description": "Read selected seed-based clusters by exact numeric IDs.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        },
+        "cluster_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id",
+        "cluster_ids"
+      ]
+    }
+  },
+  "keyword_list_cluster_keywords": {
+    "method": "baskets.BasketGetClusterKeywords",
+    "description": "Read keywords in one seed-based cluster.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        },
+        "page_size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 100
+        },
+        "sort_field": {
+          "type": "string",
+          "minLength": 1,
+          "default": "difficulty"
+        },
+        "descending": {
+          "type": "boolean",
+          "default": true
+        },
+        "cluster_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id",
+        "cluster_id"
+      ]
+    }
+  },
+  "keyword_list_page": {
+    "method": "baskets.GetPage",
+    "description": "Read seed-based page SERP features, intents and references.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        },
+        "page_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id",
+        "page_id"
+      ]
+    }
+  },
+  "keyword_list_page_favorite": {
+    "method": "baskets.SetFavoritePage",
+    "description": "Favorite one seed-based page.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        },
+        "page_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id",
+        "page_id"
+      ]
+    }
+  },
+  "keyword_list_page_unfavorite": {
+    "method": "baskets.ResetFavoritePage",
+    "description": "Remove a seed-based page favorite.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        },
+        "page_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id",
+        "page_id"
+      ]
+    }
+  },
+  "keyword_list_clusters_delete": {
+    "method": "baskets.BasketDeleteClusters",
+    "description": "Delete explicit seed-based clusters and their keywords.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        },
+        "cluster_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id",
+        "cluster_ids"
+      ]
+    }
+  },
+  "keyword_list_clusters_update_metrics": {
+    "method": "baskets.KeywordsRequestUpdateByClusterIDs",
+    "description": "Refresh keyword metrics for selected seed-based clusters; account allowance applies.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        },
+        "cluster_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id",
+        "cluster_ids"
+      ]
+    }
+  },
+  "keyword_list_clusters_updated": {
+    "method": "baskets.BasketGetClustersUpdated",
+    "description": "Read refreshed seed-based cluster values.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        },
+        "cluster_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id",
+        "cluster_ids"
+      ]
+    }
+  },
+  "keyword_list_export": {
+    "method": "export_v2.ExportKeywordsByFilter",
+    "description": "Export filtered basket keywords as CSV, semicolon CSV or XLSX.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "csv",
+            "csv_semicolon",
+            "xlsx"
+          ],
+          "default": "csv"
+        },
+        "filename": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[^/\\\\\\u0000-\\u001f]+$",
+          "default": "semrush-keyword-list"
+        },
+        "filters": {
+          "type": "object",
+          "description": "Keyword Strategy Builder Filter object. Unspecified fields default to empty arrays.",
+          "properties": {
+            "ClusterIDs": {
+              "type": "array"
+            },
+            "Databases": {
+              "type": "array"
+            },
+            "Phrase": {
+              "type": "array"
+            },
+            "CompetitionLevel": {
+              "type": "array"
+            },
+            "Cpc": {
+              "type": "array"
+            },
+            "Difficulty": {
+              "type": "array"
+            },
+            "SERPFeatures": {
+              "type": "array"
+            },
+            "Volume": {
+              "type": "array"
+            },
+            "ClickPotential": {
+              "type": "array"
+            },
+            "Tags": {
+              "type": "array"
+            },
+            "Intents": {
+              "type": "array"
+            }
+          },
+          "additionalProperties": false,
+          "default": {}
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id"
+      ]
+    },
+    "response_type": "export_id"
+  },
+  "keyword_list_export_keywords": {
+    "method": "export_v2.ExportKeywordsByIDs",
+    "description": "Export selected basket keyword phrases in one database.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "csv",
+            "csv_semicolon",
+            "xlsx"
+          ],
+          "default": "csv"
+        },
+        "filename": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[^/\\\\\\u0000-\\u001f]+$",
+          "default": "semrush-keyword-list"
+        },
+        "keywords": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "database": {
+          "type": "string",
+          "pattern": "^[a-z]{2}(?:-[a-z]{2})?$",
+          "default": "us"
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id",
+        "keywords"
+      ]
+    },
+    "response_type": "export_id"
+  },
+  "keyword_list_export_pages": {
+    "method": "export_v2.ExportKeywordsByClusters",
+    "description": "Export all keywords matching native seed-based page filters.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "csv",
+            "csv_semicolon",
+            "xlsx"
+          ],
+          "default": "csv"
+        },
+        "filename": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[^/\\\\\\u0000-\\u001f]+$",
+          "default": "semrush-keyword-list"
+        },
+        "page_filters": {
+          "type": "object",
+          "additionalProperties": false,
+          "default": {},
+          "properties": {
+            "Phrase": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "IsInverted": {
+                    "type": "boolean"
+                  },
+                  "Operation": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1
+                    ]
+                  },
+                  "Value": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "IsInverted",
+                  "Operation",
+                  "Value"
+                ]
+              }
+            },
+            "TopicName": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "IsInverted": {
+                    "type": "boolean"
+                  },
+                  "Operation": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1
+                    ]
+                  },
+                  "Value": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "IsInverted",
+                  "Operation",
+                  "Value"
+                ]
+              }
+            },
+            "Includes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "IsInverted": {
+                    "type": "boolean"
+                  },
+                  "Operation": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1
+                    ]
+                  },
+                  "Value": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "IsInverted",
+                  "Operation",
+                  "Value"
+                ]
+              }
+            },
+            "Volume": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "IsInverted": {
+                    "type": "boolean"
+                  },
+                  "Operation": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1
+                    ]
+                  },
+                  "Value": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "IsInverted",
+                  "Operation",
+                  "Value"
+                ]
+              }
+            },
+            "Difficulty": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "IsInverted": {
+                    "type": "boolean"
+                  },
+                  "Operation": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1
+                    ]
+                  },
+                  "Value": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "IsInverted",
+                  "Operation",
+                  "Value"
+                ]
+              }
+            },
+            "Intents": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "IsInverted": {
+                    "type": "boolean"
+                  },
+                  "Value": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "IsInverted",
+                  "Value"
+                ]
+              }
+            },
+            "IsFavorite": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "Value": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "Value"
+              ]
+            }
+          }
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id"
+      ]
+    },
+    "response_type": "export_id"
+  },
+  "keyword_list_export_clusters": {
+    "method": "export_v2.ExportKeywordsByClusterIDs",
+    "description": "Export keywords from explicit seed-based cluster IDs.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "csv",
+            "csv_semicolon",
+            "xlsx"
+          ],
+          "default": "csv"
+        },
+        "filename": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[^/\\\\\\u0000-\\u001f]+$",
+          "default": "semrush-keyword-list"
+        },
+        "cluster_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id",
+        "cluster_ids"
+      ]
+    },
+    "response_type": "export_id"
   }
 }

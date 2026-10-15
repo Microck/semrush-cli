@@ -30,7 +30,7 @@ cli.command('reports').description('List research reports and project operations
 interface Property { type?: string; default?: unknown; description?: string; anyOf?: { type?: string }[]; }
 for (const [name, definition] of Object.entries(reports)) {
   const report = cli.command(name.replaceAll('_', '-')).description(definition.description);
-  if ('response_type' in definition && ['download', 'download_url'].includes(definition.response_type)) report.requiredOption('--output <path>', 'Save the export file; refuses an existing destination');
+  if ('response_type' in definition && ['download', 'download_url', 'export_id'].includes(definition.response_type)) report.requiredOption('--output <path>', 'Save the export file; refuses an existing destination');
   const schema: { properties: Record<string, Property>; required?: string[] } = definition.schema;
   for (const [key, property] of Object.entries(schema.properties)) {
     const flag = key.replaceAll('_', '-');

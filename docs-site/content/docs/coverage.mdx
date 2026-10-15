@@ -3,7 +3,7 @@ title: Web UI coverage
 description: Supported web workflows, evidence and remaining gaps.
 ---
 
-The CLI has 165 fixed operations: 118 reads and 47 confirmed writes.
+The CLI has 180 fixed operations: 129 reads and 51 confirmed writes.
 It uses your web session and the current web UI's request contracts. Account
 permissions and quotas apply to both interfaces. This is not full Semrush suite
 parity. The table distinguishes implemented workflows from remaining gaps.
@@ -24,7 +24,7 @@ parity. The table distinguishes implemented workflows from remaining gaps.
 | SEO setup | Create an SEO project and explicitly start automatic Site Audit/Position Tracking setup | Protected-site audit setup |
 | Site Audit | Discovery, limits, public-site settings, schedules, launch, page and issue tables, page recrawl, execution status, abort/finalize, structure, performance, linking, history, snapshots, CSV/XLSX exports | Protected-site authentication, Google Analytics connections and crawled-links export |
 | Position Tracking | Target creation, locations, limits, keyword add/delete/tags, competitor replacement, campaign settings reads, rankings, pages, visibility/distribution/cannibalization trends | Editing target settings, alerts, notes, target comparison and UI exports |
-| Keyword Strategy Builder | Domain strategy lifecycle, presets, filtered page opportunities, page URLs/SERPs, existing/recommended keywords, keyword deletion and CSV/XLSX exports; seed-based basket creation, generation, pagination, metadata, keyword import, metric updates, tags, deletion/undo and clustering | Seed-based cluster/page editing and exports; content generation |
+| Keyword Strategy Builder | Domain strategy lifecycle, presets, filtered page opportunities, page URLs/SERPs, existing/recommended keywords, keyword deletion and CSV/XLSX exports; seed-based basket lifecycle, topics/pages, paginated clusters, favorites, selected-cluster deletion and metric refresh, keyword import, tags, deletion/undo, clustering and four native export selections | Cluster copy/move, mind-map image exports, content generation and connected tracking actions |
 | Saved Keywords | Create, rename, delete/undo collections; keyword import, filters, metrics, tags, workflow labels, copy/move, deletion/undo, metadata and CSV/semicolon CSV/XLSX exports | Content generation and connected tracking actions |
 | Local, social and content products | Project toolkit status and available dashboard metrics | Product-specific management and connected services |
 
@@ -81,3 +81,13 @@ download change also passed all six Site Audit and three Saved Keywords export
 regressions. Across these passes, all 118 reads and 46 of 47 writes have live
 execution evidence.
 Shared-project leave remains unverified.
+
+
+The seed-based pass verified 15 additional operations. One generated strategy
+contained 10 topics and 243 pages. Favorites and removal, selected-cluster metric
+refresh and cluster deletion passed readback checks. All four export selections
+passed CSV, semicolon CSV and XLSX checks. Full exports contained 1,979 keyword
+rows; selected-cluster and selected-phrase exports contained only their selected
+rows. The owned strategy was deleted and its ID checked absent. Across the
+versioned passes, all 129 reads and 50 of 51 writes have live execution evidence.
+Shared-project leave still has contract coverage only.
