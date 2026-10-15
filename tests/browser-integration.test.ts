@@ -13,6 +13,7 @@ import { Semrush } from '../src/browser-service.js';
 import { Exports, exportsLive } from '../src/exports.js';
 import { parseReport } from '../src/validation.js';
 import type { Query } from '../src/report-parameters.js';
+import { makeTransferFixture } from './basket-transfer-fixture.js';
 import { makeSeedFixture } from './seed-strategy-fixture.js';
 import { makeDomainFixture } from './domain-strategy-fixture.js';
 import { makeSavedFixture, savedPath } from './saved-keywords-fixture.js';
@@ -41,6 +42,7 @@ let savedProject: { id: string; name: string; domain?: string; tags?: { name: st
 const serveSavedFixture = makeSavedFixture();
 const serveDomainFixture = makeDomainFixture();
 const serveSeedFixture = makeSeedFixture();
+const serveTransferFixture = makeTransferFixture();
 const fixture = createServer(async (request, response) => {
   const url = new URL(request.url ?? '/', fixtureURL);
   if (url.pathname === '/robots.txt') { response.end('User-agent: *\nDisallow: /'); return; }
@@ -65,7 +67,7 @@ const fixture = createServer(async (request, response) => {
     response.setHeader('Content-Disposition', 'attachment; filename=fixture.csv');
     response.end('url,title\nhttps://example.com/,café\n'); return;
   }
-  if (url.pathname.startsWith('/tracking/web-api/')) { await serveTrackingFixture(request, response, url); return; }
+  if (['/tracking/web-api/', '/tracking/hashes', '/positions/api/'].some(prefix => url.pathname.startsWith(prefix))) { await serveTrackingFixture(request, response, url); return; }
   if (url.pathname.startsWith('/siteaudit/api/') || url.pathname === '/siteaudit/private/polling') { await serveAuditFixture(request, response, url); return; }
   if (url.pathname.startsWith('/ksb/')) { await serveDomainFixture(request, response, url); return; }
   if (url.pathname === '/kwm/download-export-v2') { await serveSeedFixture(request, response, url); return; }
@@ -82,6 +84,7 @@ const fixture = createServer(async (request, response) => {
     expect(params.UserID).toBe(123);
     expect(params).not.toHaveProperty('confirm');
     expect(params).not.toHaveProperty('dry_run');
+    if (serveTransferFixture(rpc, response)) return;
     if (await serveSeedFixture(request, response, url, rpc)) return;
     let reply: Schema.Json = null;
     switch (rpc.method) {
@@ -317,9 +320,24 @@ test('Position Tracking restores auth and completes incremental target updates',
 
 let trackingKeywords: { keyword: string; tags: string[] }[] = [];
 let trackingCompetitors: { domain: string; url: string }[] = [];
+let trackingEditable = true;
+let trackingMalformedHashes = false;
+let trackingHashReads = 0;
+let trackingSettingWrites = 0;
+let trackingSettingsState = { tracking_url: 'example.com', tracking_url_type: 'rootdomain', business_name: 'original business', brands: ['original brand'] };
+let trackingVolume = 'national';
 async function serveTrackingFixture(request: IncomingMessage, response: ServerResponse, url: URL) {
   expect(request.headers.cookie).toContain('session=authorized');
   response.setHeader('Content-Type', 'application/json');
+  if (url.pathname.endsWith('/info')) {
+    expect(request.method).toBe('GET'); expect(url.searchParams.get('api_key')).toBe('fixture-secret');
+    response.end(JSON.stringify({ status: 'ok', data: { can_edit: trackingEditable,
+      campaign_settings: trackingSettingsState, filters: { volume_type: trackingVolume }, hashes: { private: 'fixture-edit-secret' } } })); return;
+  }
+  if (url.pathname === '/tracking/hashes') {
+    expect(request.method).toBe('GET'); expect(url.searchParams.get('id')).toBe('789_42'); trackingHashReads++;
+    response.end(JSON.stringify(trackingMalformedHashes ? {} : { info: { campaign_edit: { hash: 'fixture-edit-secret', random: 0.314 } } })); return;
+  }
   if (url.pathname.endsWith('/owner_limits')) {
     expect(request.method).toBe('GET');
     expect(url.searchParams.get('api_key')).toBe('fixture-secret');
@@ -332,6 +350,14 @@ async function serveTrackingFixture(request: IncomingMessage, response: ServerRe
   const payload = JSON.parse(encoded);
   expect(payload).not.toHaveProperty('confirm');
   expect(payload).not.toHaveProperty('dry_run');
+  if (url.pathname.endsWith('/campaign_edit_domain_settings')) {
+    expect(url.searchParams.get('key')).toBe('fixture-secret');
+    expect(payload).toMatchObject({ key: 'fixture-secret', campaignId: '789_42', display_hash: 'fixture-edit-secret', rnd: 0.314 });
+    expect(Object.keys(payload).sort()).toEqual(['key', 'campaignId', 'display_hash', 'rnd', 'domain', 'type', 'businessName', 'brands', 'volume_type'].sort());
+    trackingSettingsState = { tracking_url: payload.domain, tracking_url_type: payload.type, business_name: payload.businessName, brands: payload.brands };
+    trackingVolume = payload.volume_type; trackingSettingWrites++;
+    response.end(JSON.stringify({ status: 'ok', data: { display_hash: 'fixture-edit-secret', rnd: 0.314 } })); return;
+  }
   if (url.pathname.endsWith('/create_targets')) {
     expect(payload.targeting[0]).toMatchObject({ weekly_notification: false, location: { location_id: 2840 } });
     trackingKeywords = payload.keywords;
@@ -549,5 +575,57 @@ test('seed-based pages, selected cluster writes and opaque export IDs use the re
     }
     yield* call('keyword_list_clusters_delete', { cluster_ids: [1009], confirm: true });
     expect((yield* call('keyword_list_clusters')).data).toMatchObject([{ ID: 1008 }]);
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+
+test('tracking settings preserve omitted fields and require fresh editable-target metadata', async () => {
+  trackingSettingsState = { tracking_url: 'example.com', tracking_url_type: 'rootdomain', business_name: 'original business', brands: ['original brand'] };
+  trackingVolume = 'national'; trackingEditable = true; trackingMalformedHashes = false; trackingHashReads = 0; trackingSettingWrites = 0;
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const service = yield* Semrush;
+      const call = (name: string, input: Query = {}) => Effect.gen(function* () { return yield* service.report(yield* parseReport(name, { campaign_id: '789_42', ...input })); });
+      const edited = yield* call('position_configure', { business_name: 'changed business', confirm: true });
+      expect(JSON.stringify(edited)).not.toContain('fixture-edit-secret'); expect(edited.data).toEqual({ status: 'ok', data: {} });
+      expect(trackingSettingsState).toEqual({ tracking_url: 'example.com', tracking_url_type: 'rootdomain', business_name: 'changed business', brands: ['original brand'] });
+      expect(trackingVolume).toBe('national');
+      const inspected = yield* call('position_info'); expect(JSON.stringify(inspected)).not.toContain('fixture-edit-secret');
+      yield* call('position_configure', { brands: ['changed brand'], confirm: true });
+      expect(trackingSettingsState.brands).toEqual(['changed brand']); expect(trackingSettingsState.business_name).toBe('changed business');
+      yield* call('position_configure', { domain: 'https://example.com/page', url_type: 'url', confirm: true });
+      expect(trackingSettingsState).toMatchObject({ tracking_url: 'https://example.com/page', tracking_url_type: 'url', business_name: 'changed business' });
+      yield* call('position_configure', { business_name: '', confirm: true });
+      expect(trackingSettingsState.business_name).toBe(''); expect(trackingSettingsState.brands).toEqual(['changed brand']);
+      expect(trackingHashReads).toBe(4); expect(trackingSettingWrites).toBe(4);
+      trackingEditable = false;
+      const readonly = yield* call('position_configure', { business_name: 'refused', confirm: true }).pipe(Effect.flip);
+      expect(readonly.message).toContain('read-only'); expect(trackingHashReads).toBe(4); expect(trackingSettingWrites).toBe(4);
+      trackingEditable = true; trackingMalformedHashes = true;
+      const missing = yield* call('position_configure', { business_name: 'refused', confirm: true }).pipe(Effect.flip);
+      expect(missing.message).toContain('edit metadata'); expect(trackingSettingWrites).toBe(4);
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { trackingEditable = true; trackingMalformedHashes = false; }
+}, 30000);
+
+
+test('owner-aware basket transfers copy and move only explicit phrase or cluster selections', async () => {
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const service = yield* Semrush;
+    const source = { basket_id: 1001, owner_id: 123 };
+    const target = { target_basket_id: 1002, target_owner_id: 123 };
+    const call = (name: string, input: Query) => Effect.gen(function* () { return yield* service.report(yield* parseReport(name, input)); });
+    yield* call('keyword_list_keywords_copy', { ...source, ...target, keywords: ['email marketing'], database: 'us', confirm: true });
+    expect((yield* call('keyword_list_keywords', source)).data).toMatchObject({ Keywords: [{ Phrase: 'email marketing' }, { Phrase: 'python tutorial' }, { Phrase: 'seo tools' }] });
+    expect((yield* call('keyword_list_keywords', { basket_id: 1002, owner_id: 123 })).data).toMatchObject({ Keywords: [{ Phrase: 'email marketing' }] });
+    yield* call('keyword_list_keywords_move', { ...source, ...target, keywords: ['python tutorial'], database: 'us', confirm: true });
+    expect((yield* call('keyword_list_keywords', source)).data).toMatchObject({ Keywords: [{ Phrase: 'email marketing' }, { Phrase: 'seo tools' }] });
+    yield* call('keyword_list_clusters_copy', { ...source, ...target, cluster_ids: [1010], confirm: true });
+    expect((yield* call('keyword_list_keywords', source)).data).toMatchObject({ Keywords: [{ Phrase: 'email marketing' }, { Phrase: 'seo tools' }] });
+    yield* call('keyword_list_clusters_move', { ...source, ...target, cluster_ids: [1010], confirm: true });
+    expect((yield* call('keyword_list_keywords', source)).data).toMatchObject({ Keywords: [{ Phrase: 'email marketing' }] });
+    expect((yield* call('keyword_list_keywords', { basket_id: 1002, owner_id: 123 })).data).toEqual({ Keywords: [
+      { Phrase: 'email marketing', Database: 'us', ClusterID: 0 }, { Phrase: 'python tutorial', Database: 'us', ClusterID: 0 }, { Phrase: 'seo tools', Database: 'us', ClusterID: 0 },
+    ] });
   }).pipe(Effect.provide(fixtureLayer()))));
 }, 30000);

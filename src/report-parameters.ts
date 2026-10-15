@@ -240,13 +240,18 @@ function basketKeywordFilters(value: Schema.Json | undefined): Query {
   return Object.assign(filters, value);
 }
 
+/** Native phrase selections always include their database. */
+function basketKeywordIDs(q: Query): Query[] {
+  return Array.isArray(q.keywords) ? q.keywords.map(Phrase => ({ Phrase, Database: q.database ?? 'us' })) : [];
+}
+
 /** Fixed seed-based page and export contracts from the current Keyword Strategy Builder client. */
 function seedResultParameters(definition: Report, q: Query): Query {
   const method = definition.method;
   const shared = { BasketID: q.basket_id ?? null, OwnerID: q.owner_id ?? null };
   if (method.startsWith('export_v2.')) {
     const selection: Query = 'cluster_ids' in q ? { ClusterIDs: q.cluster_ids ?? [] } : 'keywords' in q ? {
-      KeywordIDs: Array.isArray(q.keywords) ? q.keywords.map(Phrase => ({ Phrase, Database: q.database ?? 'us' })) : [],
+      KeywordIDs: basketKeywordIDs(q),
     } : { Filter: 'page_filters' in q ? seedPageFilters(q.page_filters) : basketKeywordFilters(q.filters) };
     return { ...shared, ...selection, Format: q.format === 'xlsx' ? 0 : q.format === 'csv_semicolon' ? 2 : 1, Filename: q.filename ?? 'semrush-keyword-list' };
   }
@@ -259,6 +264,13 @@ function seedResultParameters(definition: Report, q: Query): Query {
   const parameters: Query = { ...shared, Preset: q.preset ?? 1, Filter: seedPageFilters(q.page_filters), Order: [order] };
   if (method === 'baskets.BasketGetClusters') { parameters.ParentID = q.parent_id ?? null; parameters.Page = { Number: q.page ?? 1, Size: q.page_size ?? 20 }; }
   return parameters;
+}
+
+/** Transfers use nested owner-aware selectors rather than a single basket scope. */
+function basketTransferParameters(q: Query): Query {
+  const selection: Query = 'cluster_ids' in q ? { ClusterIDs: q.cluster_ids ?? [] } : { KeywordIDs: basketKeywordIDs(q) };
+  return { SourceShareID: { BasketID: q.basket_id ?? null, OwnerID: q.owner_id ?? null },
+    TargetShareID: { BasketID: q.target_basket_id ?? null, OwnerID: q.target_owner_id ?? null }, ...selection };
 }
 
 /** Keyword Strategy Builder's casing differs from the keyword-research API. */
@@ -276,6 +288,7 @@ function keywordListParameters(definition: Report, q: Query): Query {
   };
   if (method === 'baskets.BasketDelete') return { BasketIDs: [q.basket_id ?? null] };
   if (method === 'baskets.KeywordsDeleteUndo') return { UndoID: q.undo_id ?? null };
+  if ('target_basket_id' in q) return basketTransferParameters(q);
   if (method.startsWith('export_v2.') || 'page_filters' in q || 'cluster_ids' in q || 'page_id' in q || 'cluster_id' in q || method === 'baskets.BasketGetPagePresetCounts') return seedResultParameters(definition, q);
   const shared: Query = { BasketID: q.basket_id ?? null, OwnerID: q.owner_id ?? null };
   if (method === 'baskets.BasketGetClusterizationStatuses') return { BasketIDs: [shared] };
@@ -283,7 +296,7 @@ function keywordListParameters(definition: Report, q: Query): Query {
   if ('keywords' in q) {
     const phrases = Array.isArray(q.keywords) ? q.keywords : [];
     if (method === 'baskets.KeywordsImport') return { ...shared, Keywords: phrases.map(Phrase => ({ Phrase, Database: q.database ?? 'us', Tags: q.tags ?? [] })) };
-    const params: Query = { ...shared, KeywordIDs: phrases.map(Phrase => ({ Phrase, Database: q.database ?? 'us' })) };
+    const params: Query = { ...shared, KeywordIDs: basketKeywordIDs(q) };
     if ('tags' in q) params.Tags = q.tags ?? [];
     return params;
   }
@@ -327,6 +340,10 @@ function publicParameters(definition: Report, query: Query): Query {
 /** Current Position Tracking wizard uses cookie-authenticated incremental writes, never billing. */
 function trackingParameters(definition: Report, query: Query): Query {
   const phrases = Array.isArray(query.keywords) ? query.keywords : [];
+  if (definition.method.endsWith('/campaign_edit_domain_settings')) {
+    const names = new Map([['campaign_id', 'campaignId'], ['url_type', 'type'], ['business_name', 'businessName']]);
+    return Object.fromEntries(Object.entries(publicParameters(definition, query)).map(([key, value]) => [names.get(key) ?? key, value]));
+  }
   if (definition.method.endsWith('/create_targets')) return {
     url: query.domain ?? null, url_type: query.url_type ?? 'rootdomain',
     keywords: phrases.map(keyword => ({ keyword, tags: query.tags ?? [] })),

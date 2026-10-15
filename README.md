@@ -75,7 +75,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 
 ## command surface
 
-180 operations, available as cli commands and mcp tools. 129 reads and 51 writes that need explicit confirmation.
+185 operations, available as cli commands and mcp tools. 129 reads and 56 writes that need explicit confirmation.
 
 | command | what it does |
 | --- | --- |
@@ -102,6 +102,8 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 | `keyword-list-clusters-get`, `keyword-list-cluster-keywords`, `keyword-list-page` | inspect selected clusters, their keywords and page details |
 | `keyword-list-page-favorite`, `keyword-list-page-unfavorite` | save or remove a page favorite |
 | `keyword-list-clusters-delete`, `keyword-list-clusters-update-metrics`, `keyword-list-clusters-updated` | delete selected clusters or refresh and read their metrics |
+| `keyword-list-keywords-copy`, `keyword-list-keywords-move` | transfer selected phrases between owner-aware baskets |
+| `keyword-list-clusters-copy`, `keyword-list-clusters-move` | transfer keywords from selected clusters between baskets |
 | `keyword-list-export`, `keyword-list-export-keywords`, `keyword-list-export-pages`, `keyword-list-export-clusters` | export filtered keyword rows, page selections or selected phrases and clusters |
 | `domain-strategies`, `domain-strategy-get`, `domain-strategy-summary`, `domain-strategy-status` | find domain strategies and read generation status |
 | `domain-strategy-create`, `domain-strategy-rename`, `domain-strategy-delete` | start domain strategy generation, rename or delete strategies |
@@ -111,6 +113,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 | `domain-strategy-keywords-delete`, `domain-strategy-export` | remove selected generated keywords or export a filtered strategy |
 | `audit-create`, `audit-configure`, `audit-start` | configure and launch a site audit |
 | `position-create`, `position-targets`, `position-info` | create targets and read tracking settings |
+| `position-configure` | edit tracking address, business name, brands or volume settings |
 | `position-keywords-add`, `position-keywords-delete`, `position-keyword-tags` | manage tracked keywords and tags |
 | `position-competitors-set` | replace the tracked competitor list |
 | `position-overview`, `position-pages`, `position-overview-trend` | rankings, landing pages and trends |
@@ -259,6 +262,18 @@ seed-based topics and pages use a different api from domain strategies. use nati
 
 use `keyword-list-cluster-keywords --cluster-id 789` to read a cluster's keywords. `keyword-list-clusters-get`, `keyword-list-clusters-delete`, `keyword-list-clusters-update-metrics` and `keyword-list-clusters-updated` take `--cluster-ids '[789]'`. include `--basket-id` and `--owner-id` on each. deletion removes the selected clusters and their keywords. deletion and metric refresh need `--confirm`.
 
+copy or move phrases, or the keywords in selected clusters, into another basket:
+
+```bash
+semrush keyword-list-keywords-copy --basket-id 123 --owner-id 456 \
+  --target-basket-id 321 --target-owner-id 456 \
+  --keywords '["email marketing"]' --database us --confirm
+semrush keyword-list-clusters-move --basket-id 123 --owner-id 456 \
+  --target-basket-id 321 --target-owner-id 456 --cluster-ids '[789]' --confirm
+```
+
+both source and destination need their own basket and owner ids. the destination must differ from the source. `keyword-list-keywords-move` uses the same phrase and database selection as copy; `keyword-list-clusters-copy` uses the same numeric cluster selection as move. moves remove the selected keywords from the source. all four commands need `--confirm`.
+
 exports support `csv`, `csv_semicolon` and `xlsx`. `keyword-list-export` exports keyword rows matching `--filters`; `keyword-list-export-pages` exports keywords matching `--page-filters`. selected keyword exports use phrases and a database. selected cluster exports use numeric ids:
 
 ```bash
@@ -342,6 +357,17 @@ semrush position-keywords-add --campaign-id 456_789 \
 semrush position-competitors-set --campaign-id 456_789 \
   --competitors '["example.org"]' --confirm
 ```
+
+edit an existing target's address, business name, brand list or search volume type:
+
+```bash
+semrush position-configure --campaign-id 456_789 --business-name 'example business' --confirm
+semrush position-configure --campaign-id 456_789 --business-name '' --confirm
+semrush position-configure --campaign-id 456_789 --brands '["example"]' --confirm
+semrush position-configure --campaign-id 456_789 --domain example.org --url-type rootdomain --confirm
+```
+
+`position-configure` reads the current target and preserves fields you omit. address changes require both `--domain` and `--url-type`. `--volume-type` accepts `national`, `regional` or `local`. an empty business name clears it. brands must contain at least one name; this command cannot clear the brand list because semrush ignores an empty array. engine, device and location changes remain outside this command.
 
 new targets need time to collect rankings. use the dates from `position-info` for ranking, page and trend reports. competitor writes replace the whole list. see [position tracking](https://semrush.micr.dev/docs/position-tracking) for locations, tags, keyword deletion and report inputs.
 

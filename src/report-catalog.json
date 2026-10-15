@@ -9271,5 +9271,443 @@
       ]
     },
     "response_type": "export_id"
+  },
+  "position_configure": {
+    "method": "/positions/api/campaign_edit_domain_settings",
+    "description": "Change supplied tracking domain, business, brand or volume settings while preserving omitted fields.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "auth_parameter": "key",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$"
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "Website or URL matching url_type. Root-domain tracking expects a bare domain."
+        },
+        "url_type": {
+          "type": "string",
+          "enum": [
+            "rootdomain",
+            "subdomain",
+            "subfolder",
+            "url"
+          ]
+        },
+        "business_name": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "brands": {
+          "type": "array",
+          "maxItems": 20,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "minItems": 1,
+          "description": "At least one brand. The native endpoint ignores an empty array when brands already exist."
+        },
+        "volume_type": {
+          "type": "string",
+          "enum": [
+            "national",
+            "regional",
+            "local"
+          ]
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "campaign_id"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "domain"
+          ]
+        },
+        {
+          "required": [
+            "business_name"
+          ]
+        },
+        {
+          "required": [
+            "brands"
+          ]
+        },
+        {
+          "required": [
+            "volume_type"
+          ]
+        }
+      ],
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "url_type"
+            ],
+            "properties": {
+              "url_type": {
+                "enum": [
+                  "rootdomain",
+                  "subdomain"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "domain": {
+                "pattern": "^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z]{2,63}$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "url_type": {
+                "const": "url"
+              }
+            },
+            "required": [
+              "url_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "domain": {
+                "pattern": "^https?://[^\\s]+$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "domain"
+            ]
+          },
+          "then": {
+            "required": [
+              "url_type"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "url_type"
+            ]
+          },
+          "then": {
+            "required": [
+              "domain"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "keyword_list_keywords_copy": {
+    "method": "baskets.CopyKeywordsByIDs",
+    "description": "Copy explicit keyword phrases to another basket.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        },
+        "target_basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Destination BasketID from keyword-lists."
+        },
+        "target_owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Destination Owner.ID from keyword-lists."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        },
+        "keywords": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "database": {
+          "type": "string",
+          "pattern": "^[a-z]{2}(?:-[a-z]{2})?$",
+          "default": "us"
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id",
+        "target_basket_id",
+        "target_owner_id",
+        "keywords"
+      ]
+    }
+  },
+  "keyword_list_keywords_move": {
+    "method": "baskets.MoveKeywordsByIDs",
+    "description": "Move explicit keyword phrases to another basket, removing them from the source.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        },
+        "target_basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Destination BasketID from keyword-lists."
+        },
+        "target_owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Destination Owner.ID from keyword-lists."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        },
+        "keywords": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "database": {
+          "type": "string",
+          "pattern": "^[a-z]{2}(?:-[a-z]{2})?$",
+          "default": "us"
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id",
+        "target_basket_id",
+        "target_owner_id",
+        "keywords"
+      ]
+    }
+  },
+  "keyword_list_clusters_copy": {
+    "method": "baskets.CopyKeywordsByClusterIDs",
+    "description": "Copy keywords from selected clusters to another basket.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        },
+        "target_basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Destination BasketID from keyword-lists."
+        },
+        "target_owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Destination Owner.ID from keyword-lists."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        },
+        "cluster_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id",
+        "target_basket_id",
+        "target_owner_id",
+        "cluster_ids"
+      ]
+    }
+  },
+  "keyword_list_clusters_move": {
+    "method": "baskets.MoveKeywordsByClusterIDs",
+    "description": "Move selected cluster keywords to another basket, removing them from the source.",
+    "transport": "kwm",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        },
+        "target_basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Destination BasketID from keyword-lists."
+        },
+        "target_owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Destination Owner.ID from keyword-lists."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        },
+        "cluster_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id",
+        "target_basket_id",
+        "target_owner_id",
+        "cluster_ids"
+      ]
+    }
   }
 }

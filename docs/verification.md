@@ -1,8 +1,45 @@
 # Verification
 
-Current source verification: 2026-10-15. The 0.9.0 source suite passed 134 tests. Live responses and credentials remain
+Current source verification: 2026-10-15. The 0.10.0 source suite passed 138 tests. Live responses and credentials remain
 outside the repository. Evidence below distinguishes local fixtures, native CI
 and real account execution.
+
+## Version 0.10.0 settings and transfer verification
+
+All five new writes passed authenticated live calls. Tracking edits changed the
+business name, nonempty brand list, tracked address/type and volume setting.
+Readbacks verified that omitted settings, target IDs, location, keyword count
+and disabled weekly emails remained unchanged. Business-name clearing passed.
+The native backend reported success for an empty brand array but retained the
+old brands. The CLI rejects that request rather than claiming brand clearing.
+The fixture's original settings were restored after these checks.
+
+Selected keyword and cluster copies retained source rows. Moves removed their
+selected source rows. Destination readbacks contained the expected seven rows.
+The real Chromium/Galleton/HTTP fixture covers owner-aware selectors, partial
+settings preservation, read-only refusal, malformed edit metadata, token
+redaction and business-name clearing. All 138 tests, strict TypeScript, Oxlint,
+generated-reference drift checking and executable packaging passed. Three
+independent simplification reviews found no changes needed.
+
+Across versioned passes, all 129 reads and 55 of 56 writes have live execution
+evidence. Shared-project leave remains unverified. No purchase or outreach was
+performed. Both owned transfer collections were checked absent through builder
+and Saved Keywords reads. The owned tracking project and target were checked
+absent after deletion. Each deletion briefly preceded its final read-side
+visibility; no deletion was retried. Unrelated resources were preserved.
+
+## Version 0.9.0 published artifacts
+
+The public npm archive matches the tested release archive:
+SHA-256 `ccbfaa07df2c3dfac02fca37b533529b0b5b3109bde5c999b321ecb1522910fb`.
+The [CI run](https://github.com/Microck/semrush-cli/actions/runs/38800422472)
+passed source, docs and installation/setup on Linux, macOS and Windows.
+The installed public release advertised 180 tools and passed authenticated MCP
+reads. The global command reported 0.9.0. The
+[GitHub release](https://github.com/Microck/semrush-cli/releases/tag/v0.9.0)
+includes the archive and checksum. The production keyword-list guide passed
+HTTP 200 and a Chromium check at 390px without page errors or horizontal overflow.
 
 ## Version 0.9.0 seed-based strategy verification
 

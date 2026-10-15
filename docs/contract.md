@@ -259,3 +259,39 @@ The browser constructs the fixed `/kwm/download-export-v2` address with runtime
 `userId`, `apiKey` and the returned `exportId`. Neither credentials nor that
 address appear in previews or tool output. Native GET downloads return the same
 CLI file and MCP resource artifacts as other exports.
+
+## Position Tracking settings edits
+
+`position-configure` changes only supplied domain/URL, URL type, business name,
+brands or search-volume type. Changing the tracked address requires both
+`domain` and `url_type`. Empty business names explicitly clear that field. Brand edits require a
+nonempty selection: the current native backend acknowledges an empty brand
+array without clearing existing brands. Engine, device, language and location are not changed by
+this operation. Every write requires confirmation and supports an offline
+preview of the requested changes.
+
+The adapter reads current campaign info once to preserve omitted fields, then
+reads fresh `/tracking/hashes?id=<campaign-id>` metadata. It sends a fixed JSON
+POST to `/positions/api/campaign_edit_domain_settings` with `campaignId`,
+`domain`, `type`, `businessName`, `brands`, `volume_type` and runtime-only `key`,
+`display_hash` and `rnd`. The web client maps the edit hash/random values
+directly, without client-generated signing. Internal hash metadata is omitted
+from report output. No billing or target-replacement endpoint is used.
+
+The current primary source is
+`https://static.semrush.com/position-tracking/wizard/1.83.0/178.23740a9e0638b7faf3dd.js`.
+
+## Explicit basket transfers
+
+Selected keyword and cluster copy/move use the native
+`baskets.CopyKeywordsByIDs`, `baskets.MoveKeywordsByIDs`,
+`baskets.CopyKeywordsByClusterIDs` and `baskets.MoveKeywordsByClusterIDs` RPCs.
+Requests contain nested `SourceShareID` and `TargetShareID`, each with
+`BasketID` and `OwnerID`. Source and destination must be different baskets.
+Keyword selections are nonempty phrase/database `KeywordIDs`; cluster
+selections are nonempty numeric `ClusterIDs`.
+
+Copy leaves the source selection intact. Move removes selected source keywords.
+Both require confirmation and explicit source/target owner IDs. Permissions and
+destination keyword limits remain provider-enforced. These operations never
+create projects, invite another account or send content to tracking products.

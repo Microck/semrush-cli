@@ -214,3 +214,22 @@ selects explicit numeric cluster IDs. `keyword-list-export-keywords` selects
 phrases in one database. Exports do not change collection membership.
 MCP returns chunked resources; it never returns the download address or its
 runtime credentials. See [MCP exports](/docs/mcp#read-an-export).
+
+## Copy or move selected keywords and clusters
+
+Both source and destination require their basket and owner IDs. Copy retains
+source keywords. Move removes the selected keywords from the source after
+transferring them. A destination cannot be the source basket. Normal access
+permissions and destination keyword limits apply.
+
+```sh
+semrush keyword-list-keywords-copy --basket-id 456 --owner-id 123 --target-basket-id 457 --target-owner-id 123 --keywords '["email marketing"]' --database us --confirm
+semrush keyword-list-keywords-move --basket-id 456 --owner-id 123 --target-basket-id 457 --target-owner-id 123 --keywords '["seo"]' --database us --confirm
+semrush keyword-list-clusters-copy --basket-id 456 --owner-id 123 --target-basket-id 457 --target-owner-id 123 --cluster-ids '[789]' --confirm
+semrush keyword-list-clusters-move --basket-id 456 --owner-id 123 --target-basket-id 457 --target-owner-id 123 --cluster-ids '[790]' --confirm
+```
+
+Read cluster IDs from the seed-based page or cluster reports. Cluster transfer
+selects those clusters' keywords; it does not copy a generated strategy resource.
+There is no implicit all-keywords selection. Use `--dry-run` to inspect each
+owner-aware selection without authentication.

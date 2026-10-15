@@ -3,7 +3,7 @@ title: Web UI coverage
 description: Supported web workflows, evidence and remaining gaps.
 ---
 
-The CLI has 180 fixed operations: 129 reads and 51 confirmed writes.
+The CLI has 185 fixed operations: 129 reads and 56 confirmed writes.
 It uses your web session and the current web UI's request contracts. Account
 permissions and quotas apply to both interfaces. This is not full Semrush suite
 parity. The table distinguishes implemented workflows from remaining gaps.
@@ -23,8 +23,8 @@ parity. The table distinguishes implemented workflows from remaining gaps.
 | Project dashboard | Toolkit status, metric values and detail URLs | Third-party integration setup |
 | SEO setup | Create an SEO project and explicitly start automatic Site Audit/Position Tracking setup | Protected-site audit setup |
 | Site Audit | Discovery, limits, public-site settings, schedules, launch, page and issue tables, page recrawl, execution status, abort/finalize, structure, performance, linking, history, snapshots, CSV/XLSX exports | Protected-site authentication, Google Analytics connections and crawled-links export |
-| Position Tracking | Target creation, locations, limits, keyword add/delete/tags, competitor replacement, campaign settings reads, rankings, pages, visibility/distribution/cannibalization trends | Editing target settings, alerts, notes, target comparison and UI exports |
-| Keyword Strategy Builder | Domain strategy lifecycle, presets, filtered page opportunities, page URLs/SERPs, existing/recommended keywords, keyword deletion and CSV/XLSX exports; seed-based basket lifecycle, topics/pages, paginated clusters, favorites, selected-cluster deletion and metric refresh, keyword import, tags, deletion/undo, clustering and four native export selections | Cluster copy/move, mind-map image exports, content generation and connected tracking actions |
+| Position Tracking | Target creation, locations, limits, keyword add/delete/tags, competitor replacement, partial address/business/brand/volume settings edits, campaign settings reads, rankings, pages, visibility/distribution/cannibalization trends | Engine/device/language/location replacement, schedules, brand-list clearing, alerts, notes, target comparison and UI exports |
+| Keyword Strategy Builder | Domain strategy lifecycle, presets, filtered page opportunities, page URLs/SERPs, existing/recommended keywords, keyword deletion and CSV/XLSX exports; seed-based basket lifecycle, topics/pages, paginated clusters, favorites, selected-cluster deletion and metric refresh, keyword import, tags, deletion/undo, clustering, four native export selections and owner-aware selected keyword/cluster copy/move | Mind-map image exports, content generation and connected tracking actions |
 | Saved Keywords | Create, rename, delete/undo collections; keyword import, filters, metrics, tags, workflow labels, copy/move, deletion/undo, metadata and CSV/semicolon CSV/XLSX exports | Content generation and connected tracking actions |
 | Local, social and content products | Project toolkit status and available dashboard metrics | Product-specific management and connected services |
 
@@ -91,3 +91,12 @@ rows; selected-cluster and selected-phrase exports contained only their selected
 rows. The owned strategy was deleted and its ID checked absent. Across the
 versioned passes, all 129 reads and 50 of 51 writes have live execution evidence.
 Shared-project leave still has contract coverage only.
+
+
+The settings and transfer pass verified five additional writes. Partial tracking
+edits preserved omitted fields and the target identity. Business-name clearing
+passed; empty brand-list clearing did not, and the input schema now rejects it.
+All four selected transfer operations passed source and destination readbacks,
+including the seven expected destination rows. Across versioned passes, all
+129 reads and 55 of 56 writes have live execution evidence. Shared-project leave
+still has contract coverage only.

@@ -17,6 +17,7 @@ export const parseReport = Effect.fn('Reports.parse')(function* (name: string, i
     return yield* Effect.fail(new UsageError({ message: 'Source and destination Saved Keywords collections must be different.' }));
   }
   const definition = reports[name];
+  if (definition.transport === 'kwm' && 'target_basket_id' in query && query.basket_id === query.target_basket_id) return yield* Effect.fail(new UsageError({ message: 'Source and destination Keyword Strategy Builder baskets must be different.' }));
   if (definition.transport === 'ksb' && 'volume_min' in query) {
     const bounds = [['volume_min', 'volume_max'], ['difficulty_min', 'difficulty_max']] satisfies [string, string][];
     for (const [lower, upper] of bounds) {

@@ -52,6 +52,29 @@ Competitor replacement sets the complete competitor list. An empty JSON array
 clears it. Keyword deletion removes those phrases from tracking. Writes also
 support `--dry-run`, which validates and prints the request without signing in.
 
+## Change tracked address and business settings
+
+Settings edits preserve fields you omit. Changing the tracked address requires
+both `--domain` and `--url-type`. Supported types are `rootdomain`, `subdomain`,
+`subfolder` and `url`.
+
+```sh
+semrush position-configure --campaign-id 456_789 --business-name 'example business' --dry-run
+semrush position-configure --campaign-id 456_789 --business-name 'example business' --confirm
+semrush position-configure --campaign-id 456_789 --business-name '' --confirm
+semrush position-configure --campaign-id 456_789 --brands '["example"]' --confirm
+semrush position-configure --campaign-id 456_789 --domain docs.example.com --url-type subdomain --confirm
+semrush position-configure --campaign-id 456_789 --volume-type national --confirm
+```
+
+An empty business name clears that field. Brands must be a nonempty array.
+The current provider accepts an empty brand array but retains the old values,
+so the CLI rejects that request. Brand-list clearing remains unsupported.
+
+The browser reads current settings and fresh edit metadata before submitting
+the native request. Internal edit tokens never appear in previews or results.
+This command does not replace the search engine, device, language or location.
+
 ## Read rankings
 
 ```sh
@@ -79,6 +102,7 @@ Responses preserve the provider's native `status` and `data` envelope. The
 rankings report's `data.keywords` contains tracked phrases, tags, positions and
 landing URLs. `data.total`, `limit` and `offset` support pagination.
 
-Target-settings edits, alerts, notes, target comparison and tracking exports
+Engine, device, language and location replacement, schedules, alerts, notes,
+target comparison and tracking exports
 still require the web UI. Current request contracts were checked against the
 tracking dashboard and wizard, then verified on a disposable account target.

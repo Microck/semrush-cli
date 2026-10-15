@@ -24,7 +24,7 @@ export function parseWire(text: string): Schema.Json { return Schema.decodeUnkno
 /** Remove credential fields and echoed secrets, including nested provider errors. */
 export function redact(value: Schema.Json, secrets: string[]): Schema.Json {
   if (Array.isArray(value)) return value.map(item => redact(item, secrets));
-  if (objectValue(value)) return Object.fromEntries(Object.entries(value).filter(([key]) => !/^(api_?key|key|user_?id|access_token|refresh_token|authorization|cookie|set-cookie)$/i.test(key)).map(([key, item]) => [key, redact(item, secrets)]));
+  if (objectValue(value)) return Object.fromEntries(Object.entries(value).filter(([key]) => !/^(api_?key|key|user_?id|access_token|refresh_token|authorization|cookie|set-cookie|hashes|display_hash|rnd)$/i.test(key)).map(([key, item]) => [key, redact(item, secrets)]));
   if (Predicate.isString(value)) return secrets.filter(secret => secret.length > 0).reduce((text, secret) => text.replaceAll(secret, '[redacted]'), value);
   return value;
 }
@@ -206,6 +206,25 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     const mimeType = format === 'xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv';
     return yield* exports.create(filename, mimeType, destination => download.saveAs(destination));
   });
+  /** The native edit endpoint replaces all fields, so decode current values before applying a partial edit. */
+  const trackingSettings = Effect.fn('Semrush.trackingSettings')(function* (query: Query, changes: Schema.Json) {
+    const current = yield* request(`/tracking/web-api/management/campaign/${query.campaign_id}/info`, { api_key: auth.apiKey }, 'GET');
+    const metadata = yield* Schema.decodeUnknownEffect(Schema.Struct({ data: Schema.Struct({
+      can_edit: Schema.Boolean,
+      campaign_settings: Schema.Struct({ tracking_url: Schema.String, tracking_url_type: Schema.String,
+        business_name: Schema.NullOr(Schema.String), brands: Schema.NullOr(Schema.Array(Schema.String)) }),
+      filters: Schema.Struct({ volume_type: Schema.String }),
+    }) }))(current).pipe(Effect.mapError(() => new ReportError({ message: 'Tracking settings are unavailable. Inspect the target with semrush position-info before editing it.' })));
+    if (!metadata.data.can_edit) return yield* Effect.fail(new ReportError({ message: 'Semrush reports this tracking target as read-only. Use a target you can edit.' }));
+    const hashes = yield* request('/tracking/hashes', { id: query.campaign_id ?? null }, 'GET');
+    const edit = yield* Schema.decodeUnknownEffect(Schema.Struct({ info: Schema.Struct({ campaign_edit: Schema.Struct({ hash: Schema.String, random: Schema.Number }) }) }))(hashes)
+      .pipe(Effect.mapError(() => new ReportError({ message: 'Tracking edit metadata is unavailable. Reimport your signed-in session and inspect the target before another edit.' })));
+    const settings = metadata.data.campaign_settings;
+    // The native UI treats nullable business and brand values as empty.
+    return Object.assign({ key: auth.apiKey, campaignId: query.campaign_id ?? null, domain: settings.tracking_url,
+      type: settings.tracking_url_type, businessName: settings.business_name ?? '', brands: settings.brands ?? [],
+      volume_type: metadata.data.filters.volume_type, display_hash: edit.info.campaign_edit.hash, rnd: edit.info.campaign_edit.random }, changes);
+  });
   const report = Effect.fn('Semrush.report')(function* ({ name, definition, query }: ReportRequest) {
     const valid = yield* browserCall(() => page.evaluate(async () => {
       const response = await fetch('/home/', { method: 'HEAD', credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(15000) });
@@ -214,7 +233,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     if (!valid) return yield* Effect.fail(new SessionError({ message: 'Semrush session expired. Run semrush auth login or import a signed-in browser.' }));
     const family = definition.transport;
     const planned = ['project_web', 'audit_web', 'tracking_web', 'saved_web'].includes(family) ? webRequest(definition, query) : undefined;
-    const params = planned ? (objectValue(planned.body) ? planned.body : {}) : reportParameters(definition, query);
+    const params = planned ? {} : reportParameters(definition, query);
     let reportData: Schema.Json | undefined;
     if (planned) {
       // The web UI only allows adding a website to a project that has none.
@@ -232,7 +251,8 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
         return { authenticated: true as const, report: name, data: null, artifact };
       }
       const responseType = 'response_type' in definition && definition.response_type === 'empty' ? 'empty' : 'json';
-      reportData = yield* request(path, planned.body, planned.method, {}, responseType);
+      const body = name === 'position_configure' ? yield* trackingSettings(query, planned.body) : planned.body;
+      reportData = yield* request(path, body, planned.method, {}, responseType);
     } else if (['keyword', 'domain', 'direct', 'magic', 'kwm', 'ksb'].includes(family)) {
       reportData = yield* rpc(definition.method, params, family, definition.web_report);
       if ('response_type' in definition && ['download_url', 'export_id'].includes(definition.response_type)) {

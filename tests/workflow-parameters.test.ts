@@ -128,3 +128,35 @@ test('seed exports keep page and keyword filters separate and match native expor
   expect((await preview('keyword_list_export_clusters', { ...selected, cluster_ids: [789], format: 'xlsx' })).body).toMatchObject({ params: { ClusterIDs: [789], Format: 0 } });
   await expect(preview('keyword_list_export_keywords', { ...selected, keywords: [] })).rejects.toThrow('fewer');
 });
+
+
+test('tracking partial edits preview only supplied fields and validate address/type pairs before authentication', async () => {
+  const selected = { campaign_id: '123_456' };
+  expect(await preview('position_configure', { ...selected, business_name: 'example', dry_run: true })).toEqual({
+    method: 'POST', path: '/positions/api/campaign_edit_domain_settings', body: { campaignId: '123_456', businessName: 'example' },
+  });
+  expect((await preview('position_configure', { ...selected, brands: ['example'], dry_run: true })).body).toEqual({ campaignId: '123_456', brands: ['example'] });
+  await expect(preview('position_configure', { ...selected, brands: [], dry_run: true })).rejects.toThrow('fewer');
+  await expect(preview('position_configure', { ...selected, business_name: 'example' })).rejects.toThrow('--confirm');
+  await expect(preview('position_configure', { ...selected, dry_run: true })).rejects.toThrow('required');
+  await expect(preview('position_configure', { ...selected, domain: 'example.com', dry_run: true })).rejects.toThrow('url_type');
+  await expect(preview('position_configure', { ...selected, url_type: 'url', dry_run: true })).rejects.toThrow('domain');
+  await expect(preview('position_configure', { ...selected, domain: 'example.com', url_type: 'url', dry_run: true })).rejects.toThrow('pattern');
+});
+
+
+test('basket transfers use nested source/target selectors and reject self-transfers before authentication', async () => {
+  const selected = { basket_id: 456, owner_id: 123, target_basket_id: 789, target_owner_id: 321 };
+  expect((await preview('keyword_list_keywords_copy', { ...selected, keywords: ['email marketing'], database: 'us', dry_run: true })).body).toEqual({
+    id: 1, jsonrpc: '2.0', method: 'baskets.CopyKeywordsByIDs', params: {
+      SourceShareID: { BasketID: 456, OwnerID: 123 }, TargetShareID: { BasketID: 789, OwnerID: 321 }, KeywordIDs: [{ Phrase: 'email marketing', Database: 'us' }],
+    },
+  });
+  expect((await preview('keyword_list_clusters_move', { ...selected, cluster_ids: [1008], dry_run: true })).body).toMatchObject({
+    method: 'baskets.MoveKeywordsByClusterIDs', params: { SourceShareID: { BasketID: 456, OwnerID: 123 }, TargetShareID: { BasketID: 789, OwnerID: 321 }, ClusterIDs: [1008] },
+  });
+  await expect(preview('keyword_list_clusters_copy', { ...selected, cluster_ids: [1008] })).rejects.toThrow('--confirm');
+  await expect(preview('keyword_list_keywords_move', { ...selected, target_basket_id: 456, keywords: ['email marketing'], dry_run: true })).rejects.toThrow('different');
+  await expect(preview('keyword_list_keywords_copy', { ...selected, keywords: [], dry_run: true })).rejects.toThrow('fewer');
+  await expect(preview('keyword_list_clusters_move', { ...selected, cluster_ids: [], dry_run: true })).rejects.toThrow('fewer');
+});
