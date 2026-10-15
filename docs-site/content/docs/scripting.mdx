@@ -28,7 +28,7 @@ The example shows the envelope only. `data` contains the provider's actual respo
 
 Keyword Magic and organic report pages start at 1. Backlink pages start at 0. Gaps use `offset` or a zero-based backlink page. Provider caps remain visible. There is no automatic pagination or unlimited-export promise.
 
-Exit codes are 0 for success, 1 for authentication/service/report failures and 2 for invalid usage. Errors go to stderr. Commands never prompt for terminal input. Reports are not automatically retried, because repeated requests can consume allowances.
+Exit codes are 0 for success, 1 for authentication/service/report failures, 2 for invalid usage and 130 for an interrupted CLI command (Ctrl+C). Errors go to stderr. Commands never prompt for terminal input. Reports are not automatically retried, because repeated requests can consume allowances.
 
 Historical timestamps come from `snapshot-dates`:
 

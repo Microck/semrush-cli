@@ -12,7 +12,7 @@ The executable is `semrush`; the npm package is `semrush-cli`. Only `semrush` is
 - `semrush mcp` runs the stdio MCP server. Stdout contains only protocol messages. MCP exposes the same operations and schemas. Mutations carry readOnlyHint=false and require confirm=true. Delete and leave carry destructiveHint=true. It cannot log in or change local configuration.
 - `semrush doctor [--json]` verifies Galleton, stored session, browser, and an authenticated account report.
 
-Successful reports are `{authenticated: true, report: <underscore_name>, data: ...}`. Raw report nesting and provider totals remain visible. Integers outside JavaScript's safe range become decimal strings. Credentials are removed recursively. JSON goes to stdout; human diagnostics and errors go to stderr. No prompts in report or MCP commands. Exit codes: 0 success, 1 service/authentication/report failure, 2 invalid usage. No retries of report requests, which can consume account allowances. No automatic anonymous fallback.
+Successful reports are `{authenticated: true, report: <underscore_name>, data: ...}`. Raw report nesting and provider totals remain visible. Integers outside JavaScript's safe range become decimal strings. Credentials are removed recursively. JSON goes to stdout; human diagnostics and errors go to stderr. No prompts in report or MCP commands. Exit codes: 0 success, 1 service/authentication/report failure, 2 invalid usage, 130 interrupted CLI command. No retries of report requests, which can consume account allowances. No automatic anonymous fallback.
 
 Configuration: `SEMRUSH_GALLETON_URL` (literal loopback HTTP, default `http://127.0.0.1:8771`), `SEMRUSH_GALLETON_TOKEN_FILE` (default `~/.local/share/semrush-cli/galleton/api.token`), `SEMRUSH_SESSION` (default `semrush-cli`), and `SEMRUSH_BROWSER_EXECUTABLE` (optional absolute Chromium path). Authentication is loaded from Galleton into a fresh, transient browser context for each CLI process or MCP server. No persistent plaintext cookie file. Cookie updates from the report browser are captured back into Galleton. Existing reference browser profiles and services are never modified.
 
@@ -74,3 +74,24 @@ phrase array; supply a domain, at least one seed phrase, or both. Optional
 competitors and database selection match the web creation request. This consumes
 the clustering allowance. It is separate from empty regular list creation so no
 read or ordinary list-create command starts generation implicitly.
+
+## Site Audit
+
+Enable SEO with `project-enable-seo --folder-id <folder-id> --confirm`. Use the
+returned numeric SEO project `id` as `--campaign-id`; it is not the folder ID.
+`audit-create --campaign-id <id> --name <name> --domain <domain> --confirm`
+saves settings for a fresh audit and refuses an existing one. It does not start
+a crawl. Before creation, `audit-info` returns HTTP 404.
+
+`audit-configure` replaces an existing public-site configuration. Include every
+setting you want to retain; omitted settings take their schema defaults. It
+refuses protected-site authentication or Google Analytics connections.
+`audit-start --campaign-id <id> --confirm` launches with the saved settings and
+consumes crawl allowance. Defaults are manual scheduling and email disabled.
+Explicit recurring schedules create future runs; `--notify` enables emails.
+
+`audit-limits`, `audit-campaigns`, `audit-info`, `audit-status`, `audit-snapshots`
+and `audit-snapshot` inspect campaigns and results. Snapshot IDs are opaque
+strings, unlike numeric campaign IDs. Use the exact returned string. All writes
+require confirmation and support a dry run before authentication. Detailed
+issue/page tables, stopping crawls and connected integrations remain in the web UI.

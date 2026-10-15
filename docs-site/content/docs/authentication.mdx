@@ -11,7 +11,7 @@ semrush auth login
 semrush auth status --check --json
 ```
 
-Sign-in requires a graphical desktop. The CLI waits up to five minutes. Credentials remain in the browser and encrypted Galleton vault. The CLI never logs cookies or page-owned API keys.
+Sign-in requires a graphical desktop. The CLI waits up to five minutes. Enter your password only in the browser; Galleton stores the resulting session cookies, not your password. The CLI never logs cookies or page-owned API keys.
 
 ## Import an existing browser
 
@@ -22,7 +22,17 @@ semrush auth import --cdp-url http://127.0.0.1:9234
 semrush doctor
 ```
 
-The browser must already be running with CDP enabled. The reference `semrush-web-mcp` browser on port 9234 is supported. Import opens and closes one temporary page. It does not stop or reconfigure that browser. Use SSH forwarding for remote browsers. Public CDP endpoints are rejected.
+The browser must already be running with CDP enabled. The reference `semrush-web-mcp` browser on port 9234 is supported. Import opens and closes one temporary page. It does not stop or reconfigure that browser. The URL must use HTTP and a literal loopback address such as `127.0.0.1`; public endpoints and hostnames are rejected.
+
+For a remote signed-in browser, forward its loopback debugging port over SSH:
+
+```sh
+ssh -N -L 127.0.0.1:9234:127.0.0.1:9234 user@browser-host
+```
+
+Replace `user@browser-host` with your SSH destination. Leave the tunnel running
+and run the import command above in another terminal. The local port must be
+free. Keep the remote browser debugging port bound to loopback too.
 
 Import verifies the account before storing cookies. Repeating import replaces only the selected CLI profile, using Galleton's revision check.
 

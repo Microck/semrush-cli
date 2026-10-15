@@ -9,8 +9,11 @@ The project's `folder_id` is a different identifier.
 ```sh
 semrush project-enable-seo --folder-id 123 --confirm
 semrush audit-limits
-semrush audit-info --campaign-id 456
 ```
+
+Replace the example folder ID `123` with your project folder ID and campaign ID
+`456` with the SEO project ID returned above. A fresh SEO project has no audit
+configuration: `audit-info` returns HTTP 404 until you create one.
 
 ## Create before starting
 
@@ -52,8 +55,11 @@ semrush audit-start --campaign-id 456 --confirm
 semrush audit-status --campaign-id 456
 semrush audit-info --campaign-id 456
 semrush audit-snapshots --campaign-id 456
-semrush audit-snapshot --campaign-id 456 --snapshot-id 789
+semrush audit-snapshot --campaign-id 456 --snapshot-id '<snapshot_id>'
 ```
+
+Replace `<snapshot_id>` with the exact string returned by `audit-start` or
+`audit-snapshots`. Keep it quoted; snapshot IDs are not campaign IDs.
 
 Starting consumes crawl allowance and uses the saved schedule and notification
 settings. Inspect `audit-info` first when using an existing campaign.

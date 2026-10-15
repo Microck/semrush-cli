@@ -1,5 +1,9 @@
 <p align="center">
-  <img src="assets/logo-lockup.svg" width="720" alt="semrush cli logo">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-lockup-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="assets/logo-lockup.svg">
+    <img src="assets/logo-lockup.svg" width="720" alt="semrush cli logo">
+  </picture>
 </p>
 
 <p align="center">
@@ -213,7 +217,7 @@ node dist/cli.js --help
 npm run check
 ```
 
-the source build uses go to build the pinned galleton engine. npm releases include the engine for supported platforms.
+building from source requires go 1.23 or newer, `tar` and `patch` to build the pinned galleton engine. published npm packages include the engine for supported platforms, so npm users do not need go.
 
 ## documentation
 

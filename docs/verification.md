@@ -49,14 +49,14 @@ operations can affect shared projects or consume additional allowances.
 
 ## Published artifacts
 
-The public npm 0.4.0 archive matches the local release archive byte-for-byte:
-SHA-256 `092d2eb9b57760d979c816487438c6e8505f6580aa4bdfc3a27e12f56443d71a`.
+The public npm 0.5.0 archive matches the local release archive byte-for-byte:
+SHA-256 `1f4b6f3140181c1e420ae7fa18b7cb24b734ca4ce291d86982ba990447d94882`.
 The registry initially processed it asynchronously before making it public.
-Its [CI run](https://github.com/Microck/semrush-cli/actions/runs/38666069399)
+Its [CI run](https://github.com/Microck/semrush-cli/actions/runs/38668957140)
 passed source checks, Fumadocs build, and packed-package installation/setup on
 Ubuntu, macOS and Windows. Linux arm64 also has local native execution evidence.
 Other bundled architectures are cross-compiled, not all natively tested here.
-The installed 0.4.0 executable passed live `doctor`. Its MCP server advertised
+The installed 0.5.0 executable passed live `doctor`. Its MCP server advertised
 89 tools, including 22 confirmed writes, and passed a live keyword read and an
 authentication-free Site Audit dry run.
 
@@ -67,6 +67,22 @@ loaded branding, no page errors and no horizontal overflow at 390px. White text
 on the primary background has 12.36:1 contrast. HTML, search and `/llms.txt`
 returned HTTP 200. Authoritative/public DNS resolves the custom domain, while
 this host temporarily retained an earlier negative DNS cache.
+
+## Documentation and supplied-logo review
+
+The supplied light logo is preserved byte-for-byte. The dark variant changes
+only wordmark fills from black to white. Chromium verified the README picture
+selects the intended asset in both color schemes. The documentation uses the
+dark variant and a compact icon derived from the supplied comet paths.
+
+All 73 concrete report examples in the README and authored documentation match
+the current catalog schemas. Placeholder commands require the reader's actual
+IDs. Generated-reference drift checking and docs TypeScript passed. A production
+Fumadocs build succeeded. Chromium checked the homepage and all 11 documentation
+pages at 1280px and 390px, with no horizontal overflow, missing images or page
+errors. Search and `/llms.txt` returned valid results. This review makes no new
+claim about live account mutations; runtime source and stored sessions were
+unchanged.
 
 ## Limits of the evidence
 
