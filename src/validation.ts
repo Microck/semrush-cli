@@ -1,5 +1,5 @@
 import { Ajv } from 'ajv';
-import { Effect } from 'effect';
+import { Effect, Predicate } from 'effect';
 import { reports, type Query, type ReportName } from './report-parameters.js';
 import { UsageError } from './errors.js';
 
@@ -17,6 +17,13 @@ export const parseReport = Effect.fn('Reports.parse')(function* (name: string, i
     return yield* Effect.fail(new UsageError({ message: 'Source and destination Saved Keywords collections must be different.' }));
   }
   const definition = reports[name];
+  if (definition.transport === 'ksb' && 'volume_min' in query) {
+    const bounds = [['volume_min', 'volume_max'], ['difficulty_min', 'difficulty_max']] satisfies [string, string][];
+    for (const [lower, upper] of bounds) {
+      const minimum = query[lower]; const maximum = query[upper];
+      if (Predicate.isNumber(minimum) && Predicate.isNumber(maximum) && minimum > maximum) return yield* Effect.fail(new UsageError({ message: `${lower} must not exceed ${upper}.` }));
+    }
+  }
   if (definition.mutation && query.confirm !== true && query.dry_run !== true) return yield* Effect.fail(new UsageError({ message: `${name} changes your Semrush account. Use --confirm (MCP confirm:true) to send it, or --dry-run to inspect the request.` }));
   return { name, definition, query };
 });

@@ -75,7 +75,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 
 ## command surface
 
-148 operations, available as cli commands and mcp tools. 105 reads and 43 writes that need explicit confirmation.
+165 operations, available as cli commands and mcp tools. 118 reads and 47 writes that need explicit confirmation.
 
 | command | what it does |
 | --- | --- |
@@ -97,7 +97,13 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 | `saved-keywords-delete`, `saved-keyword-list-delete` | delete keywords or collections, with undo commands |
 | `saved-keywords-export` | download native csv, semicolon csv or xlsx files |
 | `keyword-lists`, `keyword-list-keywords` | read keyword strategy builder baskets |
-| `keyword-strategy-create`, `keyword-list-cluster` | generate a strategy or cluster a list |
+| `keyword-strategy-create`, `keyword-list-cluster` | generate a seed-based strategy or cluster a list |
+| `domain-strategies`, `domain-strategy-get`, `domain-strategy-summary`, `domain-strategy-status` | find domain strategies and read generation status |
+| `domain-strategy-create`, `domain-strategy-rename`, `domain-strategy-delete` | start domain strategy generation, rename or delete strategies |
+| `domain-strategy-presets`, `domain-strategy-pages`, `domain-strategy-pages-summary` | filter and page through existing or new page opportunities |
+| `domain-strategy-page`, `domain-strategy-page-urls`, `domain-strategy-page-serp` | inspect page details, matching urls and search results |
+| `domain-strategy-existing-keywords`, `domain-strategy-recommended-keywords` | read ranking keywords and recommendations for a page |
+| `domain-strategy-keywords-delete`, `domain-strategy-export` | remove selected generated keywords or export a filtered strategy |
 | `audit-create`, `audit-configure`, `audit-start` | configure and launch a site audit |
 | `position-create`, `position-targets`, `position-info` | create targets and read tracking settings |
 | `position-keywords-add`, `position-keywords-delete`, `position-keyword-tags` | manage tracked keywords and tags |
@@ -214,7 +220,7 @@ semrush saved-keywords-export --list-id 123 --format xlsx --output keywords.xlsx
 
 ### keyword strategy builder
 
-use these commands for strategy generation and clustering:
+use these commands for seed-based strategy generation and basket clustering:
 
 ```bash
 semrush keyword-lists
@@ -227,6 +233,56 @@ semrush keyword-list-cluster --basket-id 123 --owner-id 456 --confirm
 use `BasketID` and `Owner.ID` from the builder results. regular saved collections can share an underlying basket id with keyword strategy builder, but the request fields differ. saved keywords takes string `list_id`; builder commands take numeric `--basket-id` and `--owner-id`. project ids are separate.
 
 strategy generation, clustering and metric updates can consume your account allowance. read their status explicitly; the cli doesn't poll automatically. see [keyword lists](https://semrush.micr.dev/docs/keyword-lists).
+
+### domain strategies
+
+start a strategy from a domain, then read its generation status:
+
+```bash
+semrush domain-strategy-create --domain example.com --database us --dry-run
+semrush domain-strategy-create --domain example.com --database us --confirm
+semrush domain-strategies --name-filter example
+semrush domain-strategy-summary
+```
+
+creation starts an asynchronous job and consumes your account allowance. the database defaults to `us`. copy the numeric `data.id` from the create result:
+
+```bash
+semrush domain-strategy-get --strategy-id 123
+semrush domain-strategy-status --strategy-ids '[123]'
+semrush domain-strategy-rename --strategy-id 123 --name 'content plan' --confirm
+semrush domain-strategy-delete --strategy-ids '[123]' --dry-run
+```
+
+domain strategies are separate resources from `keyword-strategy-create` baskets and project folders. their ids must be safe json integers, including inside arrays. reads don't wait for generation to finish. the cli doesn't retry writes or poll automatically.
+
+once generation finishes, choose `all`, `improve` for existing pages or `create` for new opportunities. filter by text, volume, difficulty and primary intent, then paginate with `--limit` and `--offset`:
+
+```bash
+semrush domain-strategy-presets --strategy-id 123
+semrush domain-strategy-pages --strategy-id 123 --preset improve --volume-min 100 --limit 20 --offset 0
+semrush domain-strategy-pages-summary --strategy-id 123 --preset improve --volume-min 100
+```
+
+copy a numeric page id from those results to inspect it:
+
+```bash
+semrush domain-strategy-page --page-id 456
+semrush domain-strategy-page-urls --page-id 456
+semrush domain-strategy-page-serp --page-id 456
+semrush domain-strategy-existing-keywords --page-id 456
+semrush domain-strategy-recommended-keywords --page-id 456
+```
+
+remove generated keywords with `domain-strategy-keywords-delete --keyword-ids '[789]' --confirm`. it requires explicit numeric keyword ids and has no undo. deleting a whole strategy with `domain-strategy-delete` also needs `--confirm`.
+
+export the whole filtered strategy as native csv, semicolon csv or xlsx. exports accept text, metric and intent filters, but no page preset. `--output` is required and refuses an existing file:
+
+```bash
+semrush domain-strategy-export --strategy-id 123 --volume-min 100 --output strategy.csv
+semrush domain-strategy-export --strategy-id 123 --format csv_semicolon --output strategy-semicolon.csv
+semrush domain-strategy-export --strategy-id 123 --format xlsx --output strategy.xlsx
+```
 
 ### position tracking
 

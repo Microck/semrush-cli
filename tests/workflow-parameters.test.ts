@@ -5,7 +5,7 @@ import { webRequest } from '../src/report-parameters.js';
 
 // Request contracts from the current Site Audit components and Position Tracking wizard.
 // See docs/contract.md; the live probe uses the same bounded public-domain fixture.
-const preview = async (name: string, input: Record<string, string | number | boolean | string[]>) => {
+const preview = async (name: string, input: Record<string, string | number | boolean | (string | number)[]>) => {
   const parsed = await Effect.runPromise(parseReport(name, input));
   return webRequest(parsed.definition, parsed.query);
 };
@@ -66,4 +66,30 @@ test('tracking reports preserve repeated target parameters and bracketed sort ke
       limit: 20, offset: 0, 'sort[field]': 'visibility', 'sort[order]': 'desc', 'sort[date]': 'end', 'sort[competitor]': 0,
     },
   });
+});
+
+
+test('domain strategies match the current auditor RPC without basket credentials or control flags', async () => {
+  expect(await preview('domain_strategy_create', { domain: 'example.com', dry_run: true })).toEqual({
+    method: 'POST', path: '/ksb/rpc', body: { id: 1, jsonrpc: '2.0', method: 'audit.Create',
+      params: { domain: 'example.com', seedPhrases: [], database: 'us', geoMarkers: [] } },
+  });
+  expect((await preview('domain_strategies', { ownership: 'own', sort_field: 'name', descending: false, limit: 10, offset: 20 })).body).toMatchObject({
+    params: { ownership: 'own', sortBy: 'name', sortOrder: 'asc', nameFilter: '', limit: 10, offset: 20 },
+  });
+  await expect(preview('domain_strategy_create', { domain: 'example.com' })).rejects.toThrow('--confirm');
+  await expect(preview('domain_strategy_delete', { strategy_ids: [], dry_run: true })).rejects.toThrow('fewer');
+  await expect(preview('domain_strategy_get', { strategy_id: 9007199254740992 })).rejects.toThrow('<=');
+});
+
+
+test('domain page filters, intent codes and exports match the current audit client', async () => {
+  const request = await preview('domain_strategy_pages', { strategy_id: 123, preset: 'create', text: '  python  ', volume_min: 1000, difficulty_max: 50, primary_intents: ['commercial'], limit: 10, offset: 20 });
+  expect(request.body).toMatchObject({ params: { auditId: 123, preset: 3, limit: 10, offset: 20, filters: {
+    textSearch: 'python', potentialVolume: { min: 1000, max: null }, difficulty: { min: null, max: 50 }, primaryIntent: [3],
+  } } });
+  expect((await preview('domain_strategy_export', { strategy_id: 123, format: 'csv_semicolon' })).body).toMatchObject({ method: 'export.GetAudit', params: { auditId: 123, format: 'csvs' } });
+  await expect(preview('domain_strategy_pages', { strategy_id: 123, volume_min: 100, volume_max: 10 })).rejects.toThrow('must not exceed');
+  await expect(preview('domain_strategy_keywords_delete', { keyword_ids: [], dry_run: true })).rejects.toThrow('fewer');
+  for (const filename of ['../export', 'folder\\export', 'two\nlines']) await expect(preview('domain_strategy_export', { strategy_id: 123, filename })).rejects.toThrow('pattern');
 });

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Config, Effect, Layer, Option, Semaphore, Schema, Predicate } from 'effect';
-import { chromium, type BrowserContext, type Download, type Page } from 'patchright';
+import { chromium, type BrowserContext, type Download, type Page, type Response } from 'patchright';
 import JSONbig from 'json-bigint';
 import { Semrush } from './browser-service.js';
 import { Sessions } from './session-service.js';
@@ -12,7 +12,7 @@ import { Exports } from './exports.js';
 
 interface ExportState { download?: Download; cancel: () => void; }
 
-const transportPaths = new Map([['domain', '/dpa/rpc'], ['direct', '/dpa/rpc'], ['magic', '/kmtgw/v2/webapi'], ['keyword', '/kwogw/v2/webapi'], ['kwm', '/kwm/rpc']]);
+const transportPaths = new Map([['domain', '/dpa/rpc'], ['direct', '/dpa/rpc'], ['magic', '/kmtgw/v2/webapi'], ['keyword', '/kwogw/v2/webapi'], ['kwm', '/kwm/rpc'], ['ksb', '/ksb/rpc']]);
 const json = JSONbig({ storeAsString: true, protoAction: 'error', constructorAction: 'error' });
 const safeBrowserError = () => new ReportError({ message: 'Semrush browser request failed. Run semrush doctor. If your session expired, sign in again with semrush auth login.' });
 const browserCall = <A>(run: () => Promise<A>) => Effect.tryPromise({ try: run, catch: safeBrowserError });
@@ -28,6 +28,16 @@ export function redact(value: Schema.Json, secrets: string[]): Schema.Json {
   if (Predicate.isString(value)) return secrets.filter(secret => secret.length > 0).reduce((text, secret) => text.replaceAll(secret, '[redacted]'), value);
   return value;
 }
+
+/** Provider export capabilities stay within the current Semrush download endpoint. */
+const nativeExportURL = Effect.fn('Semrush.nativeExportURL')(function* (value: Schema.Json | undefined, browserOrigin: string) {
+  if (!objectValue(value) || !Predicate.isString(value.url)) return yield* Effect.fail(new ReportError({ message: 'Semrush did not return an export download URL.' }));
+  const href = value.url;
+  const destination = yield* Effect.try({ try: () => new URL(href), catch: () => new ReportError({ message: 'Semrush returned an invalid export URL.' }) });
+  const allowedOrigin = destination.origin === browserOrigin || browserOrigin === origin && destination.origin === 'https://semrush.com';
+  if (!allowedOrigin || !destination.pathname.startsWith('/ksb/export/') || destination.username || destination.password || destination.hash) return yield* Effect.fail(new ReportError({ message: 'Semrush returned an export URL outside its supported download origin or path.' }));
+  return destination.href;
+});
 
 export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush, Effect.gen(function* () {
   const sessions = yield* Sessions;
@@ -80,7 +90,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
   const rpc = Effect.fn('Semrush.rpc')(function* (method: string, params: Query, transport = 'keyword', webReport = 'domain.overview') {
     const payload = transport === 'domain' ? { request_id: randomUUID(), report: webReport, args: params, ...auth } : transport === 'direct' ? { ...params, ...auth } : params;
     const rpcParams = transport === 'kwm' ? { ...payload, ...(method.startsWith('user.') ? { api_key: auth.apiKey, user_id: auth.userId } : { APIKey: auth.apiKey, UserID: auth.userId }) } : payload;
-    const extra: Record<string, string> = transport === 'kwm' ? { 'api-key': auth.apiKey, 'user-id': String(auth.userId) } : {};
+    const extra: Record<string, string> = ['kwm', 'ksb'].includes(transport) ? { 'api-key': auth.apiKey, 'user-id': String(auth.userId) } : {};
     const body = yield* request(transportPaths.get(transport) ?? '/kwogw/v2/webapi', rpcBody(method, rpcParams), 'POST', extra);
     if (!objectValue(body) || !('result' in body)) return yield* Effect.fail(new ReportError({ message: `Semrush ${method}: missing report result.` }));
     return body.result ?? null;
@@ -108,60 +118,84 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     if (request.method === 'GET') {
       for (const [key, value] of Object.entries(request.body ?? {})) address.searchParams.set(key, String(value));
     }
-    // Acquire only the cleanup state here; network and download waits must stay interruptible.
-    const key = randomUUID();
+    // Own a separate page so a GET error or redirect cannot navigate the report page.
     const state = yield* Effect.acquireRelease(Effect.sync(() => {
       const state: ExportState = { cancel: () => {} };
       return state;
     }), state => Effect.gen(function* () {
       state.cancel();
-      yield* browserCall(() => page.evaluate(key => {
-        // SAFETY: this private browser property is created and removed only by this export scope.
-        const scope = globalThis as typeof globalThis & { semrushExports?: Record<string, { controller: AbortController; url?: string }> };
-        const pending = scope.semrushExports?.[key];
-        if (pending) { pending.controller.abort(); if (pending.url) URL.revokeObjectURL(pending.url); delete scope.semrushExports?.[key]; }
-      }, key)).pipe(Effect.ignore);
       const download = state.download;
-      if (download) yield* browserCall(() => download.delete()).pipe(Effect.ignore);
+      if (download) {
+        yield* browserCall(() => download.cancel()).pipe(Effect.ignore);
+        yield* browserCall(() => download.delete()).pipe(Effect.ignore);
+      }
     }));
-    // Register the controller before starting an interruptible fetch, so finalization can always abort it.
-    yield* Effect.uninterruptible(browserCall(() => page.evaluate(key => {
-      // SAFETY: this private browser property is created and removed only by this export scope.
-      const scope = globalThis as typeof globalThis & { semrushExports?: Record<string, { controller: AbortController; url?: string }> };
-      (scope.semrushExports ??= {})[key] = { controller: new AbortController() };
-    }, key)));
-    const file = yield* browserCall(() => page.evaluate(async ({ key, address, method, body, extension }) => {
-      // SAFETY: this private browser property is created and removed only by this export scope.
-      const scope = globalThis as typeof globalThis & { semrushExports: Record<string, { controller: AbortController; url?: string }> };
-      const pending = scope.semrushExports[key]!;
-      const options: RequestInit = { method, credentials: 'include', signal: AbortSignal.any([pending.controller.signal, AbortSignal.timeout(45000)]) };
-      if (method !== 'GET') { options.headers = { 'Content-Type': 'application/json' }; options.body = JSON.stringify(body); }
-      const response = await fetch(address, options);
-      const contentType = response.headers.get('content-type') ?? '';
-      if (!response.ok || /text\/html|application\/(?:[^;]+\+)?json/i.test(contentType)) return { status: response.status, url: '', filename: '' };
-      const disposition = response.headers.get('content-disposition') ?? '';
-      const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
-      const filename = encoded ? decodeURIComponent(encoded) : (disposition.match(/filename="([^"]+)"|filename=([^;]+)/i)?.slice(1).find(Boolean)?.trim() ?? 'semrush-export.' + extension);
-      pending.url = URL.createObjectURL(await response.blob());
-      return { status: response.status, url: pending.url, filename };
-    }, { key, address: address.href, method: request.method, body: request.body, extension: format === 'xlsx' ? 'xlsx' : 'csv' }));
-    if (!file.url) return yield* Effect.fail(new ReportError({ message: `Semrush did not return an export file (HTTP ${file.status}). Check your session, export permissions and selected resource.` }));
+    const exportPage = yield* Effect.acquireRelease(browserCall(() => context.newPage()), page => browserCall(() => page.close()).pipe(Effect.ignore));
+    let file = { url: address.href, filename: '' };
+    if (request.method !== 'GET') {
+      // JSON POSTs need the web origin. Closing this page aborts fetch and revokes its Blob URL.
+      yield* browserCall(() => exportPage.goto(browserOrigin + '/robots.txt', { waitUntil: 'domcontentloaded', timeout: 45000 }));
+      const attachment = yield* browserCall(() => exportPage.evaluate(async ({ address, body, extension }) => {
+        const response = await fetch(address, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body), signal: AbortSignal.timeout(45000) });
+        const contentType = response.headers.get('content-type') ?? '';
+        if (!response.ok || /text\/html|application\/(?:[^;]+\+)?json/i.test(contentType)) return { status: response.status, url: '', filename: '' };
+        const disposition = response.headers.get('content-disposition') ?? '';
+        const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+        const filename = encoded ? decodeURIComponent(encoded) : (disposition.match(/filename="([^"]+)"|filename=([^;]+)/i)?.slice(1).find(Boolean)?.trim() ?? 'semrush-export.' + extension);
+        return { status: response.status, url: URL.createObjectURL(await response.blob()), filename };
+      }, { address: address.href, body: request.body, extension: format === 'xlsx' ? 'xlsx' : 'csv' }));
+      if (!attachment.url) return yield* Effect.fail(new ReportError({ message: `Semrush did not return an export file (HTTP ${attachment.status}). Check your session, export permissions and selected resource.` }));
+      file = attachment;
+    }
     const download = yield* Effect.tryPromise({ try: signal => new Promise<Download>((resolve, reject) => {
-      let clicked = false;
-      const cleanup = () => { clearTimeout(timer); page.off('download', onDownload); signal.removeEventListener('abort', cancel); };
+      let triggerSettled = false;
+      let responseSeen = request.method !== 'GET';
+      let responseFailure: ReportError | undefined;
+      const cleanup = () => { clearTimeout(timer); exportPage.off('download', onDownload); exportPage.off('response', onResponse); signal.removeEventListener('abort', cancel); };
       const fail = (error: Error) => { cleanup(); reject(error); };
       const cancel = () => fail(new Error('Export cancelled'));
-      const complete = () => { if (state.download && clicked) { cleanup(); resolve(state.download); } };
+      const complete = () => {
+        if (!triggerSettled) return;
+        if (responseFailure) { fail(responseFailure); return; }
+        if (state.download && responseSeen) { cleanup(); resolve(state.download); }
+      };
       const onDownload = (download: Download) => { state.download = download; complete(); };
+      const onResponse = (response: Response) => {
+        let root = response.request();
+        let previous = root.redirectedFrom();
+        while (previous) { root = previous; previous = root.redirectedFrom(); }
+        if (root.url() !== address.href || response.status() >= 300 && response.status() < 400) return;
+        const contentType = response.headers()['content-type'] ?? '';
+        if (response.status() < 200 || response.status() >= 300 || /text\/html|application\/(?:[^;]+\+)?json/i.test(contentType)) {
+          responseFailure = new ReportError({ message: `Semrush did not return an export file (HTTP ${response.status()}). Check your session, export permissions and selected resource.` }); complete(); return;
+        }
+        responseSeen = true; complete();
+      };
       const timer = setTimeout(() => fail(new Error('Export timed out')), 45000);
       state.cancel = cancel;
       signal.addEventListener('abort', cancel, { once: true });
-      page.on('download', onDownload);
-      page.evaluate(({ url, filename }) => {
-        const link = document.createElement('a'); link.href = url; link.download = filename;
-        document.body.appendChild(link); link.click(); link.remove();
-      }, file).then(() => { clicked = true; complete(); }, fail);
-    }), catch: () => new ReportError({ message: 'Semrush did not produce an export download. Check your session and export permissions.' }) });
+      exportPage.on('download', onDownload);
+      if (request.method === 'GET') exportPage.on('response', onResponse);
+      if (request.method === 'GET') {
+        // Native navigation settles before cleanup; the driver signals attachment navigation this way.
+        exportPage.goto(file.url, { waitUntil: 'domcontentloaded', timeout: 45000 }).then(response => {
+          triggerSettled = true;
+          responseFailure ??= new ReportError({ message: `Semrush did not return an export file (HTTP ${response?.status() ?? 'unknown'}). Check your session and export permissions.` });
+          complete();
+        }, error => {
+          triggerSettled = true;
+          if (error instanceof Error && error.message.includes('Download is starting')) complete();
+          else fail(error);
+        });
+      } else {
+        exportPage.evaluate(({ url, filename }) => {
+          const link = document.createElement('a'); link.href = url; link.download = filename;
+          document.body.appendChild(link); link.click(); link.remove();
+        }, file).then(() => { triggerSettled = true; complete(); }, fail);
+      }
+    }), catch: error => error instanceof ReportError ? error : new ReportError({ message: 'Semrush did not produce an export download. Check your session and export permissions.' }) });
+
     const filename = download.suggestedFilename().replaceAll(auth.apiKey, '[redacted]');
     const mimeType = format === 'xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv';
     return yield* exports.create(filename, mimeType, destination => download.saveAs(destination));
@@ -193,8 +227,15 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       }
       const responseType = 'response_type' in definition && definition.response_type === 'empty' ? 'empty' : 'json';
       reportData = yield* request(path, planned.body, planned.method, {}, responseType);
-    } else if (['keyword', 'domain', 'direct', 'magic', 'kwm'].includes(family)) reportData = yield* rpc(definition.method, params, family, definition.web_report);
-    else {
+    } else if (['keyword', 'domain', 'direct', 'magic', 'kwm', 'ksb'].includes(family)) {
+      reportData = yield* rpc(definition.method, params, family, definition.web_report);
+      if ('response_type' in definition && definition.response_type === 'download_url') {
+        const href = yield* nativeExportURL(reportData, browserOrigin);
+        const artifact = yield* Effect.scoped(downloadExport({ method: 'GET', path: href, body: {} }, query.format));
+        yield* captureCookies(context, sessions.capture, browserOrigin);
+        return { authenticated: true as const, report: name, data: null, artifact };
+      }
+    } else {
       const extra: Record<string, string> = {};
       if (family === 'gap') {
         if (!spectrumToken) spectrumToken = yield* browserCall(() => observeSpectrum(page, browserOrigin));

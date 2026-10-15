@@ -1,8 +1,54 @@
 # Verification
 
-Current source verification: 2026-10-15. The 0.7.0 source suite passed 127 tests. Live responses and credentials remain
+Current source verification: 2026-10-15. The 0.8.0 source suite passed 131 tests. Live responses and credentials remain
 outside the repository. Evidence below distinguishes local fixtures, native CI
 and real account execution.
+
+## Version 0.8.0 domain-strategy verification
+
+All 17 new operations passed authenticated calls: lifecycle and status, presets,
+filtered/paginated page opportunities, page details and URLs, SERP analysis,
+existing/recommended keywords, keyword deletion and native exports. The owned
+python.org strategy completed with 134 opportunities, including 69 existing
+and 65 new pages. Pagination returned disjoint page selections. Text, volume,
+difficulty and intent filters passed live checks. Deleting one recommended
+keyword reduced its count and removed the selected ID.
+
+CSV, semicolon CSV and XLSX exports passed complete MCP resource reads and
+file checks. The CSV files exceeded 470 KB, exercising multiple chunks; XLSX
+passed ZIP/workbook integrity checks. Native exports use a signed provider
+address that stays inside the browser adapter and never appears in tool output.
+The domain strategy was deleted and its absence verified.
+
+The shared download adapter now uses native browser navigation for GET files,
+including cross-origin Semrush exports, and same-origin fetch/Blob downloads
+for JSON POST exports. Real HTTP fixtures cover redirect byte preservation,
+HTTP errors, URL trust boundaries and cancellation. Navigation settles before
+page cleanup. All six Site Audit GET exports and all three Saved Keywords POST
+formats passed live regression checks on owned disposable resources. Cleanup verified the test
+collection, project folder and audit campaign IDs were absent.
+
+Across versioned passes, all 118 reads and 46 of 47 writes have live execution
+evidence. Shared-project leave has contract coverage only. Account-gated
+products remain gaps, as described on the coverage page. Strict TypeScript,
+Oxlint, generated reference, packaging and all 131 tests passed.
+
+## Version 0.7.0 published artifacts
+
+The public npm archive matches the tested release archive:
+SHA-256 `8fffa8b61415b4131ab4d35d82e2c8ed6b6b6900e36dade02dfd112bc9c22a96`.
+The [CI run](https://github.com/Microck/semrush-cli/actions/runs/38785962224)
+passed source, docs and installation/setup on Linux, macOS and Windows.
+A fresh packed installation and the installed public npm release passed
+actual MCP calls. The public process advertised 148 tools and passed
+Keyword Overview and Saved Keywords limits reads with the authorized session.
+
+The [GitHub release](https://github.com/Microck/semrush-cli/releases/tag/v0.7.0)
+is visible with the archive and checksum. The global command reports 0.7.0.
+The new Saved Keywords guide is deployed on semrush.micr.dev; Chromium verified
+HTTP 200, its heading, no page errors and no horizontal overflow at 390px.
+A test-only Chromium QUIC flag avoided a host-specific navigation timeout;
+production browser settings were not changed.
 
 ## Version 0.7.0 Saved Keywords verification
 

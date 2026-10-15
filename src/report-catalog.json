@@ -7171,5 +7171,763 @@
       ]
     },
     "response_type": "download"
+  },
+  "domain_strategies": {
+    "method": "audit.ListV3",
+    "description": "List domain-based strategies from the current Keyword Strategy Builder.",
+    "transport": "ksb",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ownership": {
+          "type": "string",
+          "enum": [
+            "all",
+            "own",
+            "direct",
+            "corporate"
+          ],
+          "default": "all"
+        },
+        "sort_field": {
+          "type": "string",
+          "enum": [
+            "name",
+            "updated"
+          ],
+          "default": "updated"
+        },
+        "descending": {
+          "type": "boolean",
+          "default": true
+        },
+        "name_filter": {
+          "type": "string",
+          "default": ""
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 20
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        }
+      },
+      "required": []
+    }
+  },
+  "domain_strategy_get": {
+    "method": "audit.GetV3",
+    "description": "Read a domain-based strategy. The strategy ID is separate from a project or basket selector.",
+    "transport": "ksb",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "strategy_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "strategy_id"
+      ]
+    }
+  },
+  "domain_strategy_summary": {
+    "method": "audit.Summary",
+    "description": "Count owned, directly shared and corporate domain strategies.",
+    "transport": "ksb",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name_filter": {
+          "type": "string",
+          "default": ""
+        }
+      },
+      "required": []
+    }
+  },
+  "domain_strategy_status": {
+    "method": "audit.GetStatus",
+    "description": "Read generation states for domain-based strategies.",
+    "transport": "ksb",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "strategy_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "strategy_ids"
+      ]
+    }
+  },
+  "domain_strategy_create": {
+    "method": "audit.Create",
+    "description": "Start domain-based strategy generation. Consumes account allowance; does not create a project or a seed-based basket.",
+    "transport": "ksb",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253,
+          "pattern": "^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z]{2,63}$",
+          "description": "Domain or subdomain, without protocol or path."
+        },
+        "database": {
+          "type": "string",
+          "pattern": "^[a-z]{2}$",
+          "default": "us"
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "domain"
+      ]
+    }
+  },
+  "domain_strategy_rename": {
+    "method": "audit.Rename",
+    "description": "Rename an owned domain-based strategy.",
+    "transport": "ksb",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "strategy_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "strategy_id",
+        "name"
+      ]
+    }
+  },
+  "domain_strategy_delete": {
+    "method": "audit.Delete",
+    "description": "Delete the selected domain-based strategies.",
+    "transport": "ksb",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "strategy_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "strategy_ids"
+      ]
+    }
+  },
+  "domain_strategy_presets": {
+    "method": "audit.GetPresetCounts",
+    "description": "Count all, existing and new opportunities in a generated domain strategy.",
+    "transport": "ksb",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "strategy_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "strategy_id"
+      ]
+    }
+  },
+  "domain_strategy_pages_summary": {
+    "method": "page.GetSummary",
+    "description": "Count pages matching the domain strategy preset and filters.",
+    "transport": "ksb",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "strategy_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "preset": {
+          "type": "string",
+          "enum": [
+            "all",
+            "improve",
+            "create"
+          ],
+          "default": "all"
+        },
+        "text": {
+          "type": "string",
+          "default": ""
+        },
+        "volume_min": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "volume_max": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "difficulty_min": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "difficulty_max": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "primary_intents": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "informational",
+              "navigational",
+              "commercial",
+              "transactional"
+            ]
+          },
+          "uniqueItems": true,
+          "default": []
+        }
+      },
+      "required": [
+        "strategy_id"
+      ]
+    }
+  },
+  "domain_strategy_pages": {
+    "method": "page.ListV2",
+    "description": "Read generated page opportunities with presets, text, metric and intent filters.",
+    "transport": "ksb",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "strategy_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "preset": {
+          "type": "string",
+          "enum": [
+            "all",
+            "improve",
+            "create"
+          ],
+          "default": "all"
+        },
+        "text": {
+          "type": "string",
+          "default": ""
+        },
+        "volume_min": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "volume_max": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "difficulty_min": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "difficulty_max": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "primary_intents": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "informational",
+              "navigational",
+              "commercial",
+              "transactional"
+            ]
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 20
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        }
+      },
+      "required": [
+        "strategy_id"
+      ]
+    }
+  },
+  "domain_strategy_page": {
+    "method": "page.GetV2",
+    "description": "Read the title, URL, language and keyword statistics for one domain strategy page.",
+    "transport": "ksb",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "page_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "page_id"
+      ]
+    }
+  },
+  "domain_strategy_page_urls": {
+    "method": "page.GetURLs",
+    "description": "Read matching URLs for a domain strategy page.",
+    "transport": "ksb",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "page_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "page_id"
+      ]
+    }
+  },
+  "domain_strategy_page_serp": {
+    "method": "page.GetSERPAnalysis",
+    "description": "Read SERP features and competitor authority for a domain strategy page.",
+    "transport": "ksb",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "page_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "page_id"
+      ]
+    }
+  },
+  "domain_strategy_existing_keywords": {
+    "method": "keyword.ListExistingV2",
+    "description": "Read the keywords an existing domain strategy page already ranks for.",
+    "transport": "ksb",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "page_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "page_id"
+      ]
+    }
+  },
+  "domain_strategy_recommended_keywords": {
+    "method": "keyword.ListRecommendedV2",
+    "description": "Read recommended keywords, intent, volume and difficulty for a domain strategy page.",
+    "transport": "ksb",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "page_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "page_id"
+      ]
+    }
+  },
+  "domain_strategy_keywords_delete": {
+    "method": "keyword.Delete",
+    "description": "Delete the selected generated strategy keywords. This operation has no undo command.",
+    "transport": "ksb",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "keyword_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "keyword_ids"
+      ]
+    }
+  },
+  "domain_strategy_export": {
+    "method": "export.GetAudit",
+    "description": "Export the whole filtered domain strategy as CSV, semicolon CSV or XLSX. Page presets do not apply.",
+    "transport": "ksb",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "strategy_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "text": {
+          "type": "string",
+          "default": ""
+        },
+        "volume_min": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "volume_max": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "difficulty_min": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "difficulty_max": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "primary_intents": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "informational",
+              "navigational",
+              "commercial",
+              "transactional"
+            ]
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "filename": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[^/\\\\\\u0000-\\u001f]+$",
+          "default": "semrush-keyword-strategy"
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "csv",
+            "csv_semicolon",
+            "xlsx"
+          ],
+          "default": "csv"
+        }
+      },
+      "required": [
+        "strategy_id"
+      ]
+    },
+    "response_type": "download_url"
   }
 }

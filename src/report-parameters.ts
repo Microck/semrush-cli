@@ -3,6 +3,8 @@ import packageInfo from '../package.json' with { type: 'json' };
 import catalog from './report-catalog.json' with { type: 'json' };
 
 const backlinkSorts = new Map([['backlinks', 'page_ascore'], ['backlinks_refdomains', 'backlinksnum'], ['backlinks_anchors', 'backlinksnum'], ['backlinks_pages', 'domainsnum'], ['backlinks_outgoing_domains', 'links_num']]);
+const domainPresets = new Map([['all', 1], ['improve', 2], ['create', 3]]);
+const domainIntents = new Map([['informational', 1], ['navigational', 2], ['commercial', 3], ['transactional', 4]]);
 const savedDatabases = new Map(Object.entries(catalog.saved_keywords_import.database_ids));
 const savedListSorts = new Map([['name', 1], ['keywords', 2], ['updated', 3]]);
 const savedKeywordSorts = new Map([['phrase', 1], ['volume', 2], ['difficulty', 3], ['topic', 4], ['subtopic', 5], ['updated', 6], ['cpc', 7]]);
@@ -19,6 +21,7 @@ export interface Query { [key: string]: Schema.Json; }
 /** Fixed request shapes observed in semrush-web-mcp. No arbitrary RPC or URL input. */
 export function reportParameters(definition: Report, q: Query): Query {
   const family = definition.transport;
+  if (family === 'ksb') return domainStrategyParameters(definition, q);
   if (family === 'saved_web') return savedParameters(definition, q);
   if (family === 'tracking_web') return trackingParameters(definition, q);
   if (family === 'audit_web') return auditParameters(definition, q);
@@ -34,6 +37,37 @@ export function reportParameters(definition: Report, q: Query): Query {
   if (family === 'projects') return { filter: (q.filters ?? null), range: { limit: (q.limit ?? null), offset: (q.offset ?? null) } };
   if (definition.method.endsWith('selector-list')) return { limit: 10000, offset: 0 };
   return {};
+}
+
+/** The current domain strategy API uses camelCase fields and header-only runtime auth. */
+function domainStrategyParameters(definition: Report, q: Query): Query {
+  if (!definition.method.startsWith('audit.')) return domainResultParameters(definition, q);
+  switch (definition.method) {
+    case 'audit.ListV3': return { ownership: q.ownership ?? 'all', sortBy: q.sort_field === 'name' ? 'name' : 'updatedAt',
+      sortOrder: q.descending === false ? 'asc' : 'desc', nameFilter: q.name_filter ?? '', limit: q.limit ?? 20, offset: q.offset ?? 0 };
+    case 'audit.Summary': return { nameFilter: q.name_filter ?? '' };
+    case 'audit.GetV3': case 'audit.GetPresetCounts': return { id: q.strategy_id ?? null };
+    case 'audit.GetStatus': case 'audit.Delete': return { ids: q.strategy_ids ?? [] };
+    case 'audit.Create': return { domain: q.domain ?? null, seedPhrases: [], database: q.database ?? 'us', geoMarkers: [] };
+    default: return { id: q.strategy_id ?? null, name: q.name ?? null };
+  }
+}
+
+/** Domain result filters use their own intent codes and nullable ranges. */
+function domainResultParameters(definition: Report, q: Query): Query {
+  const method = definition.method;
+  if (['page.GetV2', 'page.GetURLs', 'page.GetSERPAnalysis'].includes(method)) return { id: q.page_id ?? null };
+  if (method === 'keyword.Delete') return { ids: q.keyword_ids ?? [] };
+  if (method.startsWith('keyword.')) return { pageId: q.page_id ?? null };
+  const text = String(q.text ?? '').trim();
+  const filters = { textSearch: text || null, potentialVolume: { min: q.volume_min ?? null, max: q.volume_max ?? null },
+    difficulty: { min: q.difficulty_min ?? null, max: q.difficulty_max ?? null },
+    primaryIntent: Array.isArray(q.primary_intents) ? q.primary_intents.map(intent => domainIntents.get(String(intent)) ?? null) : [] };
+  if (method === 'export.GetAudit') return { auditId: q.strategy_id ?? null, filename: q.filename ?? 'semrush-keyword-strategy',
+    format: q.format === 'xlsx' ? 'xlsx' : q.format === 'csv_semicolon' ? 'csvs' : 'csv', filters };
+  const parameters: Query = { auditId: q.strategy_id ?? null, preset: domainPresets.get(String(q.preset)) ?? 1, filters };
+  if (method === 'page.ListV2') { parameters.limit = q.limit ?? 20; parameters.offset = q.offset ?? 0; }
+  return parameters;
 }
 
 /** Current Saved Keywords collections use FilterQL and decimal-string IDs, not basket RPCs. */
@@ -175,7 +209,7 @@ function projectParameters(definition: Report, q: Query): Query {
 
 /** Fixed public request plans. RPC credentials enter only inside the browser layer. */
 export function webRequest(definition: Report, query: Query) {
-  if (definition.transport === 'kwm') return { method: 'POST', path: '/kwm/rpc', body: rpcBody(definition.method, reportParameters(definition, query)) };
+  if (definition.transport === 'kwm' || definition.transport === 'ksb') return { method: 'POST', path: definition.transport === 'ksb' ? '/ksb/rpc' : '/kwm/rpc', body: rpcBody(definition.method, reportParameters(definition, query)) };
   const parameters = reportParameters(definition, query);
   return {
     method: definition.http_method,

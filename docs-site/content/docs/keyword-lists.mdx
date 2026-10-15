@@ -9,6 +9,79 @@ can also appear in Saved Keywords with the same underlying ID; that API uses
 decimal-string `list_id` fields. Project folder IDs remain a different identifier. Shared
 lists retain their owner's ID. Semrush enforces the list's access permissions.
 
+## Domain-based strategies
+
+The domain-based workflow uses a separate strategy resource. It does not create
+a seed-based basket or project. Creation starts generation and uses your normal
+account allowance.
+
+```sh
+semrush domain-strategies --limit 20 --offset 0 --json
+semrush domain-strategy-summary --json
+semrush domain-strategy-create --domain example.com --database us --dry-run
+semrush domain-strategy-create --domain example.com --database us --confirm --json
+```
+
+Creation returns `data.id`. Use that numeric ID for these commands:
+
+```sh
+semrush domain-strategy-get --strategy-id 123 --json
+semrush domain-strategy-status --strategy-ids '[123]' --json
+semrush domain-strategy-rename --strategy-id 123 --name 'domain research' --confirm
+semrush domain-strategies --name-filter 'domain research' --ownership own --json
+semrush domain-strategy-delete --strategy-ids '[123]' --confirm
+```
+
+Status reads return a `statuses` array in the requested ID order. Inspect details
+for the domain, state, result availability and page count. Read status again
+explicitly while generation runs. No command retries writes or polls
+automatically. Delete has no CLI undo command.
+
+Domain strategy IDs must be safe JSON integers. They are not project folder IDs
+or a basket selector. Basket operations below use both `BasketID` and `Owner.ID`.
+Geographic-marker search from the client is unavailable on the current backend;
+the CLI does not expose those dormant methods.
+
+## Read domain opportunities and export
+
+Wait until generation has results before reading page opportunities. Presets
+are `all`, `improve` and `create`. Page results use `data.pages`; each page has
+its own numeric `id`, distinct from the strategy ID.
+
+```sh
+semrush domain-strategy-presets --strategy-id 123 --json
+semrush domain-strategy-pages --strategy-id 123 --preset improve --limit 20 --offset 0 --json
+semrush domain-strategy-pages-summary --strategy-id 123 --preset improve --json
+semrush domain-strategy-page --page-id 456 --json
+semrush domain-strategy-page-urls --page-id 456 --json
+semrush domain-strategy-page-serp --page-id 456 --json
+semrush domain-strategy-existing-keywords --page-id 456 --json
+semrush domain-strategy-recommended-keywords --page-id 456 --json
+```
+
+Page reads and summaries accept `--text`, `--volume-min`, `--volume-max`,
+`--difficulty-min`, `--difficulty-max` and `--primary-intents`. Pass intents
+as a JSON array, such as `'["commercial","transactional"]'`. Supported values
+are `informational`, `navigational`, `commercial` and `transactional`. Difficulty
+ranges from 0 to 100. Minimum bounds cannot exceed maximum bounds. Advance
+`--offset` explicitly to read later pages.
+
+Delete only selected numeric keyword IDs returned by the keyword reads:
+
+```sh
+semrush domain-strategy-keywords-delete --keyword-ids '[789]' --dry-run
+semrush domain-strategy-keywords-delete --keyword-ids '[789]' --confirm
+semrush domain-strategy-export --strategy-id 123 --filename research --format csv --output research.csv
+semrush domain-strategy-export --strategy-id 123 --filename research --format xlsx --output research.xlsx
+```
+
+Keyword deletion has no CLI undo command. Export supports `csv`,
+`csv_semicolon` and `xlsx`, plus the same text, volume, difficulty and intent
+filters. It exports the whole filtered strategy and does not accept a preset.
+`--output` is required. An existing destination is preserved; choose a new
+path to save another export. MCP returns a downloadable resource instead of a
+local path. See [MCP exports](/docs/mcp#read-an-export).
+
 ## Create and manage lists
 
 ```sh

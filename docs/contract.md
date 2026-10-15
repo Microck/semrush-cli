@@ -185,3 +185,42 @@ The current client source is
 `https://static.semrush.com/saved-keywords/284.e7381245bc9d543ed5e4.js` and its
 FilterQL serializer is module 5434 in
 `https://static.semrush.com/saved-keywords/92.9eafacff2527f293603a.js`.
+
+## Domain-based strategies
+
+The current Keyword Strategy Builder client uses a distinct `/ksb/rpc` API for
+its domain-based strategies. This is a different resource from seed-based
+`/kwm/rpc` baskets. `audit.ListV3` accepts ownership (`all`, `own`, `direct`,
+`corporate`), `sortBy` (`name`, `updatedAt`), `sortOrder` (`asc`, `desc`),
+`nameFilter`, `limit` and `offset`. `audit.Summary` uses `nameFilter`.
+`audit.GetV3` reads one numeric `id`; `audit.GetStatus` reads an `ids` array.
+The API uses session cookies and runtime `Api-Key` / `User-Id` headers.
+Credentials do not belong in user input or request previews.
+
+The domain create contract is `audit.Create` with `domain`, `seedPhrases`,
+`database` and an empty `geoMarkers` array. Geographic-marker search from the
+client returns method-not-found on the live backend and is not exposed. Creation starts strategy generation and consumes
+normal account allowance. Rename (`audit.Rename`, `id` and `name`) and delete
+(`audit.Delete`, `ids`) are explicit confirmed writes. These commands do not
+route through basket operations or convert one resource kind into another.
+The client source is
+`https://static.semrush.com/keyword-manager/kwm_app.6eb464ecf5da670e7285.js`.
+
+Domain strategy result browsing uses the current audit client:
+`https://static.semrush.com/keyword-manager-assets/audit/audit_482.e09c649386cc9b95bd32.js`.
+`audit.GetPresetCounts` reads `id`. Page list and summary use `auditId`, `preset`
+(1 all, 2 improve, 3 create), and filters with nullable `textSearch`, nullable
+integer min/max ranges for `potentialVolume` and `difficulty`, and
+`primaryIntent` (1 informational, 2 navigational, 3 commercial, 4 transactional).
+Page lists add `limit` and `offset`. `page.GetV2`, `page.GetURLs` and
+`page.GetSERPAnalysis` read a page `id`. Existing and recommended keyword reads
+use `pageId`; keyword deletion uses explicit numeric `ids` and confirmation.
+
+`export.GetAudit` returns a download URL for `filename`, `format` (`csv`, `csvs`
+or `xlsx`), `auditId` and those filters. It exports the filtered strategy,
+without a page preset. The CLI accepts only provider URLs on its Semrush origin
+or the native semrush.com alias, under `/ksb/export/`. URLs never become tool
+output. GET files use native browser downloads, matching the UI and avoiding
+the alias's browser CORS restriction. JSON POST exports use a fetched Blob.
+Each export owns a temporary browser page; closing that scope aborts pending
+network work and releases its Blob URLs, listeners and native download file.

@@ -13,6 +13,7 @@ import { Semrush } from '../src/browser-service.js';
 import { Exports, exportsLive } from '../src/exports.js';
 import { parseReport } from '../src/validation.js';
 import type { Query } from '../src/report-parameters.js';
+import { makeDomainFixture } from './domain-strategy-fixture.js';
 import { makeSavedFixture, savedPath } from './saved-keywords-fixture.js';
 
 const exec = promisify(execFile);
@@ -37,6 +38,7 @@ let deletedKeywords: typeof listKeywords = [];
 const folderPath = '/apis/v4-raw/folders/api/v0/folders';
 let savedProject: { id: string; name: string; domain?: string; tags?: { name: string }[] } | undefined;
 const serveSavedFixture = makeSavedFixture();
+const serveDomainFixture = makeDomainFixture();
 const fixture = createServer(async (request, response) => {
   const url = new URL(request.url ?? '/', fixtureURL);
   if (url.pathname === '/robots.txt') { response.end('User-agent: *\nDisallow: /'); return; }
@@ -63,6 +65,7 @@ const fixture = createServer(async (request, response) => {
   }
   if (url.pathname.startsWith('/tracking/web-api/')) { await serveTrackingFixture(request, response, url); return; }
   if (url.pathname.startsWith('/siteaudit/api/') || url.pathname === '/siteaudit/private/polling') { await serveAuditFixture(request, response, url); return; }
+  if (url.pathname.startsWith('/ksb/')) { await serveDomainFixture(request, response, url); return; }
   if (url.pathname === '/kwm/rpc') {
     let encoded = '';
     for await (const chunk of request) encoded += chunk;
@@ -462,4 +465,50 @@ test('interrupting a pending HTTP export aborts it and releases the browser slot
       expect(next.authenticated).toBe(true);
     }).pipe(Effect.provide(fixtureLayer()))));
   } finally { delayedExportStarted = () => {}; delayedExportClosed = () => {}; }
+}, 30000);
+
+
+test('real browser manages native domain strategies separately from seed-based baskets', async () => {
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const service = yield* Semrush;
+    const call = (name: string, input: Query = {}) => Effect.gen(function* () { return yield* service.report(yield* parseReport(name, input)); });
+    expect((yield* call('domain_strategy_create', { domain: 'example.com', confirm: true })).data).toEqual({ id: 654 });
+    expect((yield* call('domain_strategy_summary')).data).toEqual({ own: 1, direct: 0, corporate: 0 });
+    expect((yield* call('domain_strategy_get', { strategy_id: 654 })).data).toMatchObject({ domain: 'example.com', state: 1 });
+    expect((yield* call('domain_strategy_status', { strategy_ids: [654] })).data).toEqual({ statuses: [1] });
+    yield* call('domain_strategy_rename', { strategy_id: 654, name: 'fixture strategy', confirm: true });
+    expect((yield* call('domain_strategies')).data).toMatchObject({ lists: [{ name: 'fixture strategy' }] });
+    yield* call('domain_strategy_delete', { strategy_ids: [654], confirm: true });
+    expect((yield* call('domain_strategies')).data).toEqual({ lists: [] });
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+
+test('domain opportunities preserve presets, keyword deletion and native redirected export boundaries', async () => {
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const service = yield* Semrush;
+    const call = (name: string, input: Query = {}) => Effect.gen(function* () { return yield* service.report(yield* parseReport(name, input)); });
+    yield* call('domain_strategy_create', { domain: 'example.com', confirm: true });
+    expect((yield* call('domain_strategy_presets', { strategy_id: 654 })).data).toEqual({ all: 2, existing: 1, new: 1 });
+    expect((yield* call('domain_strategy_pages', { strategy_id: 654, preset: 'create', limit: 1 })).data).toMatchObject({ pages: [{ id: 1202, type: 1 }] });
+    expect((yield* call('domain_strategy_pages', { strategy_id: 654, volume_min: 1000 })).data).toMatchObject({ pages: [{ id: 1201 }] });
+    expect((yield* call('domain_strategy_pages_summary', { strategy_id: 654, preset: 'improve' })).data).toEqual({ count: 1 });
+    expect((yield* call('domain_strategy_page', { page_id: 1201 })).data).toMatchObject({ title: 'Python guide', keywordStats: { existingCount: 1 } });
+    expect((yield* call('domain_strategy_page_urls', { page_id: 1201 })).data).toEqual({ urls: ['https://example.com/python'] });
+    expect((yield* call('domain_strategy_page_serp', { page_id: 1201 })).data).toMatchObject({ serpFeatures: [21] });
+    expect((yield* call('domain_strategy_existing_keywords', { page_id: 1201 })).data).toMatchObject({ keywords: [{ id: 901 }] });
+    yield* call('domain_strategy_keywords_delete', { keyword_ids: [902], confirm: true });
+    expect((yield* call('domain_strategy_recommended_keywords', { page_id: 1201 })).data).toMatchObject({ keywords: [{ id: 903 }] });
+    const foreign = yield* call('domain_strategy_export', { strategy_id: 654, filename: 'foreign' }).pipe(Effect.flip);
+    expect(foreign.message).toContain('supported download origin or path');
+    const denied = yield* call('domain_strategy_export', { strategy_id: 654, filename: 'forbidden' }).pipe(Effect.flip);
+    expect(denied.message).toContain('HTTP 403');
+    expect(yield* (yield* Exports).list()).toEqual([]);
+    const exported = yield* call('domain_strategy_export', { strategy_id: 654 });
+    if (!exported.artifact) throw new Error('Expected native domain export artifact');
+    expect(exported.artifact.filename).toBe('domain-strategy.csv');
+    const bytes = yield* (yield* Exports).read(exported.artifact.uri);
+    expect(Buffer.from(bytes.blob, 'base64').toString('utf8')).toBe('url,keyword\nhttps://example.com/python,python ideas\n');
+    yield* call('domain_strategy_delete', { strategy_ids: [654], confirm: true });
+  }).pipe(Effect.provide(fixtureLayer()))));
 }, 30000);
