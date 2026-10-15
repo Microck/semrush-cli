@@ -13,6 +13,7 @@ import { Semrush } from '../src/browser-service.js';
 import { Exports, exportsLive } from '../src/exports.js';
 import { parseReport } from '../src/validation.js';
 import type { Query } from '../src/report-parameters.js';
+import { makeTrackingAlertsFixture } from './tracking-alerts-fixture.js';
 import { makeTransferFixture } from './basket-transfer-fixture.js';
 import { makeSeedFixture } from './seed-strategy-fixture.js';
 import { makeDomainFixture } from './domain-strategy-fixture.js';
@@ -43,6 +44,7 @@ const serveSavedFixture = makeSavedFixture();
 const serveDomainFixture = makeDomainFixture();
 const serveSeedFixture = makeSeedFixture();
 const serveTransferFixture = makeTransferFixture();
+const serveTrackingAlertsFixture = makeTrackingAlertsFixture();
 const fixture = createServer(async (request, response) => {
   const url = new URL(request.url ?? '/', fixtureURL);
   if (url.pathname === '/robots.txt') { response.end('User-agent: *\nDisallow: /'); return; }
@@ -67,6 +69,7 @@ const fixture = createServer(async (request, response) => {
     response.setHeader('Content-Disposition', 'attachment; filename=fixture.csv');
     response.end('url,title\nhttps://example.com/,café\n'); return;
   }
+  if (url.pathname === '/tracking/alerts/') { await serveTrackingAlertsFixture(request, response); return; }
   if (['/tracking/web-api/', '/tracking/hashes', '/positions/api/'].some(prefix => url.pathname.startsWith(prefix))) { await serveTrackingFixture(request, response, url); return; }
   if (url.pathname.startsWith('/siteaudit/api/') || url.pathname === '/siteaudit/private/polling') { await serveAuditFixture(request, response, url); return; }
   if (url.pathname.startsWith('/ksb/')) { await serveDomainFixture(request, response, url); return; }
@@ -627,5 +630,31 @@ test('owner-aware basket transfers copy and move only explicit phrase or cluster
     expect((yield* call('keyword_list_keywords', { basket_id: 1002, owner_id: 123 })).data).toEqual({ Keywords: [
       { Phrase: 'email marketing', Database: 'us', ClusterID: 0 }, { Phrase: 'python tutorial', Database: 'us', ClusterID: 0 }, { Phrase: 'seo tools', Database: 'us', ClusterID: 0 },
     ] });
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+
+test('tracking alert lists preserve unread state and confirmed rules complete a native lifecycle', async () => {
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const service = yield* Semrush;
+    const campaign = { campaign_id: '789_42' };
+    const report = (name: string, query: Query) => Effect.gen(function* () { return yield* service.report(yield* parseReport(name, query)); });
+    const selection = { ...campaign, domain: 'example.com', condition: 'enters_top', threshold: 10, confirm: true };
+    expect((yield* report('position_trigger_count', campaign)).data).toMatchObject({ items_count: 0 });
+    expect((yield* report('position_trigger_create', selection)).data).toMatchObject({ trigger_id: 'rule-1' });
+    expect((yield* report('position_triggers', campaign)).data).toMatchObject({ trigger_ids: [{ trigger_id: 'rule-1', trigger_body: { threshold: 10 } }] });
+    expect((yield* report('position_trigger_count', campaign)).data).toMatchObject({ items_count: 1 });
+    yield* report('position_trigger_update', { ...selection, trigger_id: 'rule-1', condition: 'leaves_top', threshold: 20 });
+    expect((yield* report('position_triggers', campaign)).data).toMatchObject({ trigger_ids: [{ trigger_body: { condition: 'leaves_top', threshold: 20 } }] });
+    const alerts = yield* report('position_alerts', { ...campaign, page: 2, limit: 10 });
+    expect(alerts.data).toMatchObject({ alert_ids: [{ alert_body: { date: 1792094400, is_read: 0 } }] });
+    expect((yield* report('position_alert_counts', campaign)).data).toMatchObject({ unread_items_count: 1 });
+    yield* report('position_trigger_delete', { ...campaign, trigger_id: 'rule-1', confirm: true });
+    expect((yield* report('position_triggers', campaign)).data).toMatchObject({ trigger_ids: [] });
+    for (const name of ['position_alerts', 'position_trigger_create']) {
+      const failed = yield* report(name, name === 'position_alerts' ? { campaign_id: '789_99' } : { ...selection, campaign_id: '789_99' }).pipe(Effect.flip);
+      expect(failed.message).toContain('target is read-only');
+      expect(failed.message).not.toContain('fixture-secret');
+    }
   }).pipe(Effect.provide(fixtureLayer()))));
 }, 30000);

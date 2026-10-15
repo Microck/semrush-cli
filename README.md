@@ -75,7 +75,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 
 ## command surface
 
-185 operations, available as cli commands and mcp tools. 129 reads and 56 writes that need explicit confirmation.
+192 operations, available as cli commands and mcp tools. 133 reads and 59 writes that need explicit confirmation.
 
 | command | what it does |
 | --- | --- |
@@ -116,6 +116,8 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 | `position-configure` | edit tracking address, business name, brands or volume settings |
 | `position-keywords-add`, `position-keywords-delete`, `position-keyword-tags` | manage tracked keywords and tags |
 | `position-competitors-set` | replace the tracked competitor list |
+| `position-alerts`, `position-alert-counts`, `position-triggers`, `position-trigger-count` | read alerts, rules and counts |
+| `position-trigger-create`, `position-trigger-update`, `position-trigger-delete` | create, replace or delete an alert rule |
 | `position-overview`, `position-pages`, `position-overview-trend` | rankings, landing pages and trends |
 | `audit-status`, `audit-snapshots`, `audit-snapshot` | check progress and read audit results |
 | `audit-pages`, `audit-page`, `audit-issue`, `audit-history` | inspect crawled pages, issues and crawl history |
@@ -370,6 +372,29 @@ semrush position-configure --campaign-id 456_789 --domain example.org --url-type
 `position-configure` reads the current target and preserves fields you omit. address changes require both `--domain` and `--url-type`. `--volume-type` accepts `national`, `regional` or `local`. an empty business name clears it. brands must contain at least one name; this command cannot clear the brand list because semrush ignores an empty array. engine, device and location changes remain outside this command.
 
 new targets need time to collect rankings. use the dates from `position-info` for ranking, page and trend reports. competitor writes replace the whole list. see [position tracking](https://semrush.micr.dev/docs/position-tracking) for locations, tags, keyword deletion and report inputs.
+
+### tracking alerts
+
+list a target's alerts and alert rules, or read their counts:
+
+```bash
+semrush position-alerts --campaign-id 456_789 --page 1 --limit 20
+semrush position-alert-counts --campaign-id 456_789
+semrush position-triggers --campaign-id 456_789
+semrush position-trigger-count --campaign-id 456_789
+```
+
+alert lists leave unread status unchanged. create a rule for a keyword entering the top 10, then use its returned trigger id to replace or delete it:
+
+```bash
+semrush position-trigger-create --campaign-id 456_789 --domain example.com \
+  --condition enters_top --threshold 10 --confirm
+semrush position-trigger-update --campaign-id 456_789 --trigger-id '<trigger_id>' \
+  --domain example.com --condition leaves_top --threshold 20 --confirm
+semrush position-trigger-delete --campaign-id 456_789 --trigger-id '<trigger_id>' --confirm
+```
+
+copy `--domain` exactly from `position-info`'s `data.campaign_settings.tracking_url`, or use a competitor url from that result. thresholds run from 1 to 100. keep trigger ids as strings. updates replace the rule, so supply its domain, condition and threshold together. writes require `--confirm`, or use `--dry-run` to preview them.
 
 ### site audits
 

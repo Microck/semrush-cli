@@ -90,6 +90,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       return null;
     }
     const body = yield* Effect.try({ try: () => parseWire(wire.text), catch: () => new ReportError({ message: 'Semrush returned a page or challenge instead of JSON. Sign in again or retry later.' }) });
+    if (path === '/tracking/alerts/' && objectValue(body) && body.error_code !== 0) return yield* Effect.fail(new ReportError({ message: `Semrush tracking alert request failed: ${JSON.stringify(redact(body.error_message ?? body, [auth.apiKey])).slice(0, 500)}` }));
     if (objectValue(body) && ('error' in body || (!path.startsWith('/siteaudit/') && 'status' in body && !(body.status === null || body.status === 'SUCCESS' || body.status === 'success' || body.status === 'ok')))) return yield* Effect.fail(new ReportError({ message: `Semrush report failed: ${JSON.stringify(redact(body.error ?? body.error_message ?? body.status ?? null, [auth.apiKey, spectrumToken, spectrumToken.replace(/^Bearer /, '')])).slice(0, 500)}` }));
     return body;
   });
@@ -206,8 +207,10 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     const mimeType = format === 'xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv';
     return yield* exports.create(filename, mimeType, destination => download.saveAs(destination));
   });
-  /** The native edit endpoint replaces all fields, so decode current values before applying a partial edit. */
-  const trackingSettings = Effect.fn('Semrush.trackingSettings')(function* (query: Query, changes: Schema.Json) {
+  /** Prepare native tracking bodies. Settings replace all fields and require current values plus fresh edit metadata. */
+  const trackingBody = Effect.fn('Semrush.trackingBody')(function* (definition: ReportRequest['definition'], query: Query, changes: Schema.Json) {
+    if (definition.method === '/tracking/alerts/') return Object.assign({ key: auth.apiKey }, changes);
+    if (definition.method !== '/positions/api/campaign_edit_domain_settings') return changes;
     const current = yield* request(`/tracking/web-api/management/campaign/${query.campaign_id}/info`, { api_key: auth.apiKey }, 'GET');
     const metadata = yield* Schema.decodeUnknownEffect(Schema.Struct({ data: Schema.Struct({
       can_edit: Schema.Boolean,
@@ -251,7 +254,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
         return { authenticated: true as const, report: name, data: null, artifact };
       }
       const responseType = 'response_type' in definition && definition.response_type === 'empty' ? 'empty' : 'json';
-      const body = name === 'position_configure' ? yield* trackingSettings(query, planned.body) : planned.body;
+      const body = family === 'tracking_web' ? yield* trackingBody(definition, query, planned.body) : planned.body;
       reportData = yield* request(path, body, planned.method, {}, responseType);
     } else if (['keyword', 'domain', 'direct', 'magic', 'kwm', 'ksb'].includes(family)) {
       reportData = yield* rpc(definition.method, params, family, definition.web_report);

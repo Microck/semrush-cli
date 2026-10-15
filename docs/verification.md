@@ -1,8 +1,50 @@
 # Verification
 
-Current source verification: 2026-10-15. The 0.10.0 source suite passed 138 tests. Live responses and credentials remain
+Current source verification: 2026-10-15. The 0.11.0 source suite passed 140 tests. Live responses and credentials remain
 outside the repository. Evidence below distinguishes local fixtures, native CI
 and real account execution.
+
+## Version 0.11.0 tracking alert verification
+
+All seven new operations passed authenticated live calls. The owned target's
+initial rule list and count were empty. Create returned an opaque string rule
+ID; list readback confirmed the requested target, condition and threshold.
+Update changed the condition and threshold, and deletion removed the rule.
+The final list was empty and the count zero. Alert listing and total/unread
+counts passed with no events on this new target. Weekly emails stayed disabled
+and the keyword count stayed one.
+
+The real Chromium/Galleton/HTTP fixture verifies positive alert rows, unchanged
+unread state, native timestamp preservation, owner-authenticated rule lifecycle
+and HTTP-200 native errors with credential redaction. One suite run began while
+the fixture address example was being aligned with the native UI and failed its
+exact body assertion. The corrected full run passed all 140 tests. TypeScript,
+Oxlint, generated-reference checks and executable packaging passed. Three
+independent simplification reviews found no further changes needed.
+
+All 133 reads and 58 of 59 writes have live execution evidence across versioned
+passes. Shared-project leave remains unverified. Alert detail and event writes
+are not exposed; the native detail call marks an alert as read. The native
+crawl-scheduling form requires SEO Tier 3. No purchase or email delivery was
+performed. The owned project and tracking target were checked absent after
+deletion. The first target read briefly retained the deleted resource; a later
+read confirmed absence, with no repeated deletion. Unrelated account data was
+preserved. Detailed evidence remains outside the repository.
+
+## Version 0.10.0 published artifacts
+
+The public npm archive matches the tested release archive:
+SHA-256 `f976508e23970262bbcd5bf57bc0fddd1243d2fdb865325547cfa77d121c6e1d`.
+The [CI run](https://github.com/Microck/semrush-cli/actions/runs/38805930027)
+passed source, docs and installation/setup on Linux, macOS and Windows.
+Fresh packed and installed public npm processes advertised 185 tools and passed
+authenticated reads. The global command reported 0.10.0. The first global
+installation hit host disk exhaustion during dependency extraction; a clean
+reinstallation passed after removing redundant verification artifacts.
+The [GitHub release](https://github.com/Microck/semrush-cli/releases/tag/v0.10.0)
+includes the archive and checksum. Both updated guides passed production
+Chromium checks at 390px with their new headings, HTTP 200, no page errors and
+no horizontal overflow.
 
 ## Version 0.10.0 settings and transfer verification
 

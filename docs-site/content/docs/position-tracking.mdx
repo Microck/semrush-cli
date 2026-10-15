@@ -75,6 +75,42 @@ The browser reads current settings and fresh edit metadata before submitting
 the native request. Internal edit tokens never appear in previews or results.
 This command does not replace the search engine, device, language or location.
 
+## Manage alert rules
+
+List alerts without marking them as read, or inspect existing rules and counts:
+
+```sh
+semrush position-alerts --campaign-id 456_789 --page 1 --limit 50
+semrush position-alert-counts --campaign-id 456_789
+semrush position-triggers --campaign-id 456_789
+semrush position-trigger-count --campaign-id 456_789
+```
+
+Alert pagination starts at page 1, with at most 50 rows per page. Responses keep
+native timestamps and the provider's `error_code` envelope. A nonzero error code
+fails even when the provider returns HTTP 200.
+
+Use the exact ASCII `data.campaign_settings.tracking_url` or competitor URL
+from `position-info` for a rule's `--domain`. This value is separate from the
+wildcard patterns used in ranking reports below.
+
+```sh
+semrush position-trigger-create --campaign-id 456_789 --domain example.com --condition enters_top --threshold 10 --dry-run
+semrush position-trigger-create --campaign-id 456_789 --domain example.com --condition enters_top --threshold 10 --confirm
+semrush position-trigger-update --campaign-id 456_789 --trigger-id opaque-rule-id --domain example.com --condition leaves_top --threshold 20 --confirm
+semrush position-trigger-delete --campaign-id 456_789 --trigger-id opaque-rule-id --confirm
+```
+
+Creation returns a string `trigger_id`; use it without numeric conversion.
+Update replaces the rule, so supply its domain, condition and threshold again.
+Conditions are `enters_top`, `leaves_top`, `changes_more_than`, `gains_more_than`
+and `loses_more_than`. Thresholds are integers from 1 to 100. Rules apply to all
+tracked keywords and the position metric. Semrush enforces rule limits.
+
+These commands do not enable weekly emails or schedule email exports. The native
+alert-detail action also marks an alert as read, so it is not exposed as a
+read-only command. Alert-event changes remain web-only.
+
 ## Read rankings
 
 ```sh
@@ -102,7 +138,12 @@ Responses preserve the provider's native `status` and `data` envelope. The
 rankings report's `data.keywords` contains tracked phrases, tags, positions and
 landing URLs. `data.total`, `limit` and `offset` support pagination.
 
-Engine, device, language and location replacement, schedules, alerts, notes,
+Engine, device, language and location replacement, crawl schedules, alert-event
+changes, notes,
 target comparison and tracking exports
 still require the web UI. Current request contracts were checked against the
 tracking dashboard and wizard, then verified on a disposable account target.
+
+The current native crawl-scheduling form disables saving below SEO Tier 3.
+The verification account has Guru access, so scheduling remains unverified and
+web-only. No plan upgrade was purchased.

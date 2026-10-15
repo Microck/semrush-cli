@@ -3,7 +3,7 @@ title: Web UI coverage
 description: Supported web workflows, evidence and remaining gaps.
 ---
 
-The CLI has 185 fixed operations: 129 reads and 56 confirmed writes.
+The CLI has 192 fixed operations: 133 reads and 59 confirmed writes.
 It uses your web session and the current web UI's request contracts. Account
 permissions and quotas apply to both interfaces. This is not full Semrush suite
 parity. The table distinguishes implemented workflows from remaining gaps.
@@ -23,7 +23,7 @@ parity. The table distinguishes implemented workflows from remaining gaps.
 | Project dashboard | Toolkit status, metric values and detail URLs | Third-party integration setup |
 | SEO setup | Create an SEO project and explicitly start automatic Site Audit/Position Tracking setup | Protected-site audit setup |
 | Site Audit | Discovery, limits, public-site settings, schedules, launch, page and issue tables, page recrawl, execution status, abort/finalize, structure, performance, linking, history, snapshots, CSV/XLSX exports | Protected-site authentication, Google Analytics connections and crawled-links export |
-| Position Tracking | Target creation, locations, limits, keyword add/delete/tags, competitor replacement, partial address/business/brand/volume settings edits, campaign settings reads, rankings, pages, visibility/distribution/cannibalization trends | Engine/device/language/location replacement, schedules, brand-list clearing, alerts, notes, target comparison and UI exports |
+| Position Tracking | Target creation, locations, limits, keyword add/delete/tags, competitor replacement, partial address/business/brand/volume settings edits, campaign settings reads, alert listing/counts, rule lifecycle, rankings, pages, visibility/distribution/cannibalization trends | Engine/device/language/location replacement, Tier 3 crawl schedules, brand-list clearing, alert-event changes, notes, target comparison and UI exports |
 | Keyword Strategy Builder | Domain strategy lifecycle, presets, filtered page opportunities, page URLs/SERPs, existing/recommended keywords, keyword deletion and CSV/XLSX exports; seed-based basket lifecycle, topics/pages, paginated clusters, favorites, selected-cluster deletion and metric refresh, keyword import, tags, deletion/undo, clustering, four native export selections and owner-aware selected keyword/cluster copy/move | Mind-map image exports, content generation and connected tracking actions |
 | Saved Keywords | Create, rename, delete/undo collections; keyword import, filters, metrics, tags, workflow labels, copy/move, deletion/undo, metadata and CSV/semicolon CSV/XLSX exports | Content generation and connected tracking actions |
 | Local, social and content products | Project toolkit status and available dashboard metrics | Product-specific management and connected services |
@@ -100,3 +100,12 @@ All four selected transfer operations passed source and destination readbacks,
 including the seven expected destination rows. Across versioned passes, all
 129 reads and 55 of 56 writes have live execution evidence. Shared-project leave
 still has contract coverage only.
+
+
+The alert pass verified four reads and three rule writes on an owned target.
+Creation, replacement and deletion passed readback checks, including the final
+zero rule count. Listing preserved unread state in the HTTP fixture; the live
+fresh target had no alert events. All 133 reads and 58 of 59 writes now have live
+execution evidence across versioned passes. Shared-project leave remains
+unverified. The native crawl-scheduling form requires SEO Tier 3, above the
+verification account's plan.

@@ -160,3 +160,20 @@ test('basket transfers use nested source/target selectors and reject self-transf
   await expect(preview('keyword_list_keywords_copy', { ...selected, keywords: [], dry_run: true })).rejects.toThrow('fewer');
   await expect(preview('keyword_list_clusters_move', { ...selected, cluster_ids: [], dry_run: true })).rejects.toThrow('fewer');
 });
+
+
+test('tracking alert request types are catalog-owned and rule writes require explicit selections', async () => {
+  const campaign = { campaign_id: '123_456' };
+  expect(await preview('position_alerts', { ...campaign, page: 2, limit: 10 })).toEqual({ method: 'POST', path: '/tracking/alerts/', body: { ...campaign, request_type: 'alert_list_read', page: 2, display_limit: 10 } });
+  for (const [name,kind] of [['position_triggers','trigger_list_read'],['position_trigger_count','trigger_items_count'],['position_alert_counts','alert_items_count']] as const) {
+    expect((await preview(name, campaign)).body).toEqual({ ...campaign, request_type: kind });
+  }
+  const rule = { ...campaign, domain: 'example.com', condition: 'enters_top', threshold: 10, dry_run: true };
+  expect((await preview('position_trigger_create', rule)).body).toEqual({ ...campaign, request_type: 'trigger_create', trigger_body: { domain: 'example.com', condition: 'enters_top', threshold: 10, parameter: 'position', scope: 'all' } });
+  expect((await preview('position_trigger_update', { ...rule, trigger_id: 'opaque-rule' })).body).toMatchObject({ trigger_id: 'opaque-rule', trigger_body: { id: 'opaque-rule' } });
+  expect((await preview('position_trigger_delete', { ...campaign, trigger_id: 'opaque-rule', dry_run: true })).body).toEqual({ ...campaign, request_type: 'trigger_delete', trigger_id: 'opaque-rule' });
+  await expect(preview('position_alerts', { ...campaign, request_type: 'alert_read' })).rejects.toThrow('additional');
+  await expect(preview('position_trigger_create', { ...rule, threshold: 0 })).rejects.toThrow('>=');
+  await expect(preview('position_trigger_create', { ...rule, threshold: 101 })).rejects.toThrow('<=');
+  await expect(preview('position_trigger_create', { ...rule, dry_run: false })).rejects.toThrow('--confirm');
+});

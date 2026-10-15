@@ -339,6 +339,20 @@ function publicParameters(definition: Report, query: Query): Query {
 
 /** Current Position Tracking wizard uses cookie-authenticated incremental writes, never billing. */
 function trackingParameters(definition: Report, query: Query): Query {
+  if ('request_type' in definition) {
+    const parameters: Query = { campaign_id: query.campaign_id ?? null, request_type: definition.request_type };
+    if (definition.request_type === 'alert_list_read') return { ...parameters, page: query.page ?? 1, display_limit: query.limit ?? 50 };
+    if ('trigger_id' in query) parameters.trigger_id = query.trigger_id ?? null;
+    if ('condition' in query) {
+      const rule: Query = {
+        domain: query.domain ?? null, condition: query.condition ?? null, threshold: query.threshold ?? null,
+        parameter: 'position', scope: 'all',
+      };
+      if ('trigger_id' in query) rule.id = query.trigger_id ?? null;
+      parameters.trigger_body = rule;
+    }
+    return parameters;
+  }
   const phrases = Array.isArray(query.keywords) ? query.keywords : [];
   if (definition.method.endsWith('/campaign_edit_domain_settings')) {
     const names = new Map([['campaign_id', 'campaignId'], ['url_type', 'type'], ['business_name', 'businessName']]);

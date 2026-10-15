@@ -295,3 +295,29 @@ Copy leaves the source selection intact. Move removes selected source keywords.
 Both require confirmation and explicit source/target owner IDs. Permissions and
 destination keyword limits remain provider-enforced. These operations never
 create projects, invite another account or send content to tracking products.
+
+## Position Tracking alerts and trigger rules
+
+The fixed `/tracking/alerts/` JSON POST endpoint uses a catalog-owned
+`request_type`, runtime-only `key` and the selected `campaign_id`. List/count
+reads use `alert_list_read`, `alert_items_count`, `trigger_list_read` and
+`trigger_items_count`. Alert listing takes explicit page/display-limit values.
+Native timestamps and envelopes remain unchanged. Nonzero native `error_code`
+values must fail even when HTTP status is 200.
+
+Confirmed trigger create/update/delete use `trigger_create`, `trigger_update`
+and `trigger_delete`. Trigger bodies contain the exact ASCII tracked address or competitor URL, one
+of the five native position conditions, integer threshold 1-100,
+`parameter:"position"` and `scope:"all"`. Updates include the selected trigger
+ID in both the outer request and the body, as the native editor does. Trigger
+IDs remain strings. The native UI maps `campaign_url` directly from
+`position-info` data.campaign_settings.tracking_url. Rules do not enable weekly emails or schedule email exports.
+
+`alert_read` marks an alert as read in the native backend. It is deliberately
+excluded from read-only report tools. This batch does not expose alert event
+mutation, account-wide schedules, purchases or outreach.
+
+Primary sources are the tracking 1.280.2 entry module's GlobalStore and Main
+modules and `lazy/components/firstTriggerModal.e1bff77a57ae04ec2e14.js`.
+The native crawl-scheduling form disables saving unless the account has SEO
+Tier 3; scheduling remains outside this batch pending account capability proof.

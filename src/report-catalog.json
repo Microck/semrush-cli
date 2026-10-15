@@ -9709,5 +9709,270 @@
         "cluster_ids"
       ]
     }
+  },
+  "position_alerts": {
+    "method": "/tracking/alerts/",
+    "description": "Read a page of tracking alerts without marking them as read.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "request_type": "alert_list_read",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$"
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "default": 50
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    }
+  },
+  "position_alert_counts": {
+    "method": "/tracking/alerts/",
+    "description": "Read total and unread tracking alert counts.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "request_type": "alert_items_count",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$"
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    }
+  },
+  "position_triggers": {
+    "method": "/tracking/alerts/",
+    "description": "Read tracking alert rules.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "request_type": "trigger_list_read",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$"
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    }
+  },
+  "position_trigger_count": {
+    "method": "/tracking/alerts/",
+    "description": "Read the tracking alert rule count.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "request_type": "trigger_items_count",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$"
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    }
+  },
+  "position_trigger_create": {
+    "method": "/tracking/alerts/",
+    "description": "Create a position alert rule for an explicit tracked target pattern.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "request_type": "trigger_create",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$"
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "pattern": "^[!-~]+$",
+          "description": "Exact ASCII tracking_url or competitor URL from position-info, for example example.com."
+        },
+        "condition": {
+          "type": "string",
+          "enum": [
+            "changes_more_than",
+            "enters_top",
+            "leaves_top",
+            "gains_more_than",
+            "loses_more_than"
+          ]
+        },
+        "threshold": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "campaign_id",
+        "domain",
+        "condition",
+        "threshold"
+      ]
+    }
+  },
+  "position_trigger_update": {
+    "method": "/tracking/alerts/",
+    "description": "Replace a selected position alert rule.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "request_type": "trigger_update",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$"
+        },
+        "trigger_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "pattern": "^[!-~]+$",
+          "description": "Exact ASCII tracking_url or competitor URL from position-info, for example example.com."
+        },
+        "condition": {
+          "type": "string",
+          "enum": [
+            "changes_more_than",
+            "enters_top",
+            "leaves_top",
+            "gains_more_than",
+            "loses_more_than"
+          ]
+        },
+        "threshold": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "campaign_id",
+        "trigger_id",
+        "domain",
+        "condition",
+        "threshold"
+      ]
+    }
+  },
+  "position_trigger_delete": {
+    "method": "/tracking/alerts/",
+    "description": "Delete one selected position alert rule.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "POST",
+    "request_type": "trigger_delete",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$"
+        },
+        "trigger_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "campaign_id",
+        "trigger_id"
+      ]
+    }
   }
 }

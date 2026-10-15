@@ -25,7 +25,7 @@ Alternatively, configure:
   "mcpServers": {
     "semrush": {
       "command": "npx",
-      "args": ["-y", "semrush-cli@0.10.0", "mcp"]
+      "args": ["-y", "semrush-cli@0.11.0", "mcp"]
     }
   }
 }
@@ -45,7 +45,7 @@ Tool names use underscores, such as `domain_overview`, `keyword_magic` and `back
 }
 ```
 
-The server sends only MCP protocol messages to stdout. The 129 read tools have `readOnlyHint:true`. The 56 write tools have
+The server sends only MCP protocol messages to stdout. The 133 read tools have `readOnlyHint:true`. The 59 write tools have
 `readOnlyHint:false` and require `confirm:true`. Delete and leave also have
 `destructiveHint:true`. Use `dry_run:true` to validate and inspect a write without
 connecting to Semrush. A write without confirmation fails before authentication.
