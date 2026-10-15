@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterAll, beforeAll, expect, test } from 'vitest';
 import { ConfigProvider, Effect, Layer, Predicate, type Schema } from 'effect';
-import { Galleton } from '../src/vendor/galleton.js';
+import { Galleton } from 'galleton';
 import { makeSessionsLayer } from '../src/session-layer.js';
 import { makeSemrushLayer } from '../src/browser-layer.js';
 import { Semrush } from '../src/browser-service.js';

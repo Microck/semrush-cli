@@ -2,7 +2,7 @@
 
 The CLI and stdio MCP share a catalog of 89 operations (67 reads and 22 writes) and one Semrush Effect service. Input validation populates defaults before credential-bearing resources are acquired. The browser layer owns a transient Chromium context, reads page bootstrap metadata without evaluating page-owned JavaScript, serializes report requests, and closes its browser with the Effect scope. JSON parsing outside Chromium preserves large identifiers as decimal strings.
 
-Galleton owns durable encrypted cookies. Its unchanged TypeScript SDK is pinned and vendored with attribution because there is no npm SDK release. The npm package bundles platform builds of the pinned Galleton daemon plus the storage-only provider extension in `patches/galleton-static-provider.patch`.
+Galleton owns durable encrypted cookies. Its TypeScript SDK is the published, pinned `galleton@0.1.0` npm dependency. The npm package bundles platform builds of the pinned Galleton daemon plus the storage-only provider extension in `patches/galleton-static-provider.patch`.
 
 ## Storage-only Galleton provider
 

@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { Config, Effect, Layer } from 'effect';
-import { Galleton, GalletonError, type Credentials } from './vendor/galleton.js';
+import { Galleton, GalletonError, type Credentials } from 'galleton';
 import { SessionError } from './errors.js';
 import { Sessions } from './session-service.js';
 

@@ -2,8 +2,9 @@
 
 ## Galleton
 
-The TypeScript SDK and bundled daemon derive from Microck/galleton, commit
-`efe7b742536d6c118c37a269bf626c5927e2a1b9`, under MIT.
+The TypeScript SDK is the MIT-licensed npm dependency `galleton@0.1.0`,
+released from Microck/galleton tag `sdk-v0.1.0`. The bundled daemon derives from
+Microck/galleton commit `efe7b742536d6c118c37a269bf626c5927e2a1b9`, under MIT.
 The original license is included at `src/vendor/GALLETON-LICENSE`.
 The SDK source is unchanged. The daemon includes the documented storage-only
 provider patch at `patches/galleton-static-provider.patch` in the source repository.

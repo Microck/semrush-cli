@@ -1,5 +1,5 @@
 import { Context, Effect } from 'effect';
-import type { Credentials, SessionStatus } from './vendor/galleton.js';
+import type { Credentials, SessionStatus } from 'galleton';
 import type { SessionError } from './errors.js';
 
 /** Galleton owns all durable credentials. Consumers only receive scoped headers. */
