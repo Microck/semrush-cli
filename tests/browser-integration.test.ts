@@ -5,13 +5,15 @@ import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterAll, beforeAll, expect, test } from 'vitest';
-import { ConfigProvider, Effect, Layer, Predicate, type Schema } from 'effect';
+import { ConfigProvider, Effect, Fiber, Layer, Predicate, Schema } from 'effect';
 import { Galleton } from 'galleton';
 import { makeSessionsLayer } from '../src/session-layer.js';
 import { makeSemrushLayer } from '../src/browser-layer.js';
 import { Semrush } from '../src/browser-service.js';
 import { Exports, exportsLive } from '../src/exports.js';
 import { parseReport } from '../src/validation.js';
+import type { Query } from '../src/report-parameters.js';
+import { makeSavedFixture, savedPath } from './saved-keywords-fixture.js';
 
 const exec = promisify(execFile);
 const binary = resolve(`dist/daemon/galleton-${process.platform}-${process.arch}${process.platform === 'win32' ? '.exe' : ''}`);
@@ -26,12 +28,15 @@ let failReport = false;
 let auditConfigured = false;
 let auditStarted = false;
 let auditProtected = false;
+let delayedExportStarted = () => {};
+let delayedExportClosed = () => {};
 const observed: string[] = [];
 let keywordList: { BasketID: number; Owner: { ID: number }; Name: string } | undefined;
 let listKeywords: { Phrase: string; Database: string; Tags: string[] }[] = [];
 let deletedKeywords: typeof listKeywords = [];
 const folderPath = '/apis/v4-raw/folders/api/v0/folders';
 let savedProject: { id: string; name: string; domain?: string; tags?: { name: string }[] } | undefined;
+const serveSavedFixture = makeSavedFixture();
 const fixture = createServer(async (request, response) => {
   const url = new URL(request.url ?? '/', fixtureURL);
   if (url.pathname === '/robots.txt') { response.end('User-agent: *\nDisallow: /'); return; }
@@ -43,10 +48,15 @@ const fixture = createServer(async (request, response) => {
     response.end(); return;
   }
   if (url.pathname.startsWith(folderPath)) { await serveProjectFixture(request, response, url); return; }
+  if (url.pathname.startsWith(savedPath)) { await serveSavedFixture(request, response, url); return; }
   if (url.pathname === '/siteaudit/api/campaigns/seolist') { response.setHeader('Content-Type', 'application/json'); response.end(JSON.stringify(auditConfigured ? [{ id: 789 }] : [])); return; }
   if (url.pathname.startsWith('/siteaudit/export/')) {
     expect(url.searchParams.get('key')).toBe('fixture-secret');
     expect(url.searchParams.get('export')).toBe('csv');
+    if (url.searchParams.get('snapshotId') === 'delayed_snapshot' || url.pathname.includes('delayed_snapshot')) {
+      response.once('close', () => delayedExportClosed());
+      delayedExportStarted(); return;
+    }
     response.setHeader('Content-Type', 'text/csv; charset=utf-8');
     response.setHeader('Content-Disposition', 'attachment; filename=fixture.csv');
     response.end('url,title\nhttps://example.com/,café\n'); return;
@@ -387,4 +397,69 @@ test('real Chromium streams a provider attachment into an MCP-readable export', 
     const chunk = yield* (yield* Exports).read(report.artifact.uri);
     expect(Buffer.from(chunk.blob, 'base64').toString('utf8')).toBe('url,title\nhttps://example.com/,café\n');
   }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+test('Saved Keywords preserves selected IDs through copy, move, delete, undo and JSON POST exports', async () => {
+  const id = Schema.decodeUnknownSync(Schema.Struct({ list_id: Schema.String }));
+  const rows = Schema.decodeUnknownSync(Schema.Struct({ keywords: Schema.Array(Schema.Struct({
+    id: Schema.String, phrase: Schema.String, tags: Schema.Array(Schema.String), labels: Schema.Array(Schema.Number),
+  })) }));
+  const undo = Schema.decodeUnknownSync(Schema.Struct({ undo_id: Schema.String }));
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const service = yield* Semrush;
+    const call = (name: string, input: Query) => Effect.gen(function* () { return yield* service.report(yield* parseReport(name, input)); });
+    const a = id((yield* call('saved_keyword_list_create', { name: 'Fixture saved list', confirm: true })).data).list_id;
+    const b = id((yield* call('saved_keyword_list_create', { name: 'Fixture destination', confirm: true })).data).list_id;
+    yield* call('saved_keywords_import', { list_id: a, keywords: ['seo', 'email marketing'], tags: ['initial'], confirm: true });
+    const original = rows((yield* call('saved_keywords', { list_id: a })).data).keywords;
+    expect(original.map(keyword => keyword.id)).toEqual(['9223372036854775807', '9223372036854775808']);
+    const seo = original[0]?.id ?? ''; const email = original[1]?.id ?? '';
+    const selection = { list_id: a, keyword_ids: [seo], confirm: true };
+    yield* call('saved_keywords_add_tags', { ...selection, tags: ['checked'] });
+    yield* call('saved_keywords_remove_tags', { ...selection, tags: ['initial'] });
+    yield* call('saved_keywords_label', { ...selection, labels: ['brief_generated'] });
+    const tagged = rows((yield* call('saved_keywords', { list_id: a })).data).keywords;
+    expect(tagged[0]).toMatchObject({ tags: ['checked'], labels: [3] });
+    expect(tagged[1]).toMatchObject({ tags: ['initial'], labels: [] });
+    yield* call('saved_keywords_copy', { ...selection, target_list_id: b });
+    yield* call('saved_keywords_move', { list_id: a, keyword_ids: [email], target_list_id: b, confirm: true });
+    expect(rows((yield* call('saved_keywords', { list_id: a })).data).keywords).toHaveLength(1);
+    expect(rows((yield* call('saved_keywords', { list_id: b })).data).keywords).toHaveLength(2);
+    const removed = undo((yield* call('saved_keywords_delete', { list_id: b, keyword_ids: [seo], confirm: true })).data);
+    expect(rows((yield* call('saved_keywords', { list_id: b })).data).keywords).toHaveLength(1);
+    yield* call('saved_keywords_undo_delete', { undo_id: removed.undo_id, confirm: true });
+    expect(rows((yield* call('saved_keywords', { list_id: b })).data).keywords).toHaveLength(2);
+    const denied = yield* call('saved_keywords_export', { list_id: a, filter: 'forbidden' }).pipe(Effect.flip);
+    expect(denied.message).toContain('HTTP 403');
+    expect(yield* (yield* Exports).list()).toEqual([]);
+    const exported = yield* call('saved_keywords_export', { list_id: a });
+    if (!exported.artifact) throw new Error('Expected POST download artifact');
+    const bytes = yield* (yield* Exports).read(exported.artifact.uri);
+    expect(Buffer.from(bytes.blob, 'base64').toString('utf8')).toBe('phrase,volume\nseo,100\n');
+    const deleted = undo((yield* call('saved_keyword_list_delete', { list_ids: [b], confirm: true })).data);
+    expect((yield* call('saved_keyword_list_get', { list_id: b })).data).toEqual({ lists: [] });
+    yield* call('saved_keyword_list_undo_delete', { undo_id: deleted.undo_id, confirm: true });
+    expect(rows((yield* call('saved_keywords', { list_id: b })).data).keywords).toHaveLength(2);
+    yield* call('saved_keyword_list_delete', { list_ids: [a, b], confirm: true });
+    expect((yield* call('saved_keyword_lists', {})).data).toEqual({ lists: [] });
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+
+test('interrupting a pending HTTP export aborts it and releases the browser slot', async () => {
+  const started = new Promise<void>(resolve => { delayedExportStarted = resolve; });
+  const closed = new Promise<void>(resolve => { delayedExportClosed = resolve; });
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const service = yield* Semrush;
+      const request = yield* parseReport('audit_export_pages', { snapshot_id: 'delayed_snapshot' });
+      const fiber = yield* Effect.forkChild(service.report(request));
+      yield* Effect.promise(() => started).pipe(Effect.timeout('5 seconds'));
+      yield* Fiber.interrupt(fiber).pipe(Effect.timeout('5 seconds'));
+      yield* Effect.promise(() => closed).pipe(Effect.timeout('5 seconds'));
+      expect(yield* (yield* Exports).list()).toEqual([]);
+      const next = yield* service.report(yield* parseReport('account_status', {}));
+      expect(next.authenticated).toBe(true);
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { delayedExportStarted = () => {}; delayedExportClosed = () => {}; }
 }, 30000);

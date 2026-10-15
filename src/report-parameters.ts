@@ -3,6 +3,11 @@ import packageInfo from '../package.json' with { type: 'json' };
 import catalog from './report-catalog.json' with { type: 'json' };
 
 const backlinkSorts = new Map([['backlinks', 'page_ascore'], ['backlinks_refdomains', 'backlinksnum'], ['backlinks_anchors', 'backlinksnum'], ['backlinks_pages', 'domainsnum'], ['backlinks_outgoing_domains', 'links_num']]);
+const savedDatabases = new Map(Object.entries(catalog.saved_keywords_import.database_ids));
+const savedListSorts = new Map([['name', 1], ['keywords', 2], ['updated', 3]]);
+const savedKeywordSorts = new Map([['phrase', 1], ['volume', 2], ['difficulty', 3], ['topic', 4], ['subtopic', 5], ['updated', 6], ['cpc', 7]]);
+const savedOwnership = new Map([['all', 1], ['own', 2], ['shared', 3], ['team', 4]]);
+const savedLabels = new Map([['position_tracking', 1], ['content_written', 2], ['brief_generated', 3]]);
 
 export const version = packageInfo.version;
 export const reports = catalog;
@@ -14,6 +19,7 @@ export interface Query { [key: string]: Schema.Json; }
 /** Fixed request shapes observed in semrush-web-mcp. No arbitrary RPC or URL input. */
 export function reportParameters(definition: Report, q: Query): Query {
   const family = definition.transport;
+  if (family === 'saved_web') return savedParameters(definition, q);
   if (family === 'tracking_web') return trackingParameters(definition, q);
   if (family === 'audit_web') return auditParameters(definition, q);
   if (family === 'kwm') return keywordListParameters(definition, q);
@@ -26,9 +32,52 @@ export function reportParameters(definition: Report, q: Query): Query {
   if (family.startsWith('backlink')) return backlinkParameters(definition, q);
   if (family === 'gap') return gapParameters(definition, q);
   if (family === 'projects') return { filter: (q.filters ?? null), range: { limit: (q.limit ?? null), offset: (q.offset ?? null) } };
-  if (family === 'post' && definition.method.endsWith('/list/all')) return { ownership: 1, order: { field: 3, direction: 2 }, range: { limit: 1000, offset: 0 } };
   if (definition.method.endsWith('selector-list')) return { limit: 10000, offset: 0 };
   return {};
+}
+
+/** Current Saved Keywords collections use FilterQL and decimal-string IDs, not basket RPCs. */
+function savedParameters(definition: Report, q: Query): Query {
+  const path = definition.method;
+  if (path.includes('/user/')) return {};
+  if (path.endsWith('/undo-delete')) return { undo_id: q.undo_id ?? null };
+  return path.includes('/list/') ? savedListParameters(path, q) : savedKeywordParameters(path, q);
+}
+
+function savedListParameters(path: string, q: Query): Query {
+  if (path.endsWith('/list/create')) return { name: q.name ?? null };
+  if (path.endsWith('/list/delete')) return { list_ids: q.list_ids ?? [] };
+  if (path.endsWith('/list/rename')) return { list_id: q.list_id ?? null, name: q.name ?? null };
+  if (path.endsWith('/list/all')) {
+    if ('list_id' in q) return { filter: `id = ${q.list_id}`, ownership: 1, order: { field: 3, direction: 2 }, range: { limit: 1, offset: 0 } };
+    const parameters: Query = { ownership: savedOwnership.get(String(q.ownership)) ?? 1,
+      order: { field: savedListSorts.get(String(q.sort_field)) ?? 3, direction: q.descending === false ? 1 : 2 }, range: { limit: q.limit ?? 1000, offset: q.offset ?? 0 } };
+    if (q.filter) parameters.filter = q.filter;
+    return parameters;
+  }
+  if (path.endsWith('/list/summary')) return { filter: q.filter ?? '' };
+  return { list_id: q.list_id ?? null };
+}
+
+function savedKeywordParameters(path: string, q: Query): Query {
+  if (path.endsWith('/keyword/competitors')) return { keyword_id: q.keyword_id ?? null };
+  if (path.endsWith('/keyword/import')) return { list_id: q.list_id ?? null, keywords: Array.isArray(q.keywords)
+    ? q.keywords.map(phrase => ({ phrase, database: savedDatabases.get(String(q.database)) ?? null, tags: q.tags ?? [] })) : [] };
+  // The native serializer sorts numeric IDs. Compare decimal strings without rounding UInt64 values.
+  const selected = Array.isArray(q.keyword_ids) ? q.keyword_ids.map(String).sort((a, b) => a.length - b.length || (a < b ? -1 : a > b ? 1 : 0)) : undefined;
+  const filter = selected ? `keyword_id IN (${selected.join(', ')})` : q.filter ?? '';
+  if (path.endsWith('/keyword/move') || path.endsWith('/keyword/copy')) return { source_list_id: q.list_id ?? null, target_list_id: q.target_list_id ?? null, filter };
+  const parameters: Query = { list_id: q.list_id ?? null, filter };
+  if ('sort_field' in q) {
+    parameters.order = { field: savedKeywordSorts.get(String(q.sort_field)) ?? 1, direction: q.descending ? 2 : 1 };
+  }
+  if ('limit' in q) parameters.range = { limit: q.limit ?? 20, offset: q.offset ?? 0 };
+  if ('tags' in q) parameters.tags = q.tags ?? [];
+  if ('labels' in q) {
+    parameters.labels = Array.isArray(q.labels) ? q.labels.map(label => savedLabels.get(String(label)) ?? null) : [];
+  }
+  if ('format' in q) parameters.format = q.format === 'xlsx' ? 2 : q.format === 'csv_semicolon' ? 3 : 1;
+  return parameters;
 }
 
 function magicParameters(definition: Report, q: Query): Query {

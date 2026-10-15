@@ -3,9 +3,10 @@ title: Keyword lists
 description: Manage Keyword Strategy Builder lists, keywords, tags and clustering.
 ---
 
-These commands use the current Keyword Strategy Builder API. Its basket IDs
-are distinct from project folder IDs and the older Saved Keywords collections.
-Use `BasketID` and `Owner.ID` from `keyword-lists` when selecting a list. Shared
+These commands use the Keyword Strategy Builder API. Use `BasketID` and
+`Owner.ID` from `keyword-lists` when selecting a basket. Regular collections
+can also appear in Saved Keywords with the same underlying ID; that API uses
+decimal-string `list_id` fields. Project folder IDs remain a different identifier. Shared
 lists retain their owner's ID. Semrush enforces the list's access permissions.
 
 ## Create and manage lists

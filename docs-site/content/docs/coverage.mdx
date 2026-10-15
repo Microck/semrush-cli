@@ -3,7 +3,7 @@ title: Web UI coverage
 description: Supported web workflows, evidence and remaining gaps.
 ---
 
-The CLI has 120 fixed operations: 90 reads and 30 confirmed writes.
+The CLI has 148 fixed operations: 105 reads and 43 confirmed writes.
 It uses your web session and the current web UI's request contracts. Account
 permissions and quotas apply to both interfaces. This is not full Semrush suite
 parity. The table distinguishes implemented workflows from remaining gaps.
@@ -25,7 +25,7 @@ parity. The table distinguishes implemented workflows from remaining gaps.
 | Site Audit | Discovery, limits, public-site settings, schedules, launch, page and issue tables, page recrawl, execution status, abort/finalize, structure, performance, linking, history, snapshots, CSV/XLSX exports | Protected-site authentication, Google Analytics connections and crawled-links export |
 | Position Tracking | Target creation, locations, limits, keyword add/delete/tags, competitor replacement, campaign settings reads, rankings, pages, visibility/distribution/cannibalization trends | Editing target settings, alerts, notes, target comparison and UI exports |
 | Keyword Strategy Builder | List creation, structured strategy generation, pagination, metadata, rename/delete, keyword import, metric reads and updates, tags, deletion/undo and explicit clustering | Cluster/page editing, content generation and UI export formats |
-| Saved Keywords | Existing collection discovery | Collection management |
+| Saved Keywords | Create, rename, delete/undo collections; keyword import, filters, metrics, tags, workflow labels, copy/move, deletion/undo, metadata and CSV/semicolon CSV/XLSX exports | Content generation and connected tracking actions |
 | Local, social and content products | Project toolkit status and available dashboard metrics | Product-specific management and connected services |
 
 ## Verification
@@ -67,3 +67,11 @@ All 90 current read operations passed live calls on 2026-10-15. This includes
 empty-result reports and account capability reads; it does not imply every
 paid toolkit is unlocked. Clustering forecast used a structured strategy,
 and audit page details used a fresh page ID from the current crawl.
+
+The Saved Keywords pass added 28 operations, all verified through live calls.
+Thirteen new writes passed state readbacks on two disposable collections.
+CSV, semicolon CSV and XLSX exports passed file checks, including CLI saving
+and overwrite refusal. Cleanup verified both collection IDs and the disposable
+audit project were absent; unrelated account data was preserved. There are
+105 live-verified reads and 42 of 43 writes with live execution evidence.
+Shared-project leave remains unverified.

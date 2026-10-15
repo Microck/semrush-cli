@@ -47,8 +47,9 @@ arbitrary paths. No operation retries a write. The response envelope remains
 
 ## Keyword Strategy Builder lists
 
-`keyword-lists` reads the current builder's paginated lists. These are distinct
-from the older Saved Keywords collection exposed by `saved-keyword-lists`.
+`keyword-lists` reads the builder API's paginated baskets. Regular collections
+can also appear in Saved Keywords with the same underlying ID. The two APIs
+use different field names and ID representations.
 `keyword-list-create --name <name> --confirm` creates an empty regular list.
 It does not generate a strategy or start clustering. Read commands inspect list
 metadata, keywords, summary, tags, clustering forecast and clustering status.
@@ -156,3 +157,31 @@ use the web client's bracketed `sort[field]`, `sort[order]`, `sort[date]` and
 management API. `position-overview` returns tracked keywords and their tags;
 the similarly named analytics keyword-suggestion endpoint is not a tracked
 keyword list and is not exposed for that purpose.
+
+
+## Saved Keywords collections
+
+Saved Keywords uses `/apis/v4-raw/saved-keywords/api/v0/`. Regular collections
+can share underlying basket IDs with the builder API. This API accepts list
+and keyword IDs as exact decimal strings; the builder API accepts `BasketID`
+and `Owner.ID` as its separate request fields. Collection management, import, keyword selection, tags, workflow
+labels, copy/move, deletion and undo use cookie-authenticated JSON POSTs.
+Account info and limits are reads; metric refresh consumes update allowance.
+No collection operation generates content or sends sharing invitations.
+
+Reads accept the current FilterQL string and native pagination/sort settings.
+Keyword writes require either a nonempty explicit keyword-ID selection or a
+nonempty FilterQL predicate, plus confirmation. Missing or ambiguous selections
+fail before authentication; writes never default to selecting the entire list. Copy/move require different
+source and destination lists. Database country codes map to the current Saved
+Keywords numeric IDs. Quotes in generated FilterQL string literals double;
+decimal IDs remain exact rather than passing through JavaScript numbers.
+
+CSV, semicolon CSV and XLSX exports use the provider's JSON POST download API,
+with the same CLI output-file and bounded MCP resource contract as audit exports.
+The browser buffers the provider response as the web UI does; temporary Blob
+URLs and Chromium download files close with the local export scope.
+The current client source is
+`https://static.semrush.com/saved-keywords/284.e7381245bc9d543ed5e4.js` and its
+FilterQL serializer is module 5434 in
+`https://static.semrush.com/saved-keywords/92.9eafacff2527f293603a.js`.

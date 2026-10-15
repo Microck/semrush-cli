@@ -75,7 +75,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 
 ## command surface
 
-120 operations, available as cli commands and mcp tools. 90 reads and 30 writes that need explicit confirmation.
+148 operations, available as cli commands and mcp tools. 105 reads and 43 writes that need explicit confirmation.
 
 | command | what it does |
 | --- | --- |
@@ -89,7 +89,14 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 | `project-create`, `project-get`, `project-update`, `project-delete` | create and manage projects |
 | `project-tags`, `project-set-tags`, `project-pin` | organize your projects |
 | `project-enable-seo`, `project-tools`, `project-toolkits` | enable seo and read project tool status |
-| `keyword-lists`, `keyword-list-create`, `keyword-list-import` | manage keyword lists and import keywords |
+| `saved-keyword-lists`, `saved-keyword-list-create`, `saved-keyword-list-rename` | find, create and rename saved collections |
+| `saved-keywords`, `saved-keywords-import`, `saved-keywords-summary` | import, filter and inspect saved keywords |
+| `saved-keyword-list-tags`, `saved-keyword-list-labels`, `saved-keyword-list-topics` | read collection tags, workflow labels and topics |
+| `saved-keywords-add-tags`, `saved-keywords-remove-tags`, `saved-keywords-label` | tag keywords and mark workflow status |
+| `saved-keywords-copy`, `saved-keywords-move`, `saved-keywords-update-metrics` | transfer keywords or refresh their metrics |
+| `saved-keywords-delete`, `saved-keyword-list-delete` | delete keywords or collections, with undo commands |
+| `saved-keywords-export` | download native csv, semicolon csv or xlsx files |
+| `keyword-lists`, `keyword-list-keywords` | read keyword strategy builder baskets |
 | `keyword-strategy-create`, `keyword-list-cluster` | generate a strategy or cluster a list |
 | `audit-create`, `audit-configure`, `audit-start` | configure and launch a site audit |
 | `position-create`, `position-targets`, `position-info` | create targets and read tracking settings |
@@ -157,22 +164,69 @@ semrush project-create --name 'my website' --domain example.com --confirm
 
 writes need `--confirm`. `--dry-run` validates the inputs and prints the request without connecting to semrush. creating a project doesn't start tools or share it.
 
-### keyword lists
+### saved keywords
+
+manage the collections you see in semrush's saved keywords page:
+
+```bash
+semrush saved-keyword-lists
+semrush saved-keyword-list-create --name 'content ideas' --confirm
+```
+
+copy the returned collection id into `--list-id`, then import or filter keywords:
+
+```bash
+semrush saved-keywords-import --list-id 123 \
+  --keywords '["email marketing","email automation"]' --tags '["research"]' --database us --confirm
+semrush saved-keywords --list-id 123 --filter 'volume >= 100 AND phrase CONTAINS "email"'
+semrush saved-keywords-summary --list-id 123
+semrush saved-keyword-list-tags --list-id 123
+```
+
+saved collection and keyword ids are decimal strings. keep the quotes inside json arrays, such as `'["789","790"]'`. mcp inputs use `"list_id": "123"`, too.
+
+use keyword ids from the results to tag, label or transfer a selection:
+
+```bash
+semrush saved-keywords-add-tags --list-id 123 --keyword-ids '["789"]' --tags '["priority"]' --confirm
+semrush saved-keywords-label --list-id 123 --keyword-ids '["789"]' --labels '["content_written"]' --confirm
+semrush saved-keywords-copy --list-id 123 --target-list-id 456 --keyword-ids '["789"]' --confirm
+```
+
+selection writes require either `--keyword-ids` or a non-empty `--filter`, never both. missing selections fail before sending a request. copy and move require a different destination collection. workflow labels mark status; they don't start tracking or generate content.
+
+delete keywords or whole collections, then restore them with the returned undo id while semrush still accepts it:
+
+```bash
+semrush saved-keywords-delete --list-id 123 --keyword-ids '["789"]' --confirm
+semrush saved-keywords-undo-delete --undo-id '<undo_id>' --confirm
+semrush saved-keyword-list-delete --list-ids '["123"]' --confirm
+semrush saved-keyword-list-undo-delete --undo-id '<undo_id>' --confirm
+```
+
+exports use the same filters as reads. `--output` is required and refuses an existing file:
+
+```bash
+semrush saved-keywords-export --list-id 123 --output keywords.csv
+semrush saved-keywords-export --list-id 123 --format csv_semicolon --output keywords-semicolon.csv
+semrush saved-keywords-export --list-id 123 --format xlsx --output keywords.xlsx
+```
+
+### keyword strategy builder
+
+use these commands for strategy generation and clustering:
 
 ```bash
 semrush keyword-lists
-semrush keyword-list-create --name 'content ideas' --confirm
-```
-
-use the list id and owner id returned by semrush:
-
-```bash
-semrush keyword-list-import --basket-id 123 --owner-id 456 \
-  --keywords '["email marketing","email automation"]' --database us --confirm
+semrush keyword-strategy-create --name 'email strategy' \
+  --seed-keywords '["email marketing"]' --database us --confirm
 semrush keyword-list-keywords --basket-id 123 --owner-id 456
+semrush keyword-list-cluster --basket-id 123 --owner-id 456 --confirm
 ```
 
-strategy generation, clustering and metric updates can consume your account allowance. they need explicit confirmation too. see [keyword lists](https://semrush.micr.dev/docs/keyword-lists).
+use `BasketID` and `Owner.ID` from the builder results. regular saved collections can share an underlying basket id with keyword strategy builder, but the request fields differ. saved keywords takes string `list_id`; builder commands take numeric `--basket-id` and `--owner-id`. project ids are separate.
+
+strategy generation, clustering and metric updates can consume your account allowance. read their status explicitly; the cli doesn't poll automatically. see [keyword lists](https://semrush.micr.dev/docs/keyword-lists).
 
 ### position tracking
 
@@ -246,7 +300,7 @@ finish setup and sign in first, then add this to your client's mcp config:
 
 the server exposes the same operations as the cli. tool names use underscores, such as `keyword_overview` and `project_create`. writes need `confirm: true`, or `dry_run: true` to preview the request. it doesn't expose login, arbitrary urls or javascript execution.
 
-export tools return an artifact resource uri instead of writing to a local `--output` path. read the resource in bounded base64 chunks and join the decoded bytes. downloads last for that mcp process. see the [mcp guide](https://semrush.micr.dev/docs/mcp) for chunk sizes and offsets.
+export tools return an artifact resource uri instead of writing to a local `--output` path. read the resource in base64 chunks and join the decoded bytes. chunks default to 64 kib, with a maximum of 1 mib. downloads last for that mcp process. see the [mcp guide](https://semrush.micr.dev/docs/mcp) for offsets and resource reads.
 
 ## what it looks like
 
@@ -267,7 +321,7 @@ the cli uses the published [`galleton` 0.1.0 sdk](https://www.npmjs.com/package/
 
 ## documentation
 
-full docs live at [semrush.micr.dev](https://semrush.micr.dev). setup, authentication, projects, keyword lists, position tracking, site audits, exports, mcp and the complete command reference.
+full docs live at [semrush.micr.dev](https://semrush.micr.dev). setup, authentication, projects, saved keywords, keyword strategy builder, position tracking, site audits, exports, mcp and the complete command reference.
 
 - [coverage](https://semrush.micr.dev/docs/coverage)
 - [authentication](https://semrush.micr.dev/docs/authentication)

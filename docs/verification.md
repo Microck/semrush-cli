@@ -1,8 +1,48 @@
 # Verification
 
-Current source verification: 2026-10-15. The 0.6.0 source suite passed 121 tests. Live responses and credentials remain
+Current source verification: 2026-10-15. The 0.7.0 source suite passed 127 tests. Live responses and credentials remain
 outside the repository. Evidence below distinguishes local fixtures, native CI
 and real account execution.
+
+## Version 0.7.0 Saved Keywords verification
+
+Strict TypeScript, Oxlint, generated-reference checks, packaging and all 127
+tests passed after the cancellation review fix.
+
+The catalog now has 148 operations: 105 reads and 43 writes. All 28 newly added
+Saved Keywords operations passed authenticated live calls. Their thirteen
+writes passed readback checks on two disposable collections: create, rename,
+import, metric refresh, tag add/remove, workflow labels, copy/move, keyword
+deletion/undo and collection deletion/undo. Regular collections appeared with
+the same underlying IDs in the builder basket API.
+
+CSV, semicolon CSV and XLSX exports returned files. CLI saving preserved bytes
+and refused to overwrite an existing destination. All six existing Site Audit
+GET exports were rechecked after the shared browser download implementation
+changed. The browser buffers each provider response as a Blob, then saves it
+through a native download. MCP responses contain artifact metadata and chunked
+resource reads, not the full file.
+
+Cleanup verified both owned collection IDs absent through Saved Keywords and
+the builder API, then deleted the owned audit project and checked its folder
+and campaign IDs absent. Unrelated account projects were preserved. The daemon
+was restarted after a cleanup attempt failed before its first account read;
+no write was retried without inspecting the current resource state.
+
+The stateful HTTP fixture verifies POST export cookies, Origin and JSON body,
+large decimal IDs, transfer semantics and undo. A provider's JSON HTTP 403
+remains an error and creates no export artifact. A real pending HTTP export is
+cancelled, its connection closes and the next report acquires the browser slot.
+
+## Version 0.6.0 published artifacts
+
+The public npm archive matched the tested local archive:
+SHA-256 `9226f231212b143ff816474535a400a1beec173277c7aad647a142039a3971d6`.
+The [CI run](https://github.com/Microck/semrush-cli/actions/runs/38766908994)
+passed source checks, docs build and packed-package installation/setup on
+Linux, macOS and Windows. A fresh public-package MCP process advertised 120
+tools, including 90 reads, and passed an authenticated read. The GitHub release
+includes the package archive and checksum.
 
 ## Version 0.6.0 verification
 

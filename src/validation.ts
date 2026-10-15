@@ -13,6 +13,9 @@ export const parseReport = Effect.fn('Reports.parse')(function* (name: string, i
   const validate = validators.get(name);
   const query = structuredClone(input);
   if (!validate || !validate(query)) return yield* Effect.fail(new UsageError({ message: `Invalid ${name} input: ${ajv.errorsText(validate?.errors)}. Run semrush ${name.replaceAll('_', '-')} --help.` }));
+  if ((name === 'saved_keywords_move' || name === 'saved_keywords_copy') && query.list_id === query.target_list_id) {
+    return yield* Effect.fail(new UsageError({ message: 'Source and destination Saved Keywords collections must be different.' }));
+  }
   const definition = reports[name];
   if (definition.mutation && query.confirm !== true && query.dry_run !== true) return yield* Effect.fail(new UsageError({ message: `${name} changes your Semrush account. Use --confirm (MCP confirm:true) to send it, or --dry-run to inspect the request.` }));
   return { name, definition, query };

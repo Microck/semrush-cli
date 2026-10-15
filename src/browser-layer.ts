@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Config, Effect, Layer, Option, Semaphore, Schema, Predicate } from 'effect';
-import { chromium, type BrowserContext, type Download, type Page, type Response } from 'patchright';
+import { chromium, type BrowserContext, type Download, type Page } from 'patchright';
 import JSONbig from 'json-bigint';
 import { Semrush } from './browser-service.js';
 import { Sessions } from './session-service.js';
@@ -9,6 +9,8 @@ import { ReportError, SessionError } from './errors.js';
 import { reportParameters, webRequest, rpcBody, type Query } from './report-parameters.js';
 import type { ReportRequest } from './validation.js';
 import { Exports } from './exports.js';
+
+interface ExportState { download?: Download; cancel: () => void; }
 
 const transportPaths = new Map([['domain', '/dpa/rpc'], ['direct', '/dpa/rpc'], ['magic', '/kmtgw/v2/webapi'], ['keyword', '/kwogw/v2/webapi'], ['kwm', '/kwm/rpc']]);
 const json = JSONbig({ storeAsString: true, protoAction: 'error', constructorAction: 'error' });
@@ -101,39 +103,68 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       if (objectValue(current) && (Boolean(current.authEnabled) || Boolean(current.webBotAuthEnabled) || (objectValue(current.gaSettings) && Object.keys(current.gaSettings).length > 0))) return yield* Effect.fail(new ReportError({ message: 'This audit uses protected-site authentication or Google Analytics. Edit its settings in the Semrush web UI to preserve those connections.' }));
     }
   });
-  const downloadExport = Effect.fn('Semrush.downloadExport')(function* (path: string, parameters: Query) {
-    const address = new URL(path, browserOrigin);
-    for (const [key, value] of Object.entries(parameters)) address.searchParams.set(key, String(value));
+  const downloadExport = Effect.fn('Semrush.downloadExport')(function* (request: ReturnType<typeof webRequest>, format: Schema.Json | undefined) {
+    const address = new URL(request.path, browserOrigin);
+    if (request.method === 'GET') {
+      for (const [key, value] of Object.entries(request.body ?? {})) address.searchParams.set(key, String(value));
+    }
+    // Acquire only the cleanup state here; network and download waits must stay interruptible.
+    const key = randomUUID();
+    const state = yield* Effect.acquireRelease(Effect.sync(() => {
+      const state: ExportState = { cancel: () => {} };
+      return state;
+    }), state => Effect.gen(function* () {
+      state.cancel();
+      yield* browserCall(() => page.evaluate(key => {
+        // SAFETY: this private browser property is created and removed only by this export scope.
+        const scope = globalThis as typeof globalThis & { semrushExports?: Record<string, { controller: AbortController; url?: string }> };
+        const pending = scope.semrushExports?.[key];
+        if (pending) { pending.controller.abort(); if (pending.url) URL.revokeObjectURL(pending.url); delete scope.semrushExports?.[key]; }
+      }, key)).pipe(Effect.ignore);
+      const download = state.download;
+      if (download) yield* browserCall(() => download.delete()).pipe(Effect.ignore);
+    }));
+    // Register the controller before starting an interruptible fetch, so finalization can always abort it.
+    yield* Effect.uninterruptible(browserCall(() => page.evaluate(key => {
+      // SAFETY: this private browser property is created and removed only by this export scope.
+      const scope = globalThis as typeof globalThis & { semrushExports?: Record<string, { controller: AbortController; url?: string }> };
+      (scope.semrushExports ??= {})[key] = { controller: new AbortController() };
+    }, key)));
+    const file = yield* browserCall(() => page.evaluate(async ({ key, address, method, body, extension }) => {
+      // SAFETY: this private browser property is created and removed only by this export scope.
+      const scope = globalThis as typeof globalThis & { semrushExports: Record<string, { controller: AbortController; url?: string }> };
+      const pending = scope.semrushExports[key]!;
+      const options: RequestInit = { method, credentials: 'include', signal: AbortSignal.any([pending.controller.signal, AbortSignal.timeout(45000)]) };
+      if (method !== 'GET') { options.headers = { 'Content-Type': 'application/json' }; options.body = JSON.stringify(body); }
+      const response = await fetch(address, options);
+      const contentType = response.headers.get('content-type') ?? '';
+      if (!response.ok || /text\/html|application\/(?:[^;]+\+)?json/i.test(contentType)) return { status: response.status, url: '', filename: '' };
+      const disposition = response.headers.get('content-disposition') ?? '';
+      const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+      const filename = encoded ? decodeURIComponent(encoded) : (disposition.match(/filename="([^"]+)"|filename=([^;]+)/i)?.slice(1).find(Boolean)?.trim() ?? 'semrush-export.' + extension);
+      pending.url = URL.createObjectURL(await response.blob());
+      return { status: response.status, url: pending.url, filename };
+    }, { key, address: address.href, method: request.method, body: request.body, extension: format === 'xlsx' ? 'xlsx' : 'csv' }));
+    if (!file.url) return yield* Effect.fail(new ReportError({ message: `Semrush did not return an export file (HTTP ${file.status}). Check your session, export permissions and selected resource.` }));
     const download = yield* Effect.tryPromise({ try: signal => new Promise<Download>((resolve, reject) => {
-      let attachment: Download | undefined;
-      let responseSeen = false;
       let clicked = false;
-      const cleanup = () => { clearTimeout(timer); page.off('download', onDownload); page.off('response', onResponse); signal.removeEventListener('abort', onAbort); };
+      const cleanup = () => { clearTimeout(timer); page.off('download', onDownload); signal.removeEventListener('abort', cancel); };
       const fail = (error: Error) => { cleanup(); reject(error); };
-      const onAbort = () => fail(new Error('Export cancelled'));
-      const complete = () => { if (attachment && responseSeen && clicked) { cleanup(); resolve(attachment); } };
-      const onDownload = (download: Download) => { attachment = download; complete(); };
-      const onResponse = (response: Response) => {
-        if (response.url() !== address.href) return;
-        if (response.status() >= 400) return fail(new ReportError({ message: `Semrush export returned HTTP ${response.status()}. Check your export permissions and snapshot ID.` }));
-        responseSeen = true; complete();
-      };
+      const cancel = () => fail(new Error('Export cancelled'));
+      const complete = () => { if (state.download && clicked) { cleanup(); resolve(state.download); } };
+      const onDownload = (download: Download) => { state.download = download; complete(); };
       const timer = setTimeout(() => fail(new Error('Export timed out')), 45000);
-      signal.addEventListener('abort', onAbort, { once: true });
-      page.on('download', onDownload); page.on('response', onResponse);
-      page.evaluate(address => {
-        const link = document.createElement('a'); link.href = address;
+      state.cancel = cancel;
+      signal.addEventListener('abort', cancel, { once: true });
+      page.on('download', onDownload);
+      page.evaluate(({ url, filename }) => {
+        const link = document.createElement('a'); link.href = url; link.download = filename;
         document.body.appendChild(link); link.click(); link.remove();
-      }, address.href).then(() => { clicked = true; complete(); }, fail);
-    }),
-    catch: error => error instanceof ReportError ? error : new ReportError({ message: 'Semrush did not produce an export download. Check your session and export permissions.' }) });
+      }, file).then(() => { clicked = true; complete(); }, fail);
+    }), catch: () => new ReportError({ message: 'Semrush did not produce an export download. Check your session and export permissions.' }) });
     const filename = download.suggestedFilename().replaceAll(auth.apiKey, '[redacted]');
-    const mimeType = parameters.export === 'xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv';
-    return yield* exports.create(filename, mimeType, async destination => {
-      try { await download.saveAs(destination); }
-      // The runtime owns its saved copy; release Chromium's temporary file on failure too.
-      finally { await download.delete(); }
-    });
+    const mimeType = format === 'xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv';
+    return yield* exports.create(filename, mimeType, destination => download.saveAs(destination));
   });
   const report = Effect.fn('Semrush.report')(function* ({ name, definition, query }: ReportRequest) {
     const valid = yield* browserCall(() => page.evaluate(async () => {
@@ -142,7 +173,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     }));
     if (!valid) return yield* Effect.fail(new SessionError({ message: 'Semrush session expired. Run semrush auth login or import a signed-in browser.' }));
     const family = definition.transport;
-    const planned = ['project_web', 'audit_web', 'tracking_web'].includes(family) ? webRequest(definition, query) : undefined;
+    const planned = ['project_web', 'audit_web', 'tracking_web', 'saved_web'].includes(family) ? webRequest(definition, query) : undefined;
     const params = planned ? (objectValue(planned.body) ? planned.body : {}) : reportParameters(definition, query);
     let reportData: Schema.Json | undefined;
     if (planned) {
@@ -156,7 +187,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       const authParameter = family === 'audit_web' ? 'key' : 'auth_parameter' in definition ? definition.auth_parameter : '';
       const path = authParameter ? planned.path + '?' + new URLSearchParams({ [authParameter]: auth.apiKey }) : planned.path;
       if ('response_type' in definition && definition.response_type === 'download') {
-        const artifact = yield* downloadExport(path, params);
+        const artifact = yield* Effect.scoped(downloadExport({ ...planned, path }, query.format));
         yield* captureCookies(context, sessions.capture, browserOrigin);
         return { authenticated: true as const, report: name, data: null, artifact };
       }

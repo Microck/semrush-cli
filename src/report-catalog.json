@@ -2115,19 +2115,58 @@
   },
   "saved_keyword_lists": {
     "method": "/apis/v4-raw/saved-keywords/api/v0/list/all",
-    "description": "Existing saved keyword lists.",
-    "transport": "post",
+    "description": "List Saved Keywords collections with filters, pagination and ownership selection.",
+    "transport": "saved_web",
     "total_method": "",
-    "web_report": "domain.overview",
-    "schema": {
-      "additionalProperties": false,
-      "properties": {},
-      "title": "EmptyQuery",
-      "type": "object"
-    },
+    "web_report": "",
     "mutation": false,
     "destructive": false,
-    "http_method": ""
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "filter": {
+          "type": "string",
+          "default": "",
+          "description": "Native Saved Keywords FilterQL, for example volume >= 100 AND phrase CONTAINS \"seo\"."
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1000
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "sort_field": {
+          "type": "string",
+          "enum": [
+            "name",
+            "keywords",
+            "updated"
+          ],
+          "default": "updated"
+        },
+        "descending": {
+          "type": "boolean",
+          "default": true
+        },
+        "ownership": {
+          "type": "string",
+          "enum": [
+            "all",
+            "own",
+            "shared",
+            "team"
+          ],
+          "default": "all"
+        }
+      },
+      "required": []
+    }
   },
   "project_create": {
     "method": "/apis/v4-raw/folders/api/v0/folders",
@@ -5673,5 +5712,1464 @@
         "competitors"
       ]
     }
+  },
+  "saved_keyword_list_get": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/list/all",
+    "description": "Read one exact Saved Keywords collection.",
+    "transport": "saved_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "list_id": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$",
+          "maxLength": 30
+        }
+      },
+      "required": [
+        "list_id"
+      ]
+    }
+  },
+  "saved_keyword_lists_summary": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/list/summary",
+    "description": "Read collection counts by ownership.",
+    "transport": "saved_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "filter": {
+          "type": "string",
+          "default": "",
+          "description": "Native Saved Keywords FilterQL, for example volume >= 100 AND phrase CONTAINS \"seo\"."
+        }
+      },
+      "required": []
+    }
+  },
+  "saved_keyword_info": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/user/info",
+    "description": "Read Saved Keywords account access.",
+    "transport": "saved_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    }
+  },
+  "saved_keyword_limits": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/user/limits",
+    "description": "Read Saved Keywords keyword and update allowances.",
+    "transport": "saved_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    }
+  },
+  "saved_keyword_list_create": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/list/create",
+    "description": "Create an empty Saved Keywords collection.",
+    "transport": "saved_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "name"
+      ]
+    }
+  },
+  "saved_keyword_list_rename": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/list/rename",
+    "description": "Rename a Saved Keywords collection.",
+    "transport": "saved_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "list_id": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$",
+          "maxLength": 30
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "list_id",
+        "name"
+      ]
+    }
+  },
+  "saved_keyword_list_delete": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/list/delete",
+    "description": "Delete selected Saved Keywords collections; returns an undo ID.",
+    "transport": "saved_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "list_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]*$",
+            "maxLength": 30
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "list_ids"
+      ]
+    }
+  },
+  "saved_keyword_list_undo_delete": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/list/undo-delete",
+    "description": "Restore a deleted Saved Keywords collection using its undo ID.",
+    "transport": "saved_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "undo_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "undo_id"
+      ]
+    }
+  },
+  "saved_keyword_list_tags": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/list/tags",
+    "description": "Read the collection\u2019s tags.",
+    "transport": "saved_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "list_id": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$",
+          "maxLength": 30
+        }
+      },
+      "required": [
+        "list_id"
+      ]
+    }
+  },
+  "saved_keyword_list_labels": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/list/labels",
+    "description": "Read the collection\u2019s labels.",
+    "transport": "saved_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "list_id": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$",
+          "maxLength": 30
+        }
+      },
+      "required": [
+        "list_id"
+      ]
+    }
+  },
+  "saved_keyword_list_topics": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/list/topics",
+    "description": "Read the collection\u2019s topics.",
+    "transport": "saved_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "list_id": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$",
+          "maxLength": 30
+        }
+      },
+      "required": [
+        "list_id"
+      ]
+    }
+  },
+  "saved_keyword_list_subtopics": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/list/subtopics",
+    "description": "Read the collection\u2019s subtopics.",
+    "transport": "saved_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "list_id": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$",
+          "maxLength": 30
+        }
+      },
+      "required": [
+        "list_id"
+      ]
+    }
+  },
+  "saved_keyword_list_databases": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/list/databases",
+    "description": "Read the collection\u2019s databases.",
+    "transport": "saved_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "list_id": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$",
+          "maxLength": 30
+        }
+      },
+      "required": [
+        "list_id"
+      ]
+    }
+  },
+  "saved_keywords": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/keyword/all",
+    "description": "Read saved keywords with native filters, pagination and sorting.",
+    "transport": "saved_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "list_id": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$",
+          "maxLength": 30
+        },
+        "filter": {
+          "type": "string",
+          "default": "",
+          "description": "Native Saved Keywords FilterQL, for example volume >= 100 AND phrase CONTAINS \"seo\"."
+        },
+        "sort_field": {
+          "type": "string",
+          "enum": [
+            "phrase",
+            "volume",
+            "difficulty",
+            "topic",
+            "subtopic",
+            "updated",
+            "cpc"
+          ],
+          "default": "phrase"
+        },
+        "descending": {
+          "type": "boolean",
+          "default": false
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 20
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        }
+      },
+      "required": [
+        "list_id"
+      ]
+    }
+  },
+  "saved_keywords_summary": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/keyword/summary",
+    "description": "Read saved keyword summary.",
+    "transport": "saved_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "list_id": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$",
+          "maxLength": 30
+        },
+        "filter": {
+          "type": "string",
+          "default": "",
+          "description": "Native Saved Keywords FilterQL, for example volume >= 100 AND phrase CONTAINS \"seo\"."
+        }
+      },
+      "required": [
+        "list_id"
+      ]
+    }
+  },
+  "saved_keywords_phrases": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/keyword/phrases",
+    "description": "Read saved keyword phrases.",
+    "transport": "saved_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "list_id": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$",
+          "maxLength": 30
+        },
+        "filter": {
+          "type": "string",
+          "default": "",
+          "description": "Native Saved Keywords FilterQL, for example volume >= 100 AND phrase CONTAINS \"seo\"."
+        }
+      },
+      "required": [
+        "list_id"
+      ]
+    }
+  },
+  "saved_keywords_top_competitors": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/keyword/top-competitors",
+    "description": "Read saved keyword top competitors.",
+    "transport": "saved_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "list_id": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$",
+          "maxLength": 30
+        },
+        "filter": {
+          "type": "string",
+          "default": "",
+          "description": "Native Saved Keywords FilterQL, for example volume >= 100 AND phrase CONTAINS \"seo\"."
+        }
+      },
+      "required": [
+        "list_id"
+      ]
+    }
+  },
+  "saved_keyword_competitors": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/keyword/competitors",
+    "description": "Read competing URLs for one saved keyword.",
+    "transport": "saved_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "keyword_id": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$",
+          "maxLength": 30
+        }
+      },
+      "required": [
+        "keyword_id"
+      ]
+    }
+  },
+  "saved_keywords_import": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/keyword/import",
+    "description": "Import phrases and tags into a Saved Keywords collection.",
+    "transport": "saved_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "list_id": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$",
+          "maxLength": 30
+        },
+        "keywords": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "database": {
+          "type": "string",
+          "enum": [
+            "ae",
+            "af",
+            "al",
+            "am",
+            "ao",
+            "ar",
+            "at",
+            "au",
+            "az",
+            "ba",
+            "bd",
+            "be",
+            "bg",
+            "bh",
+            "bn",
+            "bo",
+            "br",
+            "bs",
+            "bw",
+            "by",
+            "bz",
+            "ca",
+            "cd",
+            "ch",
+            "cl",
+            "cm",
+            "co",
+            "cr",
+            "cv",
+            "cy",
+            "cz",
+            "de",
+            "dk",
+            "do",
+            "dz",
+            "ec",
+            "ee",
+            "eg",
+            "es",
+            "et",
+            "fi",
+            "fr",
+            "ge",
+            "gh",
+            "gr",
+            "gt",
+            "gy",
+            "hk",
+            "hn",
+            "hr",
+            "ht",
+            "hu",
+            "id",
+            "ie",
+            "il",
+            "in",
+            "is",
+            "it",
+            "jm",
+            "jo",
+            "jp",
+            "kh",
+            "kr",
+            "kw",
+            "kz",
+            "lb",
+            "lk",
+            "lt",
+            "lu",
+            "lv",
+            "ly",
+            "ma",
+            "md",
+            "me",
+            "mg",
+            "mn",
+            "mt",
+            "mu",
+            "mx",
+            "my",
+            "mz",
+            "na",
+            "ng",
+            "ni",
+            "nl",
+            "no",
+            "np",
+            "nz",
+            "om",
+            "pa",
+            "pe",
+            "ph",
+            "pk",
+            "pl",
+            "pt",
+            "py",
+            "qa",
+            "ro",
+            "rs",
+            "ru",
+            "sa",
+            "se",
+            "sg",
+            "si",
+            "sk",
+            "sn",
+            "sv",
+            "th",
+            "tn",
+            "tr",
+            "tt",
+            "tw",
+            "ua",
+            "uk",
+            "us",
+            "uy",
+            "ve",
+            "vn",
+            "za",
+            "zm",
+            "zw"
+          ],
+          "default": "us"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "list_id",
+        "keywords"
+      ]
+    },
+    "database_ids": {
+      "ae": 1,
+      "af": 2,
+      "al": 3,
+      "am": 4,
+      "ao": 5,
+      "ar": 6,
+      "at": 7,
+      "au": 8,
+      "az": 9,
+      "ba": 10,
+      "bd": 11,
+      "be": 12,
+      "bg": 13,
+      "bh": 14,
+      "bn": 15,
+      "bo": 16,
+      "br": 17,
+      "bs": 18,
+      "bw": 19,
+      "by": 20,
+      "bz": 21,
+      "ca": 22,
+      "cd": 23,
+      "ch": 24,
+      "cl": 25,
+      "cm": 26,
+      "co": 27,
+      "cr": 28,
+      "cv": 29,
+      "cy": 30,
+      "cz": 31,
+      "de": 32,
+      "dk": 33,
+      "do": 34,
+      "dz": 35,
+      "ec": 36,
+      "ee": 37,
+      "eg": 38,
+      "es": 39,
+      "et": 40,
+      "fi": 41,
+      "fr": 42,
+      "ge": 43,
+      "gh": 44,
+      "gr": 45,
+      "gt": 46,
+      "gy": 47,
+      "hk": 48,
+      "hn": 49,
+      "hr": 50,
+      "ht": 51,
+      "hu": 52,
+      "id": 53,
+      "ie": 54,
+      "il": 55,
+      "in": 56,
+      "is": 57,
+      "it": 58,
+      "jm": 59,
+      "jo": 60,
+      "jp": 61,
+      "kh": 62,
+      "kr": 63,
+      "kw": 64,
+      "kz": 65,
+      "lb": 66,
+      "lk": 67,
+      "lt": 68,
+      "lu": 69,
+      "lv": 70,
+      "ly": 71,
+      "ma": 72,
+      "md": 73,
+      "me": 74,
+      "mg": 75,
+      "mn": 76,
+      "mt": 77,
+      "mu": 78,
+      "mx": 79,
+      "my": 80,
+      "mz": 81,
+      "na": 82,
+      "ng": 83,
+      "ni": 84,
+      "nl": 85,
+      "no": 86,
+      "np": 87,
+      "nz": 88,
+      "om": 89,
+      "pa": 90,
+      "pe": 91,
+      "ph": 92,
+      "pk": 93,
+      "pl": 94,
+      "pt": 95,
+      "py": 96,
+      "qa": 97,
+      "ro": 98,
+      "rs": 99,
+      "ru": 100,
+      "sa": 101,
+      "se": 102,
+      "sg": 103,
+      "si": 104,
+      "sk": 105,
+      "sn": 106,
+      "sv": 107,
+      "th": 108,
+      "tn": 109,
+      "tr": 110,
+      "tt": 111,
+      "tw": 112,
+      "ua": 113,
+      "uk": 114,
+      "us": 115,
+      "uy": 116,
+      "ve": 117,
+      "vn": 118,
+      "za": 119,
+      "zm": 120,
+      "zw": 121
+    }
+  },
+  "saved_keywords_delete": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/keyword/delete",
+    "description": "Delete selected saved keywords; returns an undo ID.",
+    "transport": "saved_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "list_id": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$",
+          "maxLength": 30
+        },
+        "keyword_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]*$",
+            "maxLength": 30
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        },
+        "filter": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S",
+          "description": "Explicit native FilterQL selection. Provide this or keyword_ids, not both."
+        }
+      },
+      "required": [
+        "list_id"
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "keyword_ids"
+          ],
+          "not": {
+            "required": [
+              "filter"
+            ]
+          }
+        },
+        {
+          "required": [
+            "filter"
+          ],
+          "not": {
+            "required": [
+              "keyword_ids"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "saved_keywords_update_metrics": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/keyword/update",
+    "description": "Request metric refresh for selected saved keywords; consumes update allowance.",
+    "transport": "saved_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "list_id": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$",
+          "maxLength": 30
+        },
+        "keyword_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]*$",
+            "maxLength": 30
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        },
+        "filter": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S",
+          "description": "Explicit native FilterQL selection. Provide this or keyword_ids, not both."
+        }
+      },
+      "required": [
+        "list_id"
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "keyword_ids"
+          ],
+          "not": {
+            "required": [
+              "filter"
+            ]
+          }
+        },
+        {
+          "required": [
+            "filter"
+          ],
+          "not": {
+            "required": [
+              "keyword_ids"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "saved_keywords_undo_delete": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/keyword/undo-delete",
+    "description": "Restore deleted saved keywords with their undo ID.",
+    "transport": "saved_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "undo_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "undo_id"
+      ]
+    }
+  },
+  "saved_keywords_add_tags": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/keyword/add-tags",
+    "description": "Add tags on selected saved keywords.",
+    "transport": "saved_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "list_id": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$",
+          "maxLength": 30
+        },
+        "keyword_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]*$",
+            "maxLength": 30
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        },
+        "filter": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S",
+          "description": "Explicit native FilterQL selection. Provide this or keyword_ids, not both."
+        }
+      },
+      "required": [
+        "list_id",
+        "tags"
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "keyword_ids"
+          ],
+          "not": {
+            "required": [
+              "filter"
+            ]
+          }
+        },
+        {
+          "required": [
+            "filter"
+          ],
+          "not": {
+            "required": [
+              "keyword_ids"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "saved_keywords_remove_tags": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/keyword/delete-tags",
+    "description": "Remove tags on selected saved keywords.",
+    "transport": "saved_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "list_id": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$",
+          "maxLength": 30
+        },
+        "keyword_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]*$",
+            "maxLength": 30
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        },
+        "filter": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S",
+          "description": "Explicit native FilterQL selection. Provide this or keyword_ids, not both."
+        }
+      },
+      "required": [
+        "list_id",
+        "tags"
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "keyword_ids"
+          ],
+          "not": {
+            "required": [
+              "filter"
+            ]
+          }
+        },
+        {
+          "required": [
+            "filter"
+          ],
+          "not": {
+            "required": [
+              "keyword_ids"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "saved_keywords_copy": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/keyword/copy",
+    "description": "Copy selected keywords to a different Saved Keywords collection.",
+    "transport": "saved_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "list_id": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$",
+          "maxLength": 30
+        },
+        "target_list_id": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$",
+          "maxLength": 30
+        },
+        "keyword_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]*$",
+            "maxLength": 30
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        },
+        "filter": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S",
+          "description": "Explicit native FilterQL selection. Provide this or keyword_ids, not both."
+        }
+      },
+      "required": [
+        "list_id",
+        "target_list_id"
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "keyword_ids"
+          ],
+          "not": {
+            "required": [
+              "filter"
+            ]
+          }
+        },
+        {
+          "required": [
+            "filter"
+          ],
+          "not": {
+            "required": [
+              "keyword_ids"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "saved_keywords_move": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/keyword/move",
+    "description": "Move selected keywords to a different Saved Keywords collection.",
+    "transport": "saved_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "list_id": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$",
+          "maxLength": 30
+        },
+        "target_list_id": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$",
+          "maxLength": 30
+        },
+        "keyword_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]*$",
+            "maxLength": 30
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        },
+        "filter": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S",
+          "description": "Explicit native FilterQL selection. Provide this or keyword_ids, not both."
+        }
+      },
+      "required": [
+        "list_id",
+        "target_list_id"
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "keyword_ids"
+          ],
+          "not": {
+            "required": [
+              "filter"
+            ]
+          }
+        },
+        {
+          "required": [
+            "filter"
+          ],
+          "not": {
+            "required": [
+              "keyword_ids"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "saved_keywords_label": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/keyword/add-labels",
+    "description": "Mark selected keywords as tracked, content written or brief generated. Does not start those jobs.",
+    "transport": "saved_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "list_id": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$",
+          "maxLength": 30
+        },
+        "keyword_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]*$",
+            "maxLength": 30
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "labels": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "position_tracking",
+              "content_written",
+              "brief_generated"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        },
+        "filter": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S",
+          "description": "Explicit native FilterQL selection. Provide this or keyword_ids, not both."
+        }
+      },
+      "required": [
+        "list_id",
+        "labels"
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "keyword_ids"
+          ],
+          "not": {
+            "required": [
+              "filter"
+            ]
+          }
+        },
+        {
+          "required": [
+            "filter"
+          ],
+          "not": {
+            "required": [
+              "keyword_ids"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "saved_keywords_export": {
+    "method": "/apis/v4-raw/saved-keywords/api/v0/keyword/export",
+    "description": "Download filtered saved keywords as CSV, semicolon CSV or XLSX.",
+    "transport": "saved_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "list_id": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$",
+          "maxLength": 30
+        },
+        "filter": {
+          "type": "string",
+          "default": "",
+          "description": "Native Saved Keywords FilterQL, for example volume >= 100 AND phrase CONTAINS \"seo\"."
+        },
+        "sort_field": {
+          "type": "string",
+          "enum": [
+            "phrase",
+            "volume",
+            "difficulty",
+            "topic",
+            "subtopic",
+            "updated",
+            "cpc"
+          ],
+          "default": "phrase"
+        },
+        "descending": {
+          "type": "boolean",
+          "default": false
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "csv",
+            "csv_semicolon",
+            "xlsx"
+          ],
+          "default": "csv"
+        }
+      },
+      "required": [
+        "list_id"
+      ]
+    },
+    "response_type": "download"
   }
 }
