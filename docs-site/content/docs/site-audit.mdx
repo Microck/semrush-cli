@@ -68,8 +68,51 @@ Responses retain Semrush's native JSON fields. `audit-start` returns an opaque s
 `snapshot_id`; an unfinished snapshot may not have final metrics yet. Historical
 snapshots and summaries are available after Semrush finishes processing.
 
-Use the web UI for detailed issue/page tables, abort/finalize controls and
-connected integrations. Deleting a project also deletes its attached audit.
+## Inspect pages and issues
+
+```sh
+semrush audit-pages --campaign-id 456 --page 0 --limit 20
+semrush audit-page --campaign-id 456 --page-id '<page_id>'
+semrush audit-issue --campaign-id 456 --snapshot-id '<snapshot_id>' --issue-id 2
+semrush audit-structure --campaign-id 456
+semrush audit-performance --campaign-id 456
+semrush audit-linking --campaign-id 456
+semrush audit-history --campaign-id 456
+```
+
+Copy opaque page IDs from `audit-pages`. They change after a new crawl.
+The page table starts at page 0; issue rows start at page 1. Issue IDs are the
+numeric check IDs in the snapshot. `audit-recrawl --campaign-id 456 --page-id
+'<page_id>' --confirm` queues a page recrawl and consumes allowance.
+
+## Stop a running crawl
+
+```sh
+semrush audit-execution --campaign-ids '[456]'
+semrush audit-abort --campaign-id 456 --confirm
+```
+
+Wait until `is_allowed_stopping` is true. Both stop commands check this flag
+before writing. `audit-abort` cancels the crawl; `audit-finalize` stops collecting
+pages and processes the collected results. Choose one action. A successful
+response has `data:null`. Read `audit-info` until processing finishes, then use
+its `current_snapshot.snapshot_id` to inspect or export the saved results.
+
+## Download results
+
+```sh
+semrush audit-export-pages --snapshot-id '<snapshot_id>' --output pages.csv
+semrush audit-export-issues --snapshot-id '<snapshot_id>' --format xlsx --output issues.xlsx
+semrush audit-export-issue --snapshot-id '<snapshot_id>' --issue-id 2 --output broken-pages.csv
+```
+
+The CLI requires `--output` and refuses an existing file. The three exports use
+Semrush's native CSV/XLSX downloads. See [MCP](./mcp) for retrieving downloads
+from an agent. Crawled-links exports remain unsupported because the endpoint
+listed in the frontend returns HTTP 404.
+
+Use the web UI for protected-site authentication and connected integrations.
+Deleting a project also deletes its attached audit.
 
 ## Request evidence
 
@@ -78,4 +121,6 @@ The configuration and launch contracts come from the current
 [settings module](https://static.semrush.com/siteaudit/index/5444.c73f5f9232917b1e67fc.js)
 and [API client](https://static.semrush.com/siteaudit/index/910.743a405979e048d96c5e.js).
 A disposable account project verified configuration, launch, status and snapshot
-reads with manual scheduling, email disabled and a 10-page cap.
+reads with manual scheduling, email disabled and a 10-page cap. Live checks also
+verified page/issue details, page recrawling, abort, finalize, the saved finalized
+snapshot and native CSV/XLSX exports.

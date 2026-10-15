@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Config, Effect, Layer, Option, Semaphore, Schema, Predicate } from 'effect';
-import { chromium, type BrowserContext, type Page } from 'patchright';
+import { chromium, type BrowserContext, type Download, type Page, type Response } from 'patchright';
 import JSONbig from 'json-bigint';
 import { Semrush } from './browser-service.js';
 import { Sessions } from './session-service.js';
@@ -8,6 +8,7 @@ import { origin } from './session-layer.js';
 import { ReportError, SessionError } from './errors.js';
 import { reportParameters, webRequest, rpcBody, type Query } from './report-parameters.js';
 import type { ReportRequest } from './validation.js';
+import { Exports } from './exports.js';
 
 const transportPaths = new Map([['domain', '/dpa/rpc'], ['direct', '/dpa/rpc'], ['magic', '/kmtgw/v2/webapi'], ['keyword', '/kwogw/v2/webapi'], ['kwm', '/kwm/rpc']]);
 const json = JSONbig({ storeAsString: true, protoAction: 'error', constructorAction: 'error' });
@@ -28,10 +29,11 @@ export function redact(value: Schema.Json, secrets: string[]): Schema.Json {
 
 export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush, Effect.gen(function* () {
   const sessions = yield* Sessions;
+  const exports = yield* Exports;
   const executable = yield* Config.option(Config.String('SEMRUSH_BROWSER_EXECUTABLE'));
   const headers = yield* sessions.headers();
   const browser = yield* Effect.acquireRelease(browserCall(() => chromium.launch({ headless: true, executablePath: Option.getOrUndefined(executable) })), browser => Effect.promise(() => browser.close()));
-  const context = yield* browserCall(() => browser.newContext({ userAgent: 'OpenAI File Downloader, XaiImageApiFetch/1.0' }));
+  const context = yield* browserCall(() => browser.newContext({ userAgent: 'OpenAI File Downloader, XaiImageApiFetch/1.0', acceptDownloads: true }));
   const cookieHeader = headers.Cookie ?? headers.cookie ?? '';
   yield* browserCall(() => context.addCookies(cookieHeader.split(';').filter(cookie => cookie.includes('=')).map(cookie => {
     const separator = cookie.indexOf('=');
@@ -47,14 +49,16 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
   const auth = yield* Effect.try({ try: () => readBootstrap(bootstrap.text), catch: () => new SessionError({ message: 'Semrush sign-in metadata unavailable. Run semrush auth login or import a signed-in browser.' }) });
   const semaphore = yield* Semaphore.make(1);
   let spectrumToken = '';
-  const request = Effect.fn('Semrush.request')(function* (path: string, payload: Query | null, method = 'POST', extraHeaders: Record<string, string> = {}) {
+  const request = Effect.fn('Semrush.request')(function* (path: string, payload: Schema.Json, method = 'POST', extraHeaders: Record<string, string> = {}, responseType: 'json' | 'empty' = 'json') {
     const wire = yield* browserCall(() => page.evaluate(async ({ path, encodedPayload, method, extraHeaders }) => {
-      const payload: Schema.JsonObject | null = JSON.parse(encodedPayload);
+      const payload: Schema.Json = JSON.parse(encodedPayload);
       const query = new URLSearchParams();
       const get = method === 'GET';
       if (get) for (const [key, value] of Object.entries(payload ?? {})) for (const item of Array.isArray(value) ? value : [value]) query.append(key, String(item));
       const options: RequestInit = { method, credentials: 'include', headers: extraHeaders, signal: AbortSignal.timeout(45000) };
-      if (!get && method !== 'DELETE' && payload !== null) { options.headers = { ...extraHeaders, 'Content-Type': 'application/json' }; options.body = JSON.stringify(payload); }
+      // The web clients send JSON content type even for bodyless POST/PUT/PATCH actions.
+      if (['POST', 'PUT', 'PATCH'].includes(method)) options.headers = { 'Content-Type': 'application/json', ...extraHeaders };
+      if (!get && method !== 'DELETE' && payload !== null) options.body = JSON.stringify(payload);
       const response = await fetch(get && query.size > 0 ? path + (path.includes('?') ? '&' : '?') + query : path, options);
       return { status: response.status, text: await response.text() };
     }, { path, encodedPayload: JSON.stringify(payload), method, extraHeaders }));
@@ -63,8 +67,12 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       return yield* Effect.fail(new ReportError({ message: `Semrush request returned HTTP ${wire.status}.${Option.isSome(detail) ? ' ' + detail.value : ' Check your session and account permissions.'}` }));
     }
     if (wire.status === 204 && !wire.text) return null;
+    if (responseType === 'empty') {
+      if (wire.text.length > 0) return yield* Effect.fail(new ReportError({ message: 'Semrush completed the action but returned an unexpected body. Inspect the current campaign before sending another write.' }));
+      return null;
+    }
     const body = yield* Effect.try({ try: () => parseWire(wire.text), catch: () => new ReportError({ message: 'Semrush returned a page or challenge instead of JSON. Sign in again or retry later.' }) });
-    if (objectValue(body) && ('error' in body || (!path.startsWith('/siteaudit/') && 'status' in body && !(body.status === null || body.status === 'SUCCESS' || body.status === 'success')))) return yield* Effect.fail(new ReportError({ message: `Semrush report failed: ${JSON.stringify(redact(body.error ?? body.status ?? null, [auth.apiKey, spectrumToken, spectrumToken.replace(/^Bearer /, '')])).slice(0, 500)}` }));
+    if (objectValue(body) && ('error' in body || (!path.startsWith('/siteaudit/') && 'status' in body && !(body.status === null || body.status === 'SUCCESS' || body.status === 'success' || body.status === 'ok')))) return yield* Effect.fail(new ReportError({ message: `Semrush report failed: ${JSON.stringify(redact(body.error ?? body.error_message ?? body.status ?? null, [auth.apiKey, spectrumToken, spectrumToken.replace(/^Bearer /, '')])).slice(0, 500)}` }));
     return body;
   });
   const rpc = Effect.fn('Semrush.rpc')(function* (method: string, params: Query, transport = 'keyword', webReport = 'domain.overview') {
@@ -76,6 +84,11 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     return body.result ?? null;
   });
   const checkAuditSettings = Effect.fn('Semrush.checkAuditSettings')(function* (name: string, query: Query) {
+    if (name === 'audit_abort' || name === 'audit_finalize') {
+      const states = yield* request('/siteaudit/private/polling', { campaignIds: String(query.campaign_id), key: auth.apiKey }, 'GET');
+      const state = Array.isArray(states) ? states.find(state => objectValue(state) && String(state.id) === String(query.campaign_id)) : undefined;
+      if (!objectValue(state) || state.is_allowed_stopping !== true) return yield* Effect.fail(new ReportError({ message: 'This crawl cannot be stopped in its current phase. Read audit-execution and wait for is_allowed_stopping:true before sending another stop action.' }));
+    }
     if (name === 'audit_create') {
       const campaigns = yield* request('/siteaudit/api/campaigns/seolist', { key: auth.apiKey }, 'GET');
       if (!Array.isArray(campaigns)) return yield* Effect.fail(new ReportError({ message: 'Site Audit campaign discovery returned an unexpected response. No settings were saved.' }));
@@ -88,6 +101,40 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       if (objectValue(current) && (Boolean(current.authEnabled) || Boolean(current.webBotAuthEnabled) || (objectValue(current.gaSettings) && Object.keys(current.gaSettings).length > 0))) return yield* Effect.fail(new ReportError({ message: 'This audit uses protected-site authentication or Google Analytics. Edit its settings in the Semrush web UI to preserve those connections.' }));
     }
   });
+  const downloadExport = Effect.fn('Semrush.downloadExport')(function* (path: string, parameters: Query) {
+    const address = new URL(path, browserOrigin);
+    for (const [key, value] of Object.entries(parameters)) address.searchParams.set(key, String(value));
+    const download = yield* Effect.tryPromise({ try: signal => new Promise<Download>((resolve, reject) => {
+      let attachment: Download | undefined;
+      let responseSeen = false;
+      let clicked = false;
+      const cleanup = () => { clearTimeout(timer); page.off('download', onDownload); page.off('response', onResponse); signal.removeEventListener('abort', onAbort); };
+      const fail = (error: Error) => { cleanup(); reject(error); };
+      const onAbort = () => fail(new Error('Export cancelled'));
+      const complete = () => { if (attachment && responseSeen && clicked) { cleanup(); resolve(attachment); } };
+      const onDownload = (download: Download) => { attachment = download; complete(); };
+      const onResponse = (response: Response) => {
+        if (response.url() !== address.href) return;
+        if (response.status() >= 400) return fail(new ReportError({ message: `Semrush export returned HTTP ${response.status()}. Check your export permissions and snapshot ID.` }));
+        responseSeen = true; complete();
+      };
+      const timer = setTimeout(() => fail(new Error('Export timed out')), 45000);
+      signal.addEventListener('abort', onAbort, { once: true });
+      page.on('download', onDownload); page.on('response', onResponse);
+      page.evaluate(address => {
+        const link = document.createElement('a'); link.href = address;
+        document.body.appendChild(link); link.click(); link.remove();
+      }, address.href).then(() => { clicked = true; complete(); }, fail);
+    }),
+    catch: error => error instanceof ReportError ? error : new ReportError({ message: 'Semrush did not produce an export download. Check your session and export permissions.' }) });
+    const filename = download.suggestedFilename().replaceAll(auth.apiKey, '[redacted]');
+    const mimeType = parameters.export === 'xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv';
+    return yield* exports.create(filename, mimeType, async destination => {
+      try { await download.saveAs(destination); }
+      // The runtime owns its saved copy; release Chromium's temporary file on failure too.
+      finally { await download.delete(); }
+    });
+  });
   const report = Effect.fn('Semrush.report')(function* ({ name, definition, query }: ReportRequest) {
     const valid = yield* browserCall(() => page.evaluate(async () => {
       const response = await fetch('/home/', { method: 'HEAD', credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(15000) });
@@ -95,8 +142,8 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     }));
     if (!valid) return yield* Effect.fail(new SessionError({ message: 'Semrush session expired. Run semrush auth login or import a signed-in browser.' }));
     const family = definition.transport;
-    const planned = ['project_web', 'audit_web'].includes(family) ? webRequest(definition, query) : undefined;
-    const params = planned?.body ?? reportParameters(definition, query);
+    const planned = ['project_web', 'audit_web', 'tracking_web'].includes(family) ? webRequest(definition, query) : undefined;
+    const params = planned ? (objectValue(planned.body) ? planned.body : {}) : reportParameters(definition, query);
     let reportData: Schema.Json | undefined;
     if (planned) {
       // The web UI only allows adding a website to a project that has none.
@@ -106,8 +153,15 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
         if (Predicate.isString(current.folder.domain) && current.folder.domain.length > 0) return yield* Effect.fail(new ReportError({ message: 'This project already has a website. The Semrush web UI only allows adding a website when none is set.' }));
       }
       if (family === 'audit_web') yield* checkAuditSettings(name, query);
-      const path = family === 'audit_web' ? planned.path + '?key=' + encodeURIComponent(auth.apiKey) : planned.path;
-      reportData = yield* request(path, planned.body, planned.method);
+      const authParameter = family === 'audit_web' ? 'key' : 'auth_parameter' in definition ? definition.auth_parameter : '';
+      const path = authParameter ? planned.path + '?' + new URLSearchParams({ [authParameter]: auth.apiKey }) : planned.path;
+      if ('response_type' in definition && definition.response_type === 'download') {
+        const artifact = yield* downloadExport(path, params);
+        yield* captureCookies(context, sessions.capture, browserOrigin);
+        return { authenticated: true as const, report: name, data: null, artifact };
+      }
+      const responseType = 'response_type' in definition && definition.response_type === 'empty' ? 'empty' : 'json';
+      reportData = yield* request(path, planned.body, planned.method, {}, responseType);
     } else if (['keyword', 'domain', 'direct', 'magic', 'kwm'].includes(family)) reportData = yield* rpc(definition.method, params, family, definition.web_report);
     else {
       const extra: Record<string, string> = {};

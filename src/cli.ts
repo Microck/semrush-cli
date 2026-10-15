@@ -6,6 +6,7 @@ import { reports, version, previewMutation, type Query } from './report-paramete
 import { Sessions } from './session-service.js';
 import { sessionsLive } from './session-layer.js';
 import { initializeDaemon, startDaemon, stopDaemon, installBrowser } from './daemon.js';
+import { Exports } from './exports.js';
 
 const interruption = new AbortController();
 const cli = new Command().name('semrush').description('Semrush research through your signed-in account. CLI + MCP, powered by Effect and Galleton.').version(version).exitOverride().showHelpAfterError().option('--json', 'Emit compact JSON').option('--no-input', 'Never prompt for terminal input').option('--no-color', 'Disable terminal colors');
@@ -29,6 +30,7 @@ cli.command('reports').description('List research reports and project operations
 interface Property { type?: string; default?: unknown; description?: string; anyOf?: { type?: string }[]; }
 for (const [name, definition] of Object.entries(reports)) {
   const report = cli.command(name.replaceAll('_', '-')).description(definition.description);
+  if ('response_type' in definition && definition.response_type === 'download') report.requiredOption('--output <path>', 'Save the export file; refuses an existing destination');
   const schema: { properties: Record<string, Property>; required?: string[] } = definition.schema;
   for (const [key, property] of Object.entries(schema.properties)) {
     const flag = key.replaceAll('_', '-');
@@ -63,7 +65,13 @@ for (const [name, definition] of Object.entries(reports)) {
     if (preview) { output(preview, command); return; }
     const { appLayer } = await import('./mcp.js');
     const { Semrush } = await import('./browser-service.js');
-    await execute(Effect.gen(function* () { return yield* (yield* Semrush).report(parsed.value); }).pipe(Effect.provide(appLayer)), command);
+    await execute(Effect.gen(function* () {
+      const response = yield* (yield* Semrush).report(parsed.value);
+      if (!response.artifact) return response;
+      const destination = command.opts<{ output: string }>().output;
+      const artifact = yield* (yield* Exports).saveAs(response.artifact.uri, destination);
+      return { authenticated: true, report: name, data: { saved: destination, bytes: artifact.size_bytes, mime_type: artifact.mime_type } };
+    }).pipe(Effect.provide(appLayer)), command);
   });
 }
 

@@ -1,8 +1,51 @@
 # Verification
 
-Current source verification: 2026-10-15. The source suite passed 110 tests. Live responses and credentials remain
+Current source verification: 2026-10-15. The 0.6.0 source suite passed 121 tests. Live responses and credentials remain
 outside the repository. Evidence below distinguishes local fixtures, native CI
 and real account execution.
+
+## Version 0.6.0 verification
+
+All 90 read operations passed authenticated MCP calls with valid inputs. This
+includes native empty-result reports and account-access reads, not a claim
+that every paid toolkit is unlocked. Detailed audit pages use current opaque
+page IDs; a historical page ID correctly returned 404. Clustering forecast
+requires a structured strategy and returns a provider error for a plain list.
+
+Twenty-nine of the thirty writes have live execution evidence. Shared-project
+leave has request-contract coverage only; no shared test project was available,
+and verification did not send an invitation to another person.
+
+Position Tracking creation, keyword add/delete, tag changes and competitor
+replacement passed state readback checks. Rankings, landing pages, visibility,
+distribution and cannibalization trends returned real target data. Automatic
+SEO setup created a tracking target and a completed six-page Site Audit.
+
+Detailed audit tables, page recrawl, abort and finalize passed live calls.
+Finalize saved a new six-page snapshot after asynchronous processing. Page,
+issue-summary and individual-issue exports passed as CSV and XLSX. MCP resource
+reads preserved file bytes. CLI saving passed and an existing output file
+remained unchanged with exit code 2.
+
+Metric refresh and clustering requests passed, and structured strategy
+generation completed with 1361 keywords. The check used two of the account's
+30 clustering runs and refreshed two keywords. Normal account allowances
+apply; no subscription or add-on was purchased.
+
+All three owned project folders, their attached audits/tracking targets, both
+keyword lists and the temporary Vercel crawl project were deleted. Cleanup
+checked the owned IDs. An unrelated account project created during the run and
+the original default folder were preserved.
+
+The source passed strict TypeScript, Oxlint, generated-reference checks,
+packaging and all 121 tests after review fixes. An earlier browser fixture timed
+out while the host's swap was full; its timeout and assertions were unchanged.
+The later full run passed. The review removed redundant parameter preparation
+and ensured failed downloads release listeners and temporary files.
+
+The Galleton SDK is public as `galleton@0.1.0`; its fresh registry installation
+passed a real daemon call. Its archive matched the locally tested archive, and
+its Linux/macOS/Windows Go, Rust and client/integration CI jobs passed.
 
 ## Automated checks
 
@@ -43,11 +86,11 @@ string. A fresh SEO project passed audit creation without a crawl, duplicate-cre
 refusal and configuration replacement. All disposable projects were deleted;
 Site Audit discovery returned its original empty baseline.
 
-Leave, automatic SEO setup, structured strategy generation, metrics refresh and
-clustering retain source-derived request coverage without live execution. Those
-operations can affect shared projects or consume additional allowances.
+The prior 0.5.0 verification did not execute leave, automatic SEO setup,
+structured strategy generation, metrics refresh or clustering. The 0.6.0 pass
+above adds live evidence for all except shared-project leave.
 
-## Published artifacts
+## Version 0.5.0 published artifacts
 
 The public npm 0.5.0 archive matches the local release archive byte-for-byte:
 SHA-256 `1f4b6f3140181c1e420ae7fa18b7cb24b734ca4ce291d86982ba990447d94882`.

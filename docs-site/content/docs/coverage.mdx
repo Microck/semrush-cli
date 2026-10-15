@@ -3,7 +3,7 @@ title: Web UI coverage
 description: Supported web workflows, evidence and remaining gaps.
 ---
 
-The CLI has 89 fixed operations: 67 reads and 22 confirmed writes.
+The CLI has 120 fixed operations: 90 reads and 30 confirmed writes.
 It uses your web session and the current web UI's request contracts. Account
 permissions and quotas apply to both interfaces. This is not full Semrush suite
 parity. The table distinguishes implemented workflows from remaining gaps.
@@ -21,8 +21,9 @@ parity. The table distinguishes implemented workflows from remaining gaps.
 | AI visibility | Domain visibility, mentions, countries, citation sources and account access | Prompt tracking and full AI Toolkit configuration |
 | Projects | Create, inspect, rename, add first domain, delete, leave, tags and pinning | Sharing invitations and account administration |
 | Project dashboard | Toolkit status, metric values and detail URLs | Third-party integration setup |
-| SEO setup | Create an SEO project and explicitly start automatic Site Audit/Position Tracking setup | Keyword tracking settings and protected-site audit setup |
-| Site Audit | Campaign discovery, account limits, public-site configuration, manual or scheduled crawl setup, explicit launch, status, history and snapshots | Detailed issue/page tables, crawl stopping, protected-site authentication and Google Analytics connections |
+| SEO setup | Create an SEO project and explicitly start automatic Site Audit/Position Tracking setup | Protected-site audit setup |
+| Site Audit | Discovery, limits, public-site settings, schedules, launch, page and issue tables, page recrawl, execution status, abort/finalize, structure, performance, linking, history, snapshots, CSV/XLSX exports | Protected-site authentication, Google Analytics connections and crawled-links export |
+| Position Tracking | Target creation, locations, limits, keyword add/delete/tags, competitor replacement, campaign settings reads, rankings, pages, visibility/distribution/cannibalization trends | Editing target settings, alerts, notes, target comparison and UI exports |
 | Keyword Strategy Builder | List creation, structured strategy generation, pagination, metadata, rename/delete, keyword import, metric reads and updates, tags, deletion/undo and explicit clustering | Cluster/page editing, content generation and UI export formats |
 | Saved Keywords | Existing collection discovery | Collection management |
 | Local, social and content products | Project toolkit status and available dashboard metrics | Product-specific management and connected services |
@@ -45,6 +46,24 @@ before the CLI's live lifecycle verification. Internal endpoints can change.
 
 Live verification enabled a disposable SEO project, saved manual Site Audit
 settings with email disabled, and launched a crawl capped at 10 pages on
-example.com. Existing account projects were not changed. Leave, automatic SEO
-setup and allowance-consuming keyword clustering retain request-contract coverage
-without live execution.
+example.com. Existing account projects were not changed. Shared-project leave retains request-contract coverage without live execution.
+Automatic SEO setup created a target and a completed audit. A later live pass verified metric refresh, clustering and structured
+strategy generation on disposable keyword lists.
+
+
+The current verification pass also checked Position Tracking creation and
+rankings on a disposable example.com target. Keyword, tag and competitor writes
+passed readback checks, including deletion and clearing competitors. Site Audit
+stop controls passed on an isolated slow-crawl fixture; finalize saved a new
+snapshot after processing. Page, issue-summary and individual-issue exports
+passed as both CSV and XLSX, with MCP resource reads.
+
+The current account has no prompt-tracking allowance and the Advertising Toolkit
+UI displays a paywall. A full paid-position request returned an access denial.
+Those products are not verified as working, and no subscription was purchased.
+
+
+All 90 current read operations passed live calls on 2026-10-15. This includes
+empty-result reports and account capability reads; it does not imply every
+paid toolkit is unlocked. Clustering forecast used a structured strategy,
+and audit page details used a fresh page ID from the current crawl.

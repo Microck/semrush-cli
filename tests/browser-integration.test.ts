@@ -10,6 +10,7 @@ import { Galleton } from 'galleton';
 import { makeSessionsLayer } from '../src/session-layer.js';
 import { makeSemrushLayer } from '../src/browser-layer.js';
 import { Semrush } from '../src/browser-service.js';
+import { Exports, exportsLive } from '../src/exports.js';
 import { parseReport } from '../src/validation.js';
 
 const exec = promisify(execFile);
@@ -41,39 +42,17 @@ const fixture = createServer(async (request, response) => {
     if (!authenticated || !request.headers.cookie?.includes('session=authorized')) { response.writeHead(302, { Location: '/login/' }); }
     response.end(); return;
   }
-  if (url.pathname.startsWith(folderPath)) {
-    let encoded = '';
-    for await (const chunk of request) encoded += chunk;
-    const payload = encoded ? JSON.parse(encoded) : undefined;
-    observed.push(`${request.method} ${url.pathname}`);
-    response.setHeader('Content-Type', 'application/json');
-    if (url.pathname === folderPath && request.method === 'POST') {
-      expect(payload).toEqual({ properties: [{ name: { value: 'Fixture project' } }, { domain: { value: 'example.com' } }] });
-      savedProject = { id: '9223372036854775807', name: payload.properties[0].name.value, domain: payload.properties[1].domain.value };
-      response.writeHead(201); response.end(JSON.stringify({ folder: { id: savedProject.id, properties: { name: savedProject.name, domain: savedProject.domain } } })); return;
-    }
-    if (url.pathname === folderPath + '/folder') {
-      expect(url.searchParams.get('folder_id')).toBe('9223372036854775807');
-      response.end(JSON.stringify({ folder: savedProject })); return;
-    }
-    if (request.method === 'PUT') {
-      expect(payload).toEqual({ properties: [{ name: { value: 'Renamed fixture' } }] });
-      if (savedProject) savedProject.name = payload.properties[0].name.value;
-      response.end(JSON.stringify({ folder: savedProject })); return;
-    }
-    if (url.pathname.includes('/tags/')) {
-      expect(payload).toEqual({ tags: [{ name: 'fixture' }] });
-      if (savedProject) savedProject.tags = payload.tags;
-      response.end(JSON.stringify({ tags: savedProject?.tags })); return;
-    }
-    if (request.method === 'DELETE') {
-      expect(encoded).toBe(''); savedProject = undefined;
-      response.writeHead(204); response.end(); return;
-    }
-    response.writeHead(404); response.end('{}'); return;
-  }
+  if (url.pathname.startsWith(folderPath)) { await serveProjectFixture(request, response, url); return; }
   if (url.pathname === '/siteaudit/api/campaigns/seolist') { response.setHeader('Content-Type', 'application/json'); response.end(JSON.stringify(auditConfigured ? [{ id: 789 }] : [])); return; }
-  if (url.pathname.startsWith('/siteaudit/api/')) { await serveAuditFixture(request, response, url); return; }
+  if (url.pathname.startsWith('/siteaudit/export/')) {
+    expect(url.searchParams.get('key')).toBe('fixture-secret');
+    expect(url.searchParams.get('export')).toBe('csv');
+    response.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    response.setHeader('Content-Disposition', 'attachment; filename=fixture.csv');
+    response.end('url,title\nhttps://example.com/,café\n'); return;
+  }
+  if (url.pathname.startsWith('/tracking/web-api/')) { await serveTrackingFixture(request, response, url); return; }
+  if (url.pathname.startsWith('/siteaudit/api/') || url.pathname === '/siteaudit/private/polling') { await serveAuditFixture(request, response, url); return; }
   if (url.pathname === '/kwm/rpc') {
     let encoded = '';
     for await (const chunk of request) encoded += chunk;
@@ -170,7 +149,7 @@ afterAll(async () => {
 
 function fixtureLayer() {
   const config = ConfigProvider.layer(ConfigProvider.fromUnknown({ SEMRUSH_GALLETON_URL: daemonURL, SEMRUSH_GALLETON_TOKEN_FILE: join(directory, 'api.token'), SEMRUSH_SESSION: 'test' }));
-  return makeSemrushLayer(fixtureURL).pipe(Layer.provide(makeSessionsLayer(fixtureURL)), Layer.provide(config));
+  return makeSemrushLayer(fixtureURL).pipe(Layer.provide(makeSessionsLayer(fixtureURL)), Layer.provideMerge(exportsLive), Layer.provide(config));
 }
 
 test('real Chromium restores Galleton cookies, fetches reports, redacts and captures rotation', async () => {
@@ -270,9 +249,18 @@ test('Site Audit settings save without launching; business status and authentica
 async function serveAuditFixture(request: IncomingMessage, response: ServerResponse, url: URL) {
     expect(url.searchParams.get('key')).toBe('fixture-secret');
     observed.push(`${request.method} ${url.pathname}`);
+    if (request.method === 'POST') expect(request.headers['content-type']).toBe('application/json');
     let encoded = '';
     for await (const chunk of request) encoded += chunk;
     response.setHeader('Content-Type', 'application/json');
+    if (url.pathname === '/siteaudit/private/polling') {
+      expect(url.searchParams.get('campaignIds')).toBe('789');
+      response.end(JSON.stringify([{ id: 789, status: auditStarted ? 'RUNNING' : 'FINISHED', is_allowed_stopping: auditStarted, run_pages_crawled: auditStarted ? 3 : 0 }])); return;
+    }
+    if (url.pathname.includes('/pageData/')) {
+      expect(request.method).toBe('GET');
+      response.end(JSON.stringify({ id: url.pathname.split('/').at(-1), status: 'FINISHED', issues: [] })); return;
+    }
     if (url.pathname.endsWith('/save')) {
       const settings = JSON.parse(encoded);
       expect(settings.pageLimit).toBe(10); expect(settings.scheduleDay).toBe(0); expect(settings.notify).toBe(false);
@@ -280,8 +268,123 @@ async function serveAuditFixture(request: IncomingMessage, response: ServerRespo
       auditConfigured = true;
     } else if (url.pathname.endsWith('/launch')) {
       expect(auditConfigured).toBe(true); expect(encoded).toBe(''); auditStarted = true;
+    } else if (url.pathname.endsWith('/abort') || url.pathname.endsWith('/stop')) {
+      expect(request.method).toBe('POST'); expect(encoded).toBe(''); auditStarted = false;
+      response.removeHeader('Content-Type'); response.end(); return;
     } else if (url.pathname.endsWith('/snapshot')) {
       expect(url.searchParams.get('snapshot_id')).toBe('12');
     }
     response.end(JSON.stringify({ id: 789, status: auditStarted ? 'RUNNING' : 'FINISHED', projectDomain: 'example.com', authEnabled: auditProtected, gaSettings: {}, webBotAuthEnabled: false })); return;
 }
+
+// The real HTTP fixture exercises cookie-only writes, legacy key queries and array payloads.
+test('Position Tracking restores auth and completes incremental target updates', async () => {
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const service = yield* Semrush;
+    const created = yield* service.report(yield* parseReport('position_create', { project_id: 789, domain: 'example.com', keywords: ['fixture'], location_id: 2840, confirm: true }));
+    expect(created.data).toMatchObject({ status: 'ok', data: { campaign_ids: ['789_42'] } });
+    const campaign = { campaign_id: '789_42' };
+    yield* service.report(yield* parseReport('position_keywords_add', { ...campaign, keywords: ['second'], tags: ['initial'], confirm: true }));
+    yield* service.report(yield* parseReport('position_keyword_tags', { ...campaign, keywords: ['second'], add_tags: ['checked'], remove_tags: ['initial'], confirm: true }));
+    expect(trackingKeywords).toEqual([{ keyword: 'fixture', tags: [] }, { keyword: 'second', tags: ['checked'] }]);
+    yield* service.report(yield* parseReport('position_competitors_set', { ...campaign, competitors: ['example.org'], confirm: true }));
+    expect(trackingCompetitors).toEqual([{ domain: 'example.org', url: 'example.org' }]);
+    yield* service.report(yield* parseReport('position_keywords_delete', { ...campaign, keywords: ['second'], confirm: true }));
+    expect(trackingKeywords).toEqual([{ keyword: 'fixture', tags: [] }]);
+    const limits = yield* service.report(yield* parseReport('position_limits', { project_id: 789 }));
+    expect(limits.data).toMatchObject({ status: 'ok', data: { limits: { keywords: 1500 } } });
+    const page = yield* service.report(yield* parseReport('audit_page', { campaign_id: 789, page_id: 'opaque_42' }));
+    expect(page.data).toMatchObject({ id: 'opaque_42', status: 'FINISHED' });
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+let trackingKeywords: { keyword: string; tags: string[] }[] = [];
+let trackingCompetitors: { domain: string; url: string }[] = [];
+async function serveTrackingFixture(request: IncomingMessage, response: ServerResponse, url: URL) {
+  expect(request.headers.cookie).toContain('session=authorized');
+  response.setHeader('Content-Type', 'application/json');
+  if (url.pathname.endsWith('/owner_limits')) {
+    expect(request.method).toBe('GET');
+    expect(url.searchParams.get('api_key')).toBe('fixture-secret');
+    response.end(JSON.stringify({ status: 'ok', data: { limits: { keywords: 1500 } } })); return;
+  }
+  expect(request.method).toBe('POST');
+  expect(url.searchParams.has('api_key')).toBe(false);
+  let encoded = '';
+  for await (const chunk of request) encoded += chunk;
+  const payload = JSON.parse(encoded);
+  expect(payload).not.toHaveProperty('confirm');
+  expect(payload).not.toHaveProperty('dry_run');
+  if (url.pathname.endsWith('/create_targets')) {
+    expect(payload.targeting[0]).toMatchObject({ weekly_notification: false, location: { location_id: 2840 } });
+    trackingKeywords = payload.keywords;
+    response.end(JSON.stringify({ status: 'ok', data: { campaign_ids: ['789_42'] } })); return;
+  }
+  if (url.pathname.endsWith('/campaign_set_competitors')) {
+    expect(Array.isArray(payload)).toBe(true); trackingCompetitors = payload;
+  } else if (url.pathname.endsWith('/update_keywords_state')) {
+    if (payload.create) trackingKeywords.push(...payload.create);
+    if (payload.delete) trackingKeywords = trackingKeywords.filter(keyword => !payload.delete.includes(keyword.keyword));
+    for (const update of payload['update-attributes'] ?? []) {
+      const keyword = trackingKeywords.find(keyword => keyword.keyword === update.keyword);
+      if (keyword) keyword.tags = [...keyword.tags.filter(tag => !update.tags.delete.includes(tag)), ...update.tags.create];
+    }
+  } else { response.writeHead(404); response.end('{}'); return; }
+  response.end(JSON.stringify({ status: 'ok', data: {} }));
+}
+
+async function serveProjectFixture(request: IncomingMessage, response: ServerResponse, url: URL) {
+  let encoded = '';
+  for await (const chunk of request) encoded += chunk;
+  const payload = encoded ? JSON.parse(encoded) : undefined;
+  observed.push(`${request.method} ${url.pathname}`);
+  response.setHeader('Content-Type', 'application/json');
+  if (url.pathname === folderPath && request.method === 'POST') {
+    expect(payload).toEqual({ properties: [{ name: { value: 'Fixture project' } }, { domain: { value: 'example.com' } }] });
+    savedProject = { id: '9223372036854775807', name: payload.properties[0].name.value, domain: payload.properties[1].domain.value };
+    response.writeHead(201); response.end(JSON.stringify({ folder: { id: savedProject.id, properties: { name: savedProject.name, domain: savedProject.domain } } })); return;
+  }
+  if (url.pathname === folderPath + '/folder') {
+    expect(url.searchParams.get('folder_id')).toBe('9223372036854775807');
+    response.end(JSON.stringify({ folder: savedProject })); return;
+  }
+  if (request.method === 'PUT') {
+    expect(payload).toEqual({ properties: [{ name: { value: 'Renamed fixture' } }] });
+    if (savedProject) savedProject.name = payload.properties[0].name.value;
+    response.end(JSON.stringify({ folder: savedProject })); return;
+  }
+  if (url.pathname.includes('/tags/')) {
+    expect(payload).toEqual({ tags: [{ name: 'fixture' }] });
+    if (savedProject) savedProject.tags = payload.tags;
+    response.end(JSON.stringify({ tags: savedProject?.tags })); return;
+  }
+  if (request.method === 'DELETE') {
+    expect(encoded).toBe(''); savedProject = undefined;
+    response.writeHead(204); response.end(); return;
+  }
+  response.writeHead(404); response.end('{}'); return;
+}
+
+test('bodyless crawl controls keep JSON headers and preserve the explicit stop sequence', async () => {
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const service = yield* Semrush;
+    const target = { campaign_id: 789, confirm: true };
+    expect((yield* service.report(yield* parseReport('audit_start', target))).data).toMatchObject({ status: 'RUNNING' });
+    expect((yield* service.report(yield* parseReport('audit_abort', target))).data).toBeNull();
+    expect((yield* service.report(yield* parseReport('audit_status', { campaign_id: 789 }))).data).toMatchObject({ status: 'FINISHED' });
+    yield* service.report(yield* parseReport('audit_start', target));
+    expect((yield* service.report(yield* parseReport('audit_finalize', target))).data).toBeNull();
+    expect((yield* service.report(yield* parseReport('audit_status', { campaign_id: 789 }))).data).toMatchObject({ status: 'FINISHED' });
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+test('real Chromium streams a provider attachment into an MCP-readable export', async () => {
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const report = yield* (yield* Semrush).report(yield* parseReport('audit_export_pages', { snapshot_id: 'opaque_snapshot' }));
+    expect(report.data).toBeNull();
+    if (!report.artifact) throw new Error('Expected an export artifact');
+    expect(report.artifact).toMatchObject({ filename: 'fixture.csv', mime_type: 'text/csv' });
+    const chunk = yield* (yield* Exports).read(report.artifact.uri);
+    expect(Buffer.from(chunk.blob, 'base64').toString('utf8')).toBe('url,title\nhttps://example.com/,café\n');
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);

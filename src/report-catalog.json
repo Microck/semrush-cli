@@ -4076,5 +4076,1602 @@
         "page_limit"
       ]
     }
+  },
+  "audit_pages": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/pages",
+    "description": "Read the current crawled-page table. Pagination is zero-based.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20
+        },
+        "sort": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_]*_(?:asc|desc)$",
+          "default": "url_asc"
+        },
+        "filter": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "filter_type": {
+          "type": "string",
+          "enum": [
+            "url",
+            "title",
+            "meta_description"
+          ]
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    }
+  },
+  "audit_page": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/pageData/{page_id}",
+    "description": "Read one crawled page and its issue details.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "page_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        }
+      },
+      "required": [
+        "campaign_id",
+        "page_id"
+      ]
+    }
+  },
+  "audit_issue": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/snapshot/{snapshot_id}/issue/{issue_id}",
+    "description": "Read affected-page rows for one issue in a snapshot. Requests use one-based pages.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "snapshot_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "issue_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 10
+        },
+        "sort": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_]*_(?:asc|desc)$",
+          "default": "index_asc"
+        },
+        "visible": {
+          "type": "boolean",
+          "default": true
+        },
+        "filter": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "search": {
+          "type": "string",
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "campaign_id",
+        "snapshot_id",
+        "issue_id"
+      ]
+    }
+  },
+  "audit_structure": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/structure",
+    "description": "Read crawl directory structure and page/issue counts.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    }
+  },
+  "audit_performance": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/performance",
+    "description": "Read crawl performance distributions and load-time history.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    }
+  },
+  "audit_linking": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/linking",
+    "description": "Read internal link distribution, depth and linking issues.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    }
+  },
+  "audit_history": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/history",
+    "description": "Read paginated completed-crawl progress metrics.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 7
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    }
+  },
+  "audit_recrawl": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/pageRecrawl/{page_id}",
+    "description": "Recrawl one page explicitly. Consumes crawl allowance.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "page_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "campaign_id",
+        "page_id"
+      ]
+    }
+  },
+  "audit_abort": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/abort",
+    "description": "Abort an active crawl and discard its in-progress results.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    },
+    "response_type": "empty"
+  },
+  "audit_finalize": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/stop",
+    "description": "Stop an active crawl and keep results already collected.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    },
+    "response_type": "empty"
+  },
+  "position_campaigns": {
+    "method": "/positions/api/campaigns",
+    "description": "Discover Position Tracking campaigns grouped by SEO project.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "auth_parameter": "key"
+  },
+  "position_targets": {
+    "method": "/positions/api/{project_id}/targets",
+    "description": "Read targeting configurations for an SEO project.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "project_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "project_id"
+      ]
+    },
+    "auth_parameter": "key"
+  },
+  "position_locations": {
+    "method": "/positions/api/get_locations",
+    "description": "Search targeting countries, regions and cities.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "query"
+      ]
+    },
+    "auth_parameter": "key"
+  },
+  "position_limits": {
+    "method": "/tracking/web-api/management/project/{project_id}/owner_limits",
+    "description": "Read owner keyword, prompt and tracking-target allowances.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "project_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "project_id"
+      ]
+    },
+    "auth_parameter": "api_key"
+  },
+  "position_create": {
+    "method": "/tracking/web-api/management/{project_id}/create_targets",
+    "description": "Create one tracking target and start keyword monitoring. Does not purchase add-ons.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "project_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "Website or URL matching url_type. Root-domain tracking expects a bare domain."
+        },
+        "keywords": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1500,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "location_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "url_type": {
+          "type": "string",
+          "enum": [
+            "rootdomain",
+            "subdomain",
+            "subfolder",
+            "url"
+          ],
+          "default": "rootdomain"
+        },
+        "engine": {
+          "type": "string",
+          "enum": [
+            "google",
+            "bing",
+            "baidu",
+            "search-gpt",
+            "google-ai",
+            "gemini"
+          ],
+          "default": "google"
+        },
+        "device": {
+          "type": "string",
+          "enum": [
+            "desktop",
+            "phone",
+            "tablet"
+          ],
+          "default": "desktop"
+        },
+        "language_code": {
+          "type": "string",
+          "pattern": "^[a-z]{2}(?:-[A-Za-z]{2,3})?$",
+          "default": "en"
+        },
+        "volume_type": {
+          "type": "string",
+          "enum": [
+            "national",
+            "regional",
+            "local"
+          ],
+          "default": "national"
+        },
+        "timezone": {
+          "type": "integer",
+          "minimum": -12,
+          "maximum": 14,
+          "default": 0
+        },
+        "weekly_notification": {
+          "type": "boolean",
+          "default": false
+        },
+        "business_name": {
+          "type": "string",
+          "maxLength": 200,
+          "default": ""
+        },
+        "brands": {
+          "type": "array",
+          "maxItems": 20,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "default": []
+        },
+        "tags": {
+          "type": "array",
+          "maxItems": 20,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "default": []
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "project_id",
+        "domain",
+        "keywords",
+        "location_id"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "anyOf": [
+              {
+                "required": [
+                  "url_type"
+                ],
+                "properties": {
+                  "url_type": {
+                    "enum": [
+                      "rootdomain",
+                      "subdomain"
+                    ]
+                  }
+                }
+              },
+              {
+                "not": {
+                  "required": [
+                    "url_type"
+                  ]
+                }
+              }
+            ]
+          },
+          "then": {
+            "properties": {
+              "domain": {
+                "pattern": "^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z]{2,63}$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "url_type": {
+                "const": "url"
+              }
+            },
+            "required": [
+              "url_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "domain": {
+                "pattern": "^https?://[^\\s]+$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "engine": {
+                "enum": [
+                  "baidu",
+                  "search-gpt",
+                  "google-ai",
+                  "gemini"
+                ]
+              }
+            },
+            "required": [
+              "engine"
+            ]
+          },
+          "then": {
+            "properties": {
+              "device": {
+                "const": "desktop"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "engine": {
+                "const": "bing"
+              }
+            },
+            "required": [
+              "engine"
+            ]
+          },
+          "then": {
+            "properties": {
+              "device": {
+                "enum": [
+                  "desktop",
+                  "phone"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "auth_parameter": ""
+  },
+  "position_keywords_add": {
+    "method": "/tracking/web-api/management/{campaign_id}/update_keywords_state",
+    "description": "Add tracking keywords with optional tags. Consumes keyword or prompt allowance.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$",
+          "description": "Composite tracking campaign ID from position-create or position-campaigns, not the SEO project ID."
+        },
+        "keywords": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1500,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "tags": {
+          "type": "array",
+          "maxItems": 20,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "default": []
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "campaign_id",
+        "keywords"
+      ]
+    },
+    "auth_parameter": ""
+  },
+  "position_keywords_delete": {
+    "method": "/tracking/web-api/management/{campaign_id}/update_keywords_state",
+    "description": "Delete selected tracking keywords.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$",
+          "description": "Composite tracking campaign ID from position-create or position-campaigns, not the SEO project ID."
+        },
+        "keywords": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1500,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "campaign_id",
+        "keywords"
+      ]
+    },
+    "auth_parameter": ""
+  },
+  "position_keyword_tags": {
+    "method": "/tracking/web-api/management/{campaign_id}/update_keywords_state",
+    "description": "Add or remove tags on selected tracking keywords.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$",
+          "description": "Composite tracking campaign ID from position-create or position-campaigns, not the SEO project ID."
+        },
+        "keywords": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1500,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "add_tags": {
+          "type": "array",
+          "maxItems": 20,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "default": []
+        },
+        "remove_tags": {
+          "type": "array",
+          "maxItems": 20,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "default": []
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "campaign_id",
+        "keywords"
+      ],
+      "anyOf": [
+        {
+          "properties": {
+            "add_tags": {
+              "minItems": 1
+            }
+          },
+          "required": [
+            "add_tags"
+          ]
+        },
+        {
+          "properties": {
+            "remove_tags": {
+              "minItems": 1
+            }
+          },
+          "required": [
+            "remove_tags"
+          ]
+        }
+      ]
+    },
+    "auth_parameter": ""
+  },
+  "position_competitors_set": {
+    "method": "/tracking/web-api/management/campaign/{campaign_id}/campaign_set_competitors",
+    "description": "Replace the tracking campaign competitor list. An empty array clears it.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$",
+          "description": "Composite tracking campaign ID from position-create or position-campaigns, not the SEO project ID."
+        },
+        "competitors": {
+          "type": "array",
+          "maxItems": 20,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 253,
+            "pattern": "^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z]{2,63}$",
+            "description": "Domain or subdomain, without protocol or path."
+          }
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "campaign_id",
+        "competitors"
+      ]
+    },
+    "auth_parameter": ""
+  },
+  "audit_execution": {
+    "method": "/siteaudit/private/polling",
+    "description": "Read current crawl phases, progress and whether stopping is allowed.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        }
+      },
+      "required": [
+        "campaign_ids"
+      ]
+    }
+  },
+  "audit_export_pages": {
+    "method": "/siteaudit/export/pages/{snapshot_id}",
+    "description": "Download crawled-page data as CSV or XLSX.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "response_type": "download",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "snapshot_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "csv",
+            "xlsx"
+          ],
+          "default": "csv"
+        },
+        "relative": {
+          "type": "boolean",
+          "default": false
+        },
+        "sort": {
+          "type": "string",
+          "default": "url_asc"
+        },
+        "filter": {
+          "type": "string",
+          "default": ""
+        }
+      },
+      "required": [
+        "snapshot_id"
+      ]
+    }
+  },
+  "audit_export_issues": {
+    "method": "/siteaudit/export/snapshot/{snapshot_id}",
+    "description": "Download the snapshot issue summary as CSV or XLSX.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "response_type": "download",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "snapshot_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "csv",
+            "xlsx"
+          ],
+          "default": "csv"
+        }
+      },
+      "required": [
+        "snapshot_id"
+      ]
+    }
+  },
+  "audit_export_issue": {
+    "method": "/siteaudit/export/issues/{snapshot_id}/issue/{issue_id}",
+    "description": "Download affected-page rows for one issue as CSV or XLSX.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "response_type": "download",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "snapshot_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "csv",
+            "xlsx"
+          ],
+          "default": "csv"
+        },
+        "issue_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "sort": {
+          "type": "string",
+          "default": "index_asc"
+        }
+      },
+      "required": [
+        "snapshot_id",
+        "issue_id"
+      ]
+    }
+  },
+  "position_info": {
+    "method": "/tracking/web-api/management/campaign/{campaign_id}/info",
+    "description": "Read tracking settings, competitors and available dates.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "auth_parameter": "api_key",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$"
+        },
+        "today": {
+          "type": "string",
+          "pattern": "^[0-9]{8}$",
+          "description": "Date as YYYYMMDD within the campaign history."
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    }
+  },
+  "position_tags": {
+    "method": "/tracking/web-api/management/campaign/{campaign_id}/tags",
+    "description": "Read the campaign keyword tags.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "auth_parameter": "api_key",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$"
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    }
+  },
+  "position_campaign_limits": {
+    "method": "/tracking/web-api/management/campaign/{campaign_id}/limits",
+    "description": "Read limits for a tracking target.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "auth_parameter": "api_key",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$"
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    }
+  },
+  "position_overview": {
+    "method": "/tracking/web-api/reports/overview",
+    "description": "Read keyword rankings for tracked competitors.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "auth_parameter": "api_key",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$"
+        },
+        "date_begin": {
+          "type": "string",
+          "pattern": "^[0-9]{8}$",
+          "description": "Date as YYYYMMDD within the campaign history."
+        },
+        "date_end": {
+          "type": "string",
+          "pattern": "^[0-9]{8}$",
+          "description": "Date as YYYYMMDD within the campaign history."
+        },
+        "competitors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "minItems": 1,
+          "maxItems": 20,
+          "description": "Tracking target patterns, for example *.example.com/*. Read position-info for campaign targets."
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "organic",
+            "adwords"
+          ],
+          "default": "organic"
+        },
+        "volume_level": {
+          "type": "string",
+          "enum": [
+            "national",
+            "local"
+          ],
+          "default": "national"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 20
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "sort_field": {
+          "type": "string",
+          "enum": [
+            "visibility",
+            "traffic"
+          ],
+          "default": "visibility"
+        },
+        "sort_order": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ],
+          "default": "desc"
+        },
+        "sort_date": {
+          "type": "string",
+          "enum": [
+            "begin",
+            "end",
+            "diff"
+          ],
+          "default": "end"
+        },
+        "sort_competitor": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 19,
+          "default": 0
+        }
+      },
+      "required": [
+        "campaign_id",
+        "date_begin",
+        "date_end",
+        "competitors"
+      ]
+    }
+  },
+  "position_overview_trend": {
+    "method": "/tracking/web-api/reports/overview_trend",
+    "description": "Read visibility, traffic and position trends.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "auth_parameter": "api_key",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$"
+        },
+        "date_begin": {
+          "type": "string",
+          "pattern": "^[0-9]{8}$",
+          "description": "Date as YYYYMMDD within the campaign history."
+        },
+        "date_end": {
+          "type": "string",
+          "pattern": "^[0-9]{8}$",
+          "description": "Date as YYYYMMDD within the campaign history."
+        },
+        "competitors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "minItems": 1,
+          "maxItems": 20,
+          "description": "Tracking target patterns, for example *.example.com/*. Read position-info for campaign targets."
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "organic",
+            "adwords"
+          ],
+          "default": "organic"
+        },
+        "volume_level": {
+          "type": "string",
+          "enum": [
+            "national",
+            "local"
+          ],
+          "default": "national"
+        },
+        "need_predictions": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "campaign_id",
+        "date_begin",
+        "date_end",
+        "competitors"
+      ]
+    }
+  },
+  "position_distribution_trend": {
+    "method": "/tracking/web-api/reports/rankings_distribution_trend",
+    "description": "Read ranking distribution history.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "auth_parameter": "api_key",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$"
+        },
+        "date_begin": {
+          "type": "string",
+          "pattern": "^[0-9]{8}$",
+          "description": "Date as YYYYMMDD within the campaign history."
+        },
+        "date_end": {
+          "type": "string",
+          "pattern": "^[0-9]{8}$",
+          "description": "Date as YYYYMMDD within the campaign history."
+        },
+        "competitors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "minItems": 1,
+          "maxItems": 20,
+          "description": "Tracking target patterns, for example *.example.com/*. Read position-info for campaign targets."
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "organic",
+            "adwords"
+          ],
+          "default": "organic"
+        },
+        "volume_level": {
+          "type": "string",
+          "enum": [
+            "national",
+            "local"
+          ],
+          "default": "national"
+        },
+        "sort_field": {
+          "type": "string",
+          "enum": [
+            "visibility",
+            "traffic"
+          ],
+          "default": "visibility"
+        },
+        "sort_order": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ],
+          "default": "desc"
+        },
+        "sort_date": {
+          "type": "string",
+          "enum": [
+            "begin",
+            "end",
+            "diff"
+          ],
+          "default": "end"
+        },
+        "sort_competitor": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 19,
+          "default": 0
+        }
+      },
+      "required": [
+        "campaign_id",
+        "date_begin",
+        "date_end",
+        "competitors"
+      ]
+    }
+  },
+  "position_pages": {
+    "method": "/tracking/web-api/reports/pages",
+    "description": "Read tracked landing-page performance.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "auth_parameter": "api_key",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$"
+        },
+        "date_begin": {
+          "type": "string",
+          "pattern": "^[0-9]{8}$",
+          "description": "Date as YYYYMMDD within the campaign history."
+        },
+        "date_end": {
+          "type": "string",
+          "pattern": "^[0-9]{8}$",
+          "description": "Date as YYYYMMDD within the campaign history."
+        },
+        "competitors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "minItems": 1,
+          "maxItems": 20,
+          "description": "Tracking target patterns, for example *.example.com/*. Read position-info for campaign targets."
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "organic",
+            "adwords"
+          ],
+          "default": "organic"
+        },
+        "volume_level": {
+          "type": "string",
+          "enum": [
+            "national",
+            "local"
+          ],
+          "default": "national"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 20
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "sort_field": {
+          "type": "string",
+          "enum": [
+            "visibility",
+            "traffic"
+          ],
+          "default": "traffic"
+        },
+        "sort_order": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ],
+          "default": "desc"
+        },
+        "sort_date": {
+          "type": "string",
+          "enum": [
+            "begin",
+            "end",
+            "diff"
+          ],
+          "default": "end"
+        }
+      },
+      "required": [
+        "campaign_id",
+        "date_begin",
+        "date_end",
+        "competitors"
+      ]
+    }
+  },
+  "position_cannibalization_trend": {
+    "method": "/tracking/web-api/reports/cannibalization_health/trend",
+    "description": "Read keyword cannibalization health history.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "auth_parameter": "api_key",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$"
+        },
+        "date_begin": {
+          "type": "string",
+          "pattern": "^[0-9]{8}$",
+          "description": "Date as YYYYMMDD within the campaign history."
+        },
+        "date_end": {
+          "type": "string",
+          "pattern": "^[0-9]{8}$",
+          "description": "Date as YYYYMMDD within the campaign history."
+        },
+        "competitors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "minItems": 1,
+          "maxItems": 20,
+          "description": "Tracking target patterns, for example *.example.com/*. Read position-info for campaign targets."
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "organic",
+            "adwords"
+          ],
+          "default": "organic"
+        },
+        "volume_level": {
+          "type": "string",
+          "enum": [
+            "national",
+            "local"
+          ],
+          "default": "national"
+        }
+      },
+      "required": [
+        "campaign_id",
+        "date_begin",
+        "date_end",
+        "competitors"
+      ]
+    }
   }
 }

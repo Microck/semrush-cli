@@ -58,7 +58,6 @@ current account's permissions and the provider's undo lifetime.
 semrush keyword-strategy-create --name 'example strategy' --domain example.com --dry-run
 semrush keyword-strategy-create --name 'topic strategy' --seed-keywords '["email marketing"]' --database us --confirm
 semrush keyword-list-update-metrics --basket-id 456 --owner-id 123 --keywords '["seo"]' --confirm
-semrush keyword-list-cluster-forecast --basket-id 456 --owner-id 123 --json
 semrush keyword-list-cluster --basket-id 456 --owner-id 123 --confirm
 semrush keyword-list-cluster-status --basket-id 456 --owner-id 123 --json
 ```
@@ -66,7 +65,10 @@ semrush keyword-list-cluster-status --basket-id 456 --owner-id 123 --json
 Strategy generation accepts a domain, seed phrases, or both, plus optional
 competitors and database selection. It creates a structured list and consumes
 the clustering allowance. Metric refresh consumes the update allowance. These
-operations are asynchronous. Read their status or refreshed data explicitly;
+operations are asynchronous. `keyword-list-cluster-forecast` reads the seed
+forecast of a structured strategy; a plain manual list has no generation
+forecast and returns a provider error. Use the strategy basket ID returned by
+`keyword-strategy-create` for that read. Read their status or refreshed data explicitly;
 the CLI does not retry writes or poll automatically.
 
 List IDs and owner IDs must be exact JSON integers within JavaScript's safe

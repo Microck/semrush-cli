@@ -14,6 +14,7 @@ export interface Query { [key: string]: Schema.Json; }
 /** Fixed request shapes observed in semrush-web-mcp. No arbitrary RPC or URL input. */
 export function reportParameters(definition: Report, q: Query): Query {
   const family = definition.transport;
+  if (family === 'tracking_web') return trackingParameters(definition, q);
   if (family === 'audit_web') return auditParameters(definition, q);
   if (family === 'kwm') return keywordListParameters(definition, q);
   if (family === 'project_web') return projectParameters(definition, q);
@@ -126,10 +127,12 @@ function projectParameters(definition: Report, q: Query): Query {
 /** Fixed public request plans. RPC credentials enter only inside the browser layer. */
 export function webRequest(definition: Report, query: Query) {
   if (definition.transport === 'kwm') return { method: 'POST', path: '/kwm/rpc', body: rpcBody(definition.method, reportParameters(definition, query)) };
+  const parameters = reportParameters(definition, query);
   return {
     method: definition.http_method,
-    path: definition.method.replace('{folder_id}', String(query.folder_id)).replace('{campaign_id}', String(query.campaign_id)),
-    body: definition.transport === 'audit_web' && definition.method.endsWith('/launch') ? null : reportParameters(definition, query),
+    path: definition.method.replace(/\{([a-z_]+)\}/g, (_match, key: string) => encodeURIComponent(String(query[key]))),
+    body: definition.method.endsWith('/campaign_set_competitors') ? parameters.competitors ?? []
+      : definition.http_method === 'POST' && Object.keys(parameters).length === 0 ? null : parameters,
   };
 }
 
@@ -179,7 +182,13 @@ function keywordListParameters(definition: Report, q: Query): Query {
 
 /** Public-site settings use the wizard contract. Saving and launching are separate operations. */
 function auditParameters(definition: Report, q: Query): Query {
-  if (!definition.method.endsWith('/save')) return Object.fromEntries(Object.entries(q).filter(([key]) => !['campaign_id', 'confirm', 'dry_run'].includes(key)));
+  if (!definition.method.endsWith('/save')) {
+    const parameters = publicParameters(definition, q);
+    if ('format' in parameters) { parameters.export = parameters.format ?? null; delete parameters.format; }
+    if ('campaign_ids' in parameters) { parameters.campaignIds = Array.isArray(parameters.campaign_ids) ? parameters.campaign_ids.join(',') : ''; delete parameters.campaign_ids; }
+    if ('filter_type' in parameters) { parameters.filterType = parameters.filter_type ?? null; delete parameters.filter_type; }
+    return parameters;
+  }
   const paths = (value: Schema.Json | undefined) => Array.isArray(value) ? [...new Set(value.map(path => String(path).startsWith('/') ? String(path) : '/' + String(path)))] : [];
   return {
     name: q.name ?? null, domain: q.domain ?? null, rootDomain: q.domain ?? null,
@@ -193,4 +202,40 @@ function auditParameters(definition: Report, q: Query): Query {
     authEnabled: false, authUsername: '', authPassword: '', gaSettings: {}, gaStatus: '',
     webBotAuthEnabled: false, webBotAuthSignatureAgent: '', webBotAuthSignatureInput: '', webBotAuthSignature: '',
   };
+}
+
+/** Only catalog parameters go on wire; identifiers embedded in a path are not repeated. */
+function publicParameters(definition: Report, query: Query): Query {
+  return Object.fromEntries(Object.entries(query).filter(([key]) => !['confirm', 'dry_run'].includes(key) && !definition.method.includes(`{${key}}`)));
+}
+
+/** Current Position Tracking wizard uses cookie-authenticated incremental writes, never billing. */
+function trackingParameters(definition: Report, query: Query): Query {
+  const phrases = Array.isArray(query.keywords) ? query.keywords : [];
+  if (definition.method.endsWith('/create_targets')) return {
+    url: query.domain ?? null, url_type: query.url_type ?? 'rootdomain',
+    keywords: phrases.map(keyword => ({ keyword, tags: query.tags ?? [] })),
+    targeting: [{ timezone: query.timezone ?? 0, title: query.name ?? query.domain ?? null,
+      weekly_notification: query.weekly_notification ?? false, device: query.device ?? 'desktop',
+      engine: query.engine ?? 'google', business_name: query.business_name ?? '', brands: query.brands ?? [],
+      location: { language_code: query.language_code ?? 'en', location_id: query.location_id ?? null, volume_type: query.volume_type ?? 'national' } }],
+  };
+  if (definition.method.endsWith('/update_keywords_state')) {
+    if ('tags' in query) return { create: phrases.map(keyword => ({ keyword, tags: query.tags ?? [] })) };
+    if ('add_tags' in query) return { 'update-attributes': phrases.map(keyword => ({ keyword, tags: { create: query.add_tags ?? [], delete: query.remove_tags ?? [] } })) };
+    return { delete: phrases };
+  }
+  if (definition.method.endsWith('/campaign_set_competitors')) return { competitors: Array.isArray(query.competitors) ? query.competitors.map(domain => ({ domain, url: domain })) : [] };
+  if (definition.method.endsWith('/get_locations')) return { q: query.query ?? '' };
+  if (definition.method.startsWith('/tracking/web-api/reports/')) {
+    const parameters = publicParameters(definition, query);
+    parameters['competitors[]'] = parameters.competitors ?? [];
+    delete parameters.competitors;
+    for (const field of ['field', 'order', 'date', 'competitor']) {
+      const key = `sort_${field}`;
+      if (key in parameters) { parameters[`sort[${field}]`] = parameters[key] ?? null; delete parameters[key]; }
+    }
+    return parameters;
+  }
+  return publicParameters(definition, query);
 }

@@ -94,4 +94,65 @@ Explicit recurring schedules create future runs; `--notify` enables emails.
 and `audit-snapshot` inspect campaigns and results. Snapshot IDs are opaque
 strings, unlike numeric campaign IDs. Use the exact returned string. All writes
 require confirmation and support a dry run before authentication. Detailed
-issue/page tables, stopping crawls and connected integrations remain in the web UI.
+issue/page tables and stop controls are documented below. Connected integrations remain in the web UI.
+
+## Position Tracking
+
+`position-campaigns` discovers targets grouped by SEO project. An SEO project ID
+is distinct from its dashboard folder ID. Tracking campaign IDs are composite
+strings such as `123_456`, returned by `position-create` or `position-campaigns`.
+`position-locations --query <text>` resolves targeting location IDs.
+`position-limits --project-id <seo-id>` reads the owner's keyword/target limits.
+
+`position-create --project-id <seo-id> --domain <domain> --keywords '["phrase"]'
+--location-id <location-id> --confirm` creates one explicit tracking target.
+Optional engine, device, language, URL type, time zone and business/brand settings
+match the web wizard. Weekly email defaults to off. Creation starts tracking and
+consumes target/keyword allowance. It never buys an add-on. Confirmed keyword
+addition/deletion and tag changes use the web client's incremental state API.
+Changing competitors replaces the configured competitor list explicitly.
+
+AI engines require the provider's prompt allowance. A plan refusal remains an
+error and is not evidence that an AI tracking request succeeded. The CLI never
+uses the web client's automatic billing flow. Every write supports a dry run
+before acquiring credentials.
+
+## Detailed Site Audit results
+
+`audit-pages` reads the current crawled-page table with zero-based pagination,
+filtering and sorting. `audit-page` reads one exact page ID returned by that table.
+`audit-issue` reads the affected-page rows for an issue ID from `audit-snapshot`,
+using one-based pagination and the exact snapshot ID. IDs remain exact strings
+where the provider uses values larger than JavaScript's safe integer range.
+`audit-structure`, `audit-performance`, `audit-linking` and `audit-history` read
+structural, performance, linking and progress data.
+
+`audit-recrawl` explicitly recrawls one page and consumes allowance. `audit-abort`
+discards an active crawl; `audit-finalize` stops it and keeps collected results.
+Both require confirmation and check the current `is_allowed_stopping` state before
+sending the action. `audit-execution --campaign-ids '[123]'` exposes that state.
+A successful stop action returns `data: null`; inspect the campaign afterward.
+No read starts or stops a crawl. Page IDs must be read again after a new crawl.
+
+## Export files
+
+Site Audit export commands download the provider's CSV or XLSX file. CLI calls
+require `--output <path>` and refuse an existing destination. Stdout remains a
+JSON receipt; downloaded bytes are never mixed with JSON or terminal messages.
+The file is saved before the transient browser and temporary export storage close.
+
+MCP export tools return `data: null` plus an `artifact` descriptor containing its
+URI, suggested filename, MIME type and byte size. Resources remain available for
+that MCP process's lifetime. `resources/read` accepts optional `offset` and `limit`
+query parameters on the returned URI. The default chunk is 64 KiB, with a maximum
+of 1 MiB per read. This keeps large exports out of tool-response text. Only files
+created by this runtime can be read; arbitrary filesystem paths are not exposed.
+
+
+Position Tracking report reads use fixed `/tracking/web-api/reports/` routes,
+YYYYMMDD date bounds and repeated `competitors[]` query parameters. Sort keys
+use the web client's bracketed `sort[field]`, `sort[order]`, `sort[date]` and
+`sort[competitor]` names. Campaign info, tag and limit reads use the current
+management API. `position-overview` returns tracked keywords and their tags;
+the similarly named analytics keyword-suggestion endpoint is not a tracked
+keyword list and is not exposed for that purpose.

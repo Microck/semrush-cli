@@ -1,0 +1,84 @@
+---
+title: Position Tracking
+description: Create tracking targets, manage keywords and read rankings.
+---
+
+Enable SEO on a project before creating a tracking target. The numeric SEO
+project ID differs from both the project folder ID and a tracking campaign ID.
+Read `position-limits` before creating targets or adding keywords.
+
+```sh
+semrush position-locations --query 'United States'
+semrush position-limits --project-id 456
+semrush position-targets --project-id 456
+```
+
+## Create a target
+
+```sh
+semrush position-create \
+  --project-id 456 --domain example.com \
+  --keywords '["example domain"]' --location-id 2840 --dry-run
+
+semrush position-create \
+  --project-id 456 --domain example.com \
+  --keywords '["example domain"]' --location-id 2840 --confirm
+```
+
+Creation starts tracking and consumes target and keyword allowances. Defaults
+are Google, desktop, English, national search volume, UTC and no weekly emails.
+Find supported options with `position-create --help`. The returned campaign ID
+has two numeric parts, such as `456_789`. Keep that complete string for reads
+and writes. Do not substitute the project ID alone.
+
+## Manage keywords and competitors
+
+```sh
+semrush position-keywords-add --campaign-id 456_789 \
+  --keywords '["example website"]' --tags '["research"]' --confirm
+
+semrush position-keyword-tags --campaign-id 456_789 \
+  --keywords '["example website"]' --add-tags '["reviewed"]' \
+  --remove-tags '["research"]' --confirm
+
+semrush position-competitors-set --campaign-id 456_789 \
+  --competitors '["example.org"]' --confirm
+
+semrush position-keywords-delete --campaign-id 456_789 \
+  --keywords '["example website"]' --confirm
+```
+
+Competitor replacement sets the complete competitor list. An empty JSON array
+clears it. Keyword deletion removes those phrases from tracking. Writes also
+support `--dry-run`, which validates and prints the request without signing in.
+
+## Read rankings
+
+```sh
+semrush position-info --campaign-id 456_789
+semrush position-tags --campaign-id 456_789
+semrush position-campaign-limits --campaign-id 456_789
+```
+
+`position-info` returns available dates, campaign settings and competitors.
+Choose `date_begin` and `date_end` within `data.dates.min` and `data.dates.max`.
+Dates use YYYYMMDD. New targets need time to collect rankings.
+
+```sh
+semrush position-overview --campaign-id 456_789 \
+  --date-begin 20261015 --date-end 20261015 \
+  --competitors '["*.example.com/*"]' --limit 20 --offset 0
+```
+
+Use the same dates and competitor target patterns with
+`position-overview-trend`, `position-distribution-trend`, `position-pages` and
+`position-cannibalization-trend`. A root-domain pattern includes subdomains and
+paths. Quote the JSON array so the shell does not expand its wildcard characters.
+
+Responses preserve the provider's native `status` and `data` envelope. The
+rankings report's `data.keywords` contains tracked phrases, tags, positions and
+landing URLs. `data.total`, `limit` and `offset` support pagination.
+
+Target-settings edits, alerts, notes, target comparison and tracking exports
+still require the web UI. Current request contracts were checked against the
+tracking dashboard and wizard, then verified on a disposable account target.

@@ -15,7 +15,7 @@
 
 ---
 
-`semrush` is a terminal cli for semrush. research keywords, check rankings and backlinks, compare competitors, manage projects and keyword lists, and run site audits from your own account. output is json, so you can pipe it into `jq` or give the same commands to an agent through mcp. built with typescript and effect.
+`semrush` is a terminal cli for semrush. research keywords, check rankings and backlinks, compare competitors, manage projects and keyword lists, track positions, and run site audits from your own account. output is json, so you can pipe it into `jq` or give the same commands to an agent through mcp. built with typescript and effect.
 
 [documentation](https://semrush.micr.dev) | [command reference](https://semrush.micr.dev/docs/reports) | [npm](https://www.npmjs.com/package/semrush-cli) | [mcp](https://semrush.micr.dev/docs/mcp)
 
@@ -25,7 +25,7 @@
 
 if you already pay for semrush, you should be able to use it from the terminal too. this cli uses your existing web session, so there is no developer api key to buy or configure. look up a keyword, save the result, compare a few domains, or let an agent do it through mcp.
 
-your plan's permissions and limits still apply. it doesn't cover the whole semrush suite. the [coverage page](https://semrush.micr.dev/docs/coverage) lists what works and what still needs the web ui.
+your plan's permissions and limits still apply. this doesn't cover the whole semrush suite. full ads research, ai prompt workflows, local, social and connected content tools remain outside verified coverage because the current account plan blocks them. the [coverage page](https://semrush.micr.dev/docs/coverage) lists what works and what still needs the web ui.
 
 ## quickstart
 
@@ -75,7 +75,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 
 ## command surface
 
-89 operations, available as cli commands and mcp tools.
+120 operations, available as cli commands and mcp tools. 90 reads and 30 writes that need explicit confirmation.
 
 | command | what it does |
 | --- | --- |
@@ -92,7 +92,14 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 | `keyword-lists`, `keyword-list-create`, `keyword-list-import` | manage keyword lists and import keywords |
 | `keyword-strategy-create`, `keyword-list-cluster` | generate a strategy or cluster a list |
 | `audit-create`, `audit-configure`, `audit-start` | configure and launch a site audit |
+| `position-create`, `position-targets`, `position-info` | create targets and read tracking settings |
+| `position-keywords-add`, `position-keywords-delete`, `position-keyword-tags` | manage tracked keywords and tags |
+| `position-competitors-set` | replace the tracked competitor list |
+| `position-overview`, `position-pages`, `position-overview-trend` | rankings, landing pages and trends |
 | `audit-status`, `audit-snapshots`, `audit-snapshot` | check progress and read audit results |
+| `audit-pages`, `audit-page`, `audit-issue`, `audit-history` | inspect crawled pages, issues and crawl history |
+| `audit-recrawl`, `audit-abort`, `audit-finalize` | recrawl a page, cancel a crawl or process results early |
+| `audit-export-pages`, `audit-export-issues`, `audit-export-issue` | download native csv or xlsx reports |
 | `reports` | list every operation and its inputs |
 | `mcp` | run the stdio mcp server |
 | `doctor` | check the browser, session engine and semrush connection |
@@ -167,6 +174,28 @@ semrush keyword-list-keywords --basket-id 123 --owner-id 456
 
 strategy generation, clustering and metric updates can consume your account allowance. they need explicit confirmation too. see [keyword lists](https://semrush.micr.dev/docs/keyword-lists).
 
+### position tracking
+
+use the numeric seo project id returned by `project-enable-seo`. check your allowance, then create a target:
+
+```bash
+semrush position-limits --project-id 456
+semrush position-create --project-id 456 --domain example.com \
+  --keywords '["example domain"]' --location-id 2840 --confirm
+```
+
+keep the full returned campaign id, such as `456_789`:
+
+```bash
+semrush position-info --campaign-id 456_789
+semrush position-keywords-add --campaign-id 456_789 \
+  --keywords '["example website"]' --tags '["research"]' --confirm
+semrush position-competitors-set --campaign-id 456_789 \
+  --competitors '["example.org"]' --confirm
+```
+
+new targets need time to collect rankings. use the dates from `position-info` for ranking, page and trend reports. competitor writes replace the whole list. see [position tracking](https://semrush.micr.dev/docs/position-tracking) for locations, tags, keyword deletion and report inputs.
+
 ### site audits
 
 ```bash
@@ -183,7 +212,22 @@ semrush audit-status --campaign-id 456
 semrush audit-snapshots --campaign-id 456
 ```
 
-creating an audit saves its settings. starting it is a separate command. defaults are manual scheduling and email off. see [site audit](https://semrush.micr.dev/docs/site-audit) for crawl settings and limits.
+creating an audit saves its settings. starting it is a separate command. defaults are manual scheduling and email off.
+
+inspect pages and issues after the crawl, then download a report:
+
+```bash
+semrush audit-pages --campaign-id 456 --page 0 --limit 20
+semrush audit-page --campaign-id 456 --page-id '<page_id>'
+semrush audit-issue --campaign-id 456 --snapshot-id '<snapshot_id>' --issue-id 2
+semrush audit-history --campaign-id 456
+semrush audit-export-pages --snapshot-id '<snapshot_id>' --output pages.csv
+semrush audit-export-issues --snapshot-id '<snapshot_id>' --format xlsx --output issues.xlsx
+```
+
+copy page and snapshot ids from the results. exports require `--output` and refuse an existing file. they download semrush's native csv or xlsx files.
+
+`audit-recrawl` queues a page again. `audit-abort` cancels a running crawl; `audit-finalize` stops collecting pages and processes what it has. these writes need `--confirm`. see [site audit](https://semrush.micr.dev/docs/site-audit) for crawl settings, stop conditions and limits.
 
 ## mcp
 
@@ -202,6 +246,8 @@ finish setup and sign in first, then add this to your client's mcp config:
 
 the server exposes the same operations as the cli. tool names use underscores, such as `keyword_overview` and `project_create`. writes need `confirm: true`, or `dry_run: true` to preview the request. it doesn't expose login, arbitrary urls or javascript execution.
 
+export tools return an artifact resource uri instead of writing to a local `--output` path. read the resource in bounded base64 chunks and join the decoded bytes. downloads last for that mcp process. see the [mcp guide](https://semrush.micr.dev/docs/mcp) for chunk sizes and offsets.
+
 ## what it looks like
 
 the gifs use captured output for public keyword research and an offline project preview. no account details or credentials. the [capture notes and renderer](docs/demo/README.md) are in the repo if you want to regenerate them.
@@ -217,11 +263,11 @@ node dist/cli.js --help
 npm run check
 ```
 
-building from source requires go 1.23 or newer, `tar` and `patch` to build the pinned galleton engine. published npm packages include the engine for supported platforms, so npm users do not need go.
+the cli uses the published [`galleton` 0.1.0 sdk](https://www.npmjs.com/package/galleton). the bundled galleton daemon is still required for sessions. building it from source requires go 1.23 or newer, `tar` and `patch`. published cli packages include the daemon for supported platforms, so npm users do not need go.
 
 ## documentation
 
-full docs live at [semrush.micr.dev](https://semrush.micr.dev). setup, authentication, projects, keyword lists, site audits, mcp and the complete command reference.
+full docs live at [semrush.micr.dev](https://semrush.micr.dev). setup, authentication, projects, keyword lists, position tracking, site audits, exports, mcp and the complete command reference.
 
 - [coverage](https://semrush.micr.dev/docs/coverage)
 - [authentication](https://semrush.micr.dev/docs/authentication)
