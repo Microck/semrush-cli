@@ -1,0 +1,75 @@
+---
+title: Site Audit
+description: Configure, start and inspect bounded crawls.
+---
+
+Enable SEO on a project first. Use the returned numeric `id` as `campaign_id`.
+The project's `folder_id` is a different identifier.
+
+```sh
+semrush-cli project-enable-seo --folder-id 123 --confirm
+semrush-cli audit-limits
+semrush-cli audit-info --campaign-id 456
+```
+
+## Create before starting
+
+`audit-create` creates public-site settings and refuses an existing audit.
+It does not launch a crawl. To replace an existing configuration, use
+`audit-configure` with every option you want to retain. Omitted options use
+the documented defaults. Its domain must match the project's `projectDomain`.
+
+```sh
+semrush-cli audit-create \
+  --campaign-id 456 --name 'Example audit' --domain example.com \
+  --page-limit 100 --dry-run
+
+semrush-cli audit-create \
+  --campaign-id 456 --name 'Example audit' --domain example.com \
+  --page-limit 100 --confirm
+```
+
+Defaults: manual scheduling, email disabled, no subdomains, mobile SiteAuditBot,
+website discovery, HTTPS, normal crawl delay and JavaScript rendering disabled.
+Robots.txt disallow rules remain respected.
+
+Optional settings include allow/disallow paths, removed URL parameters, excluded
+checks, sitemap discovery, user agent, JavaScript rendering and crawl speed.
+Use `audit-configure --help` for the full list and your plan's `audit-limits` for
+allowances. JavaScript rendering can require a higher plan.
+
+`schedule_day`: 0 manual, 1-7 Monday-Sunday, 8 daily. Selecting a recurring schedule
+creates future crawl runs. `--notify` explicitly enables completion emails.
+
+Protected-site authentication and Google Analytics connections require the web
+UI. The CLI refuses to replace settings when those connections already exist.
+
+## Start and inspect
+
+```sh
+semrush-cli audit-start --campaign-id 456 --dry-run
+semrush-cli audit-start --campaign-id 456 --confirm
+semrush-cli audit-status --campaign-id 456
+semrush-cli audit-info --campaign-id 456
+semrush-cli audit-snapshots --campaign-id 456
+semrush-cli audit-snapshot --campaign-id 456 --snapshot-id 789
+```
+
+Starting consumes crawl allowance and uses the saved schedule and notification
+settings. Inspect `audit-info` first when using an existing campaign.
+
+Responses retain Semrush's native JSON fields. `audit-start` returns an opaque string
+`snapshot_id`; an unfinished snapshot may not have final metrics yet. Historical
+snapshots and summaries are available after Semrush finishes processing.
+
+Use the web UI for detailed issue/page tables, abort/finalize controls and
+connected integrations. Deleting a project also deletes its attached audit.
+
+## Request evidence
+
+The configuration and launch contracts come from the current
+[Site Audit wizard](https://static.semrush.com/siteaudit/index/6543.8fd07665f4ecb251ca39.js),
+[settings module](https://static.semrush.com/siteaudit/index/5444.c73f5f9232917b1e67fc.js)
+and [API client](https://static.semrush.com/siteaudit/index/910.743a405979e048d96c5e.js).
+A disposable account project verified configuration, launch, status and snapshot
+reads with manual scheduling, email disabled and a 10-page cap.

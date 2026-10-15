@@ -14,6 +14,7 @@ export interface Query { [key: string]: Schema.Json; }
 /** Fixed request shapes observed in semrush-web-mcp. No arbitrary RPC or URL input. */
 export function reportParameters(definition: Report, q: Query): Query {
   const family = definition.transport;
+  if (family === 'audit_web') return auditParameters(definition, q);
   if (family === 'kwm') return keywordListParameters(definition, q);
   if (family === 'project_web') return projectParameters(definition, q);
   if (family === 'magic') return magicParameters(definition, q);
@@ -127,8 +128,8 @@ export function webRequest(definition: Report, query: Query) {
   if (definition.transport === 'kwm') return { method: 'POST', path: '/kwm/rpc', body: rpcBody(definition.method, reportParameters(definition, query)) };
   return {
     method: definition.http_method,
-    path: definition.method.replace('{folder_id}', String(query.folder_id)),
-    body: reportParameters(definition, query),
+    path: definition.method.replace('{folder_id}', String(query.folder_id)).replace('{campaign_id}', String(query.campaign_id)),
+    body: definition.transport === 'audit_web' && definition.method.endsWith('/launch') ? null : reportParameters(definition, query),
   };
 }
 
@@ -174,4 +175,22 @@ function keywordListParameters(definition: Report, q: Query): Query {
     return { ...shared, Filter: filter, Order: { Direction: q.descending ? 1 : 0, Field: q.sort_field ?? null }, Page: { Number: q.page ?? null, Size: q.page_size ?? null } };
   }
   return shared;
+}
+
+/** Public-site settings use the wizard contract. Saving and launching are separate operations. */
+function auditParameters(definition: Report, q: Query): Query {
+  if (!definition.method.endsWith('/save')) return Object.fromEntries(Object.entries(q).filter(([key]) => !['campaign_id', 'confirm', 'dry_run'].includes(key)));
+  const paths = (value: Schema.Json | undefined) => Array.isArray(value) ? [...new Set(value.map(path => String(path).startsWith('/') ? String(path) : '/' + String(path)))] : [];
+  return {
+    name: q.name ?? null, domain: q.domain ?? null, rootDomain: q.domain ?? null,
+    pageLimit: q.page_limit ?? null, scheduleDay: q.schedule_day ?? 0, notify: q.notify ?? false,
+    userAgentType: q.user_agent_type ?? 8, crawlSubdomains: q.crawl_subdomains ?? false,
+    crawlSourceType: q.crawl_source_type ?? 0, crawlSourceUrl: q.crawl_source_url ?? '',
+    crawlDelaySettingTypeId: q.crawl_delay ?? 1, ignoreRobotsDisallow: q.ignore_robots_disallow ?? false,
+    jsRendering: q.js_rendering ?? 'DISABLED', scheme: q.scheme ?? 'https', startCrawlUrl: null,
+    allow: paths(q.allow), disallow: paths(q.disallow), withSubfolder: Array.isArray(q.allow) && q.allow.length === 1,
+    removedParameters: q.removed_parameters ?? [], excludedChecks: q.excluded_checks ?? [],
+    authEnabled: false, authUsername: '', authPassword: '', gaSettings: {}, gaStatus: '',
+    webBotAuthEnabled: false, webBotAuthSignatureAgent: '', webBotAuthSignatureInput: '', webBotAuthSignature: '',
+  };
 }

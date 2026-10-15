@@ -1,108 +1,77 @@
 # Verification
 
-Verified on 2026-10-14. Evidence is separated by layer.
+Current source verification: 2026-10-15. The source suite passed 110 tests. Live responses and credentials remain
+outside the repository. Evidence below distinguishes local fixtures, native CI
+and real account execution.
 
 ## Automated checks
 
-- TypeScript strict typecheck passes.
-- Oxlint generic anti-slop rules, the Effect plugin and complexity checks pass with warnings denied.
-- 61 Vitest tests pass. These include all 48 request-shape comparisons against the Python reference, schema/default checks, credential redaction, exact large IDs, executable behavior and three real-browser integration cases.
-- Browser integration starts a real isolated Galleton daemon and Chromium against a local HTTP fixture. It verifies restored cookies, report decoding, cookie rotation persisted through the SDK, expiry refusal before report requests, and redacted provider errors. No module mocks and no Semrush credentials.
-- Building Galleton runs the upstream core Go test suite with the static-provider integration test. It verifies storage without network renewal, origin restrictions, persisted cookie rotation and explicit refresh refusal.
-- Fumadocs built successfully locally. Landing page and docs navigation rendered in Chromium. Public-site and package checks are recorded below as publication finishes.
+`npm run check` runs strict TypeScript, Oxlint with generic/Effect anti-slop and
+complexity rules, generated-reference drift checking, executable packaging,
+Galleton core Go tests and Vitest.
 
-## Live Semrush account
+Tests retain differential request-shape coverage for all 48 original Python
+reports. Additional source-derived contracts cover projects, Keyword Strategy
+Builder and Site Audit. Real Chromium and a private Galleton daemon exercise a
+stateful HTTP fixture, credential redaction, exact 64-bit IDs, cookie rotation,
+expired-session refusal and mutation consent. MCP tests use a real SDK client
+and stdio transport. No module mocks or account credentials are used in CI.
 
-The authorized browser session was imported into the CLI-owned Galleton vault. A separate transient Chromium process restored the stored cookies and passed `doctor`.
+The Galleton static-provider tests verify encrypted storage, origin restrictions,
+cookie capture and explicit renewal refusal. Five daemon binaries are bundled:
+Linux x64/arm64, macOS x64/arm64 and Windows x64.
 
-The following CLI reports returned authenticated data:
+## Live account
 
-- `keyword-overview --keyword 'email marketing'`
-- `domain-overview --domain openai.com`
-- `domain-keywords --domain openai.com --page-size 3`, including provider totals
-- `keyword-magic --keyword 'email marketing' --page-size 3`
-- `backlink-links --domain openai.com`
-- `domain-ai-visibility --domain openai.com`
-- `projects`
-- `keyword-gap --domains '["openai.com","anthropic.com"]' --limit 3`
+The authorized browser session was imported into the CLI-owned Galleton vault.
+A separate transient browser restored it and passed `doctor`. Keyword Overview,
+Keyword Magic, Organic Research, Keyword Gap, backlinks, AI visibility and
+project discovery returned authenticated results. A real MCP client also made
+an authenticated keyword call. Plan access and quotas still govern every report.
 
-A real MCP SDK client connected through stdio, enumerated 48 read-only tools,
-rejected injected authentication arguments, and read `keyword_overview` with
-an authenticated result. The observed US volume for `email marketing` was 33,100
-at verification time; Semrush data changes.
+Disposable project checks verified create, read, rename, tags, pinning, toolkit
+status, dashboard metrics and deletion. Existing account projects were not
+modified. A disposable keyword list passed create/list/get/rename/import,
+keyword and summary reads, tag addition/removal, phrase deletion, undo and list
+deletion. Its absence was verified after cleanup.
 
-Live responses stayed outside the repository. The source publication audit
-compared tracked files against actual stored cookies and the daemon token and
-found no credential values.
+Site Audit verification enabled a disposable SEO project, saved manual settings
+with email disabled and a 10-page cap, and explicitly launched the crawl. It
+finished after six pages. Account limits, configuration, status, history and the
+completed snapshot returned authenticated data. A snapshot ID is an opaque
+string. A fresh SEO project passed audit creation without a crawl, duplicate-creation
+refusal and configuration replacement. All disposable projects were deleted;
+Site Audit discovery returned its original empty baseline.
 
-## Package evidence
+Leave, automatic SEO setup, structured strategy generation, metrics refresh and
+clustering retain source-derived request coverage without live execution. Those
+operations can affect shared projects or consume additional allowances.
 
-`npm pack` produced a 14.4 MB package, approximately 33.9 MB unpacked, containing
-the JavaScript executable, five daemon binaries, licenses and branding. An install
-into a separate temporary prefix ran `semrush-cli --version` and passed a live
-`semrush-cli doctor --json` without relying on source-tree modules.
+## Published artifacts
 
-Linux arm64 has native execution evidence on this host. Other daemon targets are
-cross-compiled. GitHub CI runs packed-package installation, setup and daemon
-shutdown on Linux, macOS and Windows; its status must be checked separately.
-The checks above do not prove all 48 reports are available on every Semrush plan,
-indefinite session validity, or native execution on every compiled architecture.
+The public npm 0.3.0 archive matches the local/GitHub archive byte-for-byte:
+SHA-256 `6f022375455a1fc642caac14a3e5e8a76dfdf60e439d671fa9139ff7151ff580`.
+The registry initially processed it asynchronously before making it public.
+Its [CI run](https://github.com/Microck/semrush-cli/actions/runs/38660471382)
+passed source checks, Fumadocs build, and packed-package installation/setup on
+Ubuntu, macOS and Windows. Linux arm64 also has local native execution evidence.
+Other bundled architectures are cross-compiled, not all natively tested here.
 
-## Published release
+The production docs are [semrush.micr.dev](https://semrush.micr.dev), with
+[semrush-cli.vercel.app](https://semrush-cli.vercel.app) as an alias. Chromium
+verified Semrush purple `#421983`, darker sidebar/code surfaces, working search,
+loaded branding, no page errors and no horizontal overflow at 390px. White text
+on the primary background has 12.36:1 contrast. HTML, search and `/llms.txt`
+returned HTTP 200. Authoritative/public DNS resolves the custom domain, while
+this host temporarily retained an earlier negative DNS cache.
 
-Version `0.1.1` uses the canonical `semrush-cli` executable so it can coexist with
-an existing `semrush-mcp` installation. The CLI and MCP server report version
-`0.1.1`, and a live MCP keyword call passed against that build.
+## Limits of the evidence
 
-[CI run 38652629000](https://github.com/Microck/semrush-cli/actions/runs/38652629000)
-passed the source check, documentation build and packed-package setup/shutdown
-on Ubuntu, macOS and Windows. The two source commits are `3c5ce82e` and
-`fc8ac3b5`; subsequent evidence-document edits do not change the executable.
+This does not prove every report is available on every plan, indefinite session
+validity, or complete Semrush suite parity. The coverage page names remaining
+web-only workflows. Internal endpoints can change. The README and published
+package use `semrush-cli`, preserving the existing `semrush-mcp` executable.
 
-The npm `0.1.1` archive's SHA-1 is
-`faf93a0c5d41740736953fb9258211a37cb595a0`, matching a locally packed archive.
-The production Fumadocs site is `https://semrush.micr.dev`, with
-`https://semrush-cli.vercel.app` as its Vercel alias. Public HTML, documentation,
-search and `llms.txt` returned HTTP 200. Chromium rendered live search results
-with no page errors, and the 390px mobile layout had no horizontal overflow.
-Authoritative DNS and a public recursive resolver returned `76.76.21.21` for
-the custom hostname; HTTPS on that hostname returned 200 with a valid certificate.
-The host's resolver temporarily retained the earlier negative DNS cache.
-
-## Version 0.2.0 project and branding checks
-
-The shared catalog now contains 62 operations: 54 reads and 8 confirmed writes.
-`npm run check` passed typechecking, Oxlint, daemon packaging and 79 tests.
-Fourteen request-shape cases match the current Semrush project-selector and
-Crossroad clients. A stateful HTTP fixture verifies real Chromium/Galleton
-create/read/update/tags/delete behavior, HTTP 201/204 and exact 64-bit IDs.
-A real MCP SDK client checks write/destructive annotations, confirmation refusal
-and an unauthenticated dry run.
-
-Live verification created a uniquely named project for `example.com`, read it,
-renamed it, replaced its tags, pinned it, and read toolkit status and dashboard
-metrics. The CLI deleted that exact test project and verified its absence from
-the project list. Existing projects were not changed. SEO auto-setup and leaving
-a shared project were not executed against the live account.
-
-The purple documentation deployment built successfully on Vercel. Chromium
-confirmed the page background is `rgb(66, 25, 131)` (`#421983`), with darker
-purple sidebar and code surfaces, a loaded logo and no page errors. At 390px,
-the home page has no horizontal overflow. White text on the primary background
-has a measured contrast of 12.36:1. The coverage page lists remaining web-only
-workflows rather than claiming full-suite parity.
-
-
-## Keyword Strategy Builder expansion
-
-Live reads verified the builder's list and account-limit RPC methods. A disposable
-regular list passed creation, listing, metadata read, rename, one-phrase import,
-tag addition, keyword/summary/tag reads, phrase deletion, undo and tag removal.
-The exact test list was deleted and its absence checked. No existing list changed.
-Structured strategy generation, metric refresh and clustering were not started
-against the live account. Their fixed request contracts have source-derived
-coverage; execution consumes account allowances.
-
-The public npm 0.2.0 archive became available after asynchronous registry
-processing and matched the verified GitHub/local archive byte-for-byte, SHA-256
-`58d074aaaab9c5a516b50c02cde8f92fcaa5705aafaa83b09885318aeb1c2db4`.
+The CLI-owned daemon uses loopback port 8771. Its encrypted vault is unchanged.
+An unrelated service occupied the former port during verification and was left
+untouched. The signed-in shared browser was also preserved.

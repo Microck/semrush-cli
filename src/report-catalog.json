@@ -3575,5 +3575,506 @@
         }
       ]
     }
+  },
+  "audit_limits": {
+    "method": "/siteaudit/api/limits",
+    "description": "Site Audit account crawl and project limits.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    }
+  },
+  "audit_info": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/info",
+    "description": "Current Site Audit configuration, status and latest summary.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "SEO project/campaign ID from project-enable-seo, not the folder ID."
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    }
+  },
+  "audit_status": {
+    "method": "/siteaudit/api/campaigns/status/{campaign_id}",
+    "description": "Current Site Audit execution status.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "SEO project/campaign ID from project-enable-seo, not the folder ID."
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    }
+  },
+  "audit_snapshots": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/snapshots",
+    "description": "Historical Site Audit crawl snapshots.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "SEO project/campaign ID from project-enable-seo, not the folder ID."
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    }
+  },
+  "audit_snapshot": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/snapshot",
+    "description": "Read a specific Site Audit snapshot.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "SEO project/campaign ID from project-enable-seo, not the folder ID."
+        },
+        "snapshot_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Opaque snapshot ID returned by audit-start or audit-snapshots."
+        }
+      },
+      "required": [
+        "campaign_id",
+        "snapshot_id"
+      ]
+    }
+  },
+  "audit_start": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/launch",
+    "description": "Start a configured Site Audit. Consumes crawl allowance and uses its saved notification settings.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "SEO project/campaign ID from project-enable-seo, not the folder ID."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    }
+  },
+  "audit_configure": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/save",
+    "description": "Replace public-site audit settings without starting a crawl. Defaults to manual scheduling and no email. Protected-site and Google Analytics settings require the web UI.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "SEO project/campaign ID from project-enable-seo, not the folder ID."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "\\S"
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253,
+          "pattern": "^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z]{2,63}$",
+          "description": "Domain or subdomain, without protocol or path."
+        },
+        "page_limit": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum pages to crawl. Your plan limit still applies."
+        },
+        "schedule_day": {
+          "type": "integer",
+          "enum": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "default": 0,
+          "description": "0 manual, 1-7 Monday-Sunday, 8 daily."
+        },
+        "notify": {
+          "type": "boolean",
+          "default": false
+        },
+        "user_agent_type": {
+          "type": "integer",
+          "enum": [
+            0,
+            1,
+            2,
+            3,
+            7,
+            8,
+            9
+          ],
+          "default": 8
+        },
+        "crawl_subdomains": {
+          "type": "boolean",
+          "default": false
+        },
+        "crawl_source_type": {
+          "type": "integer",
+          "enum": [
+            0,
+            1,
+            2
+          ],
+          "default": 0,
+          "description": "0 website, 1 sitemap, 2 custom sitemap URL."
+        },
+        "crawl_source_url": {
+          "type": "string",
+          "default": ""
+        },
+        "crawl_delay": {
+          "type": "integer",
+          "enum": [
+            1,
+            2,
+            3
+          ],
+          "default": 1
+        },
+        "ignore_robots_disallow": {
+          "type": "boolean",
+          "default": false
+        },
+        "js_rendering": {
+          "type": "string",
+          "enum": [
+            "DISABLED",
+            "RENDER_ALL"
+          ],
+          "default": "DISABLED"
+        },
+        "scheme": {
+          "type": "string",
+          "enum": [
+            "http",
+            "https"
+          ],
+          "default": "https"
+        },
+        "allow": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "disallow": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "removed_parameters": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "excluded_checks": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "campaign_id",
+        "name",
+        "domain",
+        "page_limit"
+      ]
+    }
+  },
+  "audit_create": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/save",
+    "description": "Create Site Audit settings on an SEO project without starting a crawl. Refuses to replace an existing audit. Defaults to manual scheduling and no email.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "SEO project/campaign ID from project-enable-seo, not the folder ID."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "\\S"
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253,
+          "pattern": "^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z]{2,63}$",
+          "description": "Domain or subdomain, without protocol or path."
+        },
+        "page_limit": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum pages to crawl. Your plan limit still applies."
+        },
+        "schedule_day": {
+          "type": "integer",
+          "enum": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "default": 0,
+          "description": "0 manual, 1-7 Monday-Sunday, 8 daily."
+        },
+        "notify": {
+          "type": "boolean",
+          "default": false
+        },
+        "user_agent_type": {
+          "type": "integer",
+          "enum": [
+            0,
+            1,
+            2,
+            3,
+            7,
+            8,
+            9
+          ],
+          "default": 8
+        },
+        "crawl_subdomains": {
+          "type": "boolean",
+          "default": false
+        },
+        "crawl_source_type": {
+          "type": "integer",
+          "enum": [
+            0,
+            1,
+            2
+          ],
+          "default": 0,
+          "description": "0 website, 1 sitemap, 2 custom sitemap URL."
+        },
+        "crawl_source_url": {
+          "type": "string",
+          "default": ""
+        },
+        "crawl_delay": {
+          "type": "integer",
+          "enum": [
+            1,
+            2,
+            3
+          ],
+          "default": 1
+        },
+        "ignore_robots_disallow": {
+          "type": "boolean",
+          "default": false
+        },
+        "js_rendering": {
+          "type": "string",
+          "enum": [
+            "DISABLED",
+            "RENDER_ALL"
+          ],
+          "default": "DISABLED"
+        },
+        "scheme": {
+          "type": "string",
+          "enum": [
+            "http",
+            "https"
+          ],
+          "default": "https"
+        },
+        "allow": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "disallow": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "removed_parameters": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "excluded_checks": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "campaign_id",
+        "name",
+        "domain",
+        "page_limit"
+      ]
+    }
   }
 }

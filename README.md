@@ -19,7 +19,7 @@ built with TypeScript + Effect. sessions stored in Galleton.
 
 ## why
 
-81 operations with the same input schemas in the CLI and MCP. JSON output for
+89 operations with the same input schemas in the CLI and MCP. JSON output for
 scripts, account totals and pagination, project management, and encrypted session storage.
 no Semrush developer API key or Python runtime required.
 
@@ -90,6 +90,17 @@ and structured strategy generation are separate commands. Metric refresh and
 clustering require explicit confirmation and consume account allowances.
 See [keyword lists](https://semrush.micr.dev/docs/keyword-lists).
 
+## site audit
+
+```sh
+semrush-cli audit-create --campaign-id 456 --name "Example audit" --domain example.com --page-limit 100 --confirm
+semrush-cli audit-start --campaign-id 456 --confirm
+semrush-cli audit-snapshots --campaign-id 456
+```
+
+[Site Audit guide](https://semrush.micr.dev/docs/site-audit). Configuration and launch are separate. Defaults use manual scheduling and no email.
+
+
 ## commands
 
 ```sh
@@ -115,6 +126,7 @@ semrush-cli domain-keywords --help
 | AI visibility | Visibility, mentions, citation sources and country distribution |
 | Keyword lists | Create, read, rename/delete, import, metrics, tags, deletion/undo, clustering and structured strategy generation |
 | Projects | Create, inspect, rename, delete, leave, tags, pinning, toolkit status, dashboard metrics and explicit SEO setup |
+| Site Audit | Create/configure, explicit launch, status, limits, history and snapshots |
 | Account | Limits, permissions, databases, snapshots, folders, saved lists and audit campaigns |
 
 All successful reports use `{authenticated: true, report, data}`. Domain ranking
@@ -139,9 +151,9 @@ Complete setup and authentication, then configure your MCP client:
 ```
 
 Use an absolute executable path if your client does not inherit the terminal's
-PATH. `npx -y semrush-cli@0.3.0 mcp` also works. MCP tool names use underscores,
+PATH. `npx -y semrush-cli@0.4.0 mcp` also works. MCP tool names use underscores,
 for example `keyword_overview` and `domain_keywords`. Input schemas and reports
-match the CLI. The 62 read tools carry read-only annotations. The 19 write tools require
+match the CLI. The 67 read tools carry read-only annotations. The 22 write tools require
 `confirm:true`, or accept `dry_run:true` to preview the request. Delete and leave
 also carry destructive annotations. Login, arbitrary URLs and JavaScript
 execution are not MCP tools.
@@ -156,7 +168,7 @@ semrush-cli daemon start
 ```
 
 Galleton stores credentials under `~/.local/share/semrush-cli/galleton`. The
-private daemon listens on `127.0.0.1:8768`. It continues after the terminal closes;
+private daemon listens on `127.0.0.1:8771`. It continues after the terminal closes;
 run `daemon start` after reboot. The CLI installs no system startup service.
 
 Each CLI process restores its encrypted session into a fresh, transient Chromium
@@ -172,7 +184,7 @@ and [SDK provenance](src/vendor/README.md).
 
 | Variable | Default |
 | --- | --- |
-| `SEMRUSH_GALLETON_URL` | `http://127.0.0.1:8768` |
+| `SEMRUSH_GALLETON_URL` | `http://127.0.0.1:8771` |
 | `SEMRUSH_GALLETON_TOKEN_FILE` | `~/.local/share/semrush-cli/galleton/api.token` |
 | `SEMRUSH_SESSION` | `semrush-cli` |
 | `SEMRUSH_BROWSER_EXECUTABLE` | Patchright's Chromium |

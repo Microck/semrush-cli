@@ -7,6 +7,7 @@ import { SessionError } from './errors.js';
 import { Sessions } from './session-service.js';
 
 export const origin = 'https://www.semrush.com';
+export const defaultDaemonURL = 'http://127.0.0.1:8771';
 export const defaultStateDirectory = join(homedir(), '.local', 'share', 'semrush-cli', 'galleton');
 
 /** Raw SDK errors stop here; daemon and upstream payloads never reach diagnostics. */
@@ -19,7 +20,7 @@ const sdkError = (cause: unknown): SessionError => {
 };
 
 export const makeSessionsLayer = (credentialOrigin: string) => Layer.effect(Sessions, Effect.gen(function* () {
-  const baseURL = yield* Config.String('SEMRUSH_GALLETON_URL').pipe(Config.withDefault('http://127.0.0.1:8768'));
+  const baseURL = yield* Config.String('SEMRUSH_GALLETON_URL').pipe(Config.withDefault(defaultDaemonURL));
   const tokenFile = yield* Config.String('SEMRUSH_GALLETON_TOKEN_FILE').pipe(Config.withDefault(join(defaultStateDirectory, 'api.token')));
   const id = yield* Config.String('SEMRUSH_SESSION').pipe(Config.withDefault('semrush-cli'));
   const token = yield* Effect.tryPromise({ try: () => readFile(tokenFile, 'utf8'), catch: () => new SessionError({ message: 'Galleton token unavailable. Run semrush-cli setup, or set SEMRUSH_GALLETON_TOKEN_FILE.' }) });

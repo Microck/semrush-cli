@@ -47,15 +47,15 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
   const auth = yield* Effect.try({ try: () => readBootstrap(bootstrap.text), catch: () => new SessionError({ message: 'Semrush sign-in metadata unavailable. Run semrush-cli auth login or import a signed-in browser.' }) });
   const semaphore = yield* Semaphore.make(1);
   let spectrumToken = '';
-  const request = Effect.fn('Semrush.request')(function* (path: string, payload: Query, method = 'POST', extraHeaders: Record<string, string> = {}) {
+  const request = Effect.fn('Semrush.request')(function* (path: string, payload: Query | null, method = 'POST', extraHeaders: Record<string, string> = {}) {
     const wire = yield* browserCall(() => page.evaluate(async ({ path, encodedPayload, method, extraHeaders }) => {
-      const payload: Schema.JsonObject = JSON.parse(encodedPayload);
+      const payload: Schema.JsonObject | null = JSON.parse(encodedPayload);
       const query = new URLSearchParams();
       const get = method === 'GET';
-      if (get) for (const [key, value] of Object.entries(payload)) for (const item of Array.isArray(value) ? value : [value]) query.append(key, String(item));
+      if (get) for (const [key, value] of Object.entries(payload ?? {})) for (const item of Array.isArray(value) ? value : [value]) query.append(key, String(item));
       const options: RequestInit = { method, credentials: 'include', headers: extraHeaders, signal: AbortSignal.timeout(45000) };
-      if (!get && method !== 'DELETE') { options.headers = { ...extraHeaders, 'Content-Type': 'application/json' }; options.body = JSON.stringify(payload); }
-      const response = await fetch(get && query.size > 0 ? path + '?' + query : path, options);
+      if (!get && method !== 'DELETE' && payload !== null) { options.headers = { ...extraHeaders, 'Content-Type': 'application/json' }; options.body = JSON.stringify(payload); }
+      const response = await fetch(get && query.size > 0 ? path + (path.includes('?') ? '&' : '?') + query : path, options);
       return { status: response.status, text: await response.text() };
     }, { path, encodedPayload: JSON.stringify(payload), method, extraHeaders }));
     if (wire.status < 200 || wire.status >= 300) {
@@ -64,7 +64,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     }
     if (wire.status === 204 && !wire.text) return null;
     const body = yield* Effect.try({ try: () => parseWire(wire.text), catch: () => new ReportError({ message: 'Semrush returned a page or challenge instead of JSON. Sign in again or retry later.' }) });
-    if (objectValue(body) && ('error' in body || ('status' in body && !(body.status === null || body.status === 'SUCCESS' || body.status === 'success')))) return yield* Effect.fail(new ReportError({ message: `Semrush report failed: ${JSON.stringify(redact(body.error ?? body.status ?? null, [auth.apiKey, spectrumToken, spectrumToken.replace(/^Bearer /, '')])).slice(0, 500)}` }));
+    if (objectValue(body) && ('error' in body || (!path.startsWith('/siteaudit/') && 'status' in body && !(body.status === null || body.status === 'SUCCESS' || body.status === 'success')))) return yield* Effect.fail(new ReportError({ message: `Semrush report failed: ${JSON.stringify(redact(body.error ?? body.status ?? null, [auth.apiKey, spectrumToken, spectrumToken.replace(/^Bearer /, '')])).slice(0, 500)}` }));
     return body;
   });
   const rpc = Effect.fn('Semrush.rpc')(function* (method: string, params: Query, transport = 'keyword', webReport = 'domain.overview') {
@@ -75,6 +75,19 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     if (!objectValue(body) || !('result' in body)) return yield* Effect.fail(new ReportError({ message: `Semrush ${method}: missing report result.` }));
     return body.result ?? null;
   });
+  const checkAuditSettings = Effect.fn('Semrush.checkAuditSettings')(function* (name: string, query: Query) {
+    if (name === 'audit_create') {
+      const campaigns = yield* request('/siteaudit/api/campaigns/seolist', { key: auth.apiKey }, 'GET');
+      if (!Array.isArray(campaigns)) return yield* Effect.fail(new ReportError({ message: 'Site Audit campaign discovery returned an unexpected response. No settings were saved.' }));
+      if (campaigns.some(campaign => objectValue(campaign) && String(campaign.id) === String(query.campaign_id))) return yield* Effect.fail(new ReportError({ message: 'This SEO project already has a Site Audit. Use audit-configure to replace its settings explicitly.' }));
+    }
+    // The audit save endpoint replaces settings, including protected-site credentials.
+    if (name === 'audit_configure') {
+      const current = yield* request(`/siteaudit/api/campaigns/${query.campaign_id}/info?key=${encodeURIComponent(auth.apiKey)}`, {}, 'GET');
+      if (objectValue(current) && Predicate.isString(current.projectDomain) && current.projectDomain !== query.domain) return yield* Effect.fail(new ReportError({ message: 'The audit domain must match the SEO project website. Inspect audit-info for projectDomain before configuring it.' }));
+      if (objectValue(current) && (Boolean(current.authEnabled) || Boolean(current.webBotAuthEnabled) || (objectValue(current.gaSettings) && Object.keys(current.gaSettings).length > 0))) return yield* Effect.fail(new ReportError({ message: 'This audit uses protected-site authentication or Google Analytics. Edit its settings in the Semrush web UI to preserve those connections.' }));
+    }
+  });
   const report = Effect.fn('Semrush.report')(function* ({ name, definition, query }: ReportRequest) {
     const valid = yield* browserCall(() => page.evaluate(async () => {
       const response = await fetch('/home/', { method: 'HEAD', credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(15000) });
@@ -82,7 +95,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     }));
     if (!valid) return yield* Effect.fail(new SessionError({ message: 'Semrush session expired. Run semrush-cli auth login or import a signed-in browser.' }));
     const family = definition.transport;
-    const planned = family === 'project_web' ? webRequest(definition, query) : undefined;
+    const planned = ['project_web', 'audit_web'].includes(family) ? webRequest(definition, query) : undefined;
     const params = planned?.body ?? reportParameters(definition, query);
     let reportData: Schema.Json | undefined;
     if (planned) {
@@ -92,7 +105,9 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
         if (!objectValue(current) || !objectValue(current.folder)) return yield* Effect.fail(new ReportError({ message: 'Project metadata unavailable. Inspect the project before adding a website.' }));
         if (Predicate.isString(current.folder.domain) && current.folder.domain.length > 0) return yield* Effect.fail(new ReportError({ message: 'This project already has a website. The Semrush web UI only allows adding a website when none is set.' }));
       }
-      reportData = yield* request(planned.path, planned.body, planned.method);
+      if (family === 'audit_web') yield* checkAuditSettings(name, query);
+      const path = family === 'audit_web' ? planned.path + '?key=' + encodeURIComponent(auth.apiKey) : planned.path;
+      reportData = yield* request(path, planned.body, planned.method);
     } else if (['keyword', 'domain', 'direct', 'magic', 'kwm'].includes(family)) reportData = yield* rpc(definition.method, params, family, definition.web_report);
     else {
       const extra: Record<string, string> = {};

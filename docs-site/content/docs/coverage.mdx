@@ -3,7 +3,7 @@ title: Web UI coverage
 description: Supported web workflows, evidence and remaining gaps.
 ---
 
-The CLI has 81 fixed operations: 62 reads and 19 confirmed writes.
+The CLI has 89 fixed operations: 67 reads and 22 confirmed writes.
 It uses your web session and the current web UI's request contracts. Account
 permissions and quotas apply to both interfaces. This is not full Semrush suite
 parity. The table distinguishes implemented workflows from remaining gaps.
@@ -21,8 +21,8 @@ parity. The table distinguishes implemented workflows from remaining gaps.
 | AI visibility | Domain visibility, mentions, countries, citation sources and account access | Prompt tracking and full AI Toolkit configuration |
 | Projects | Create, inspect, rename, add first domain, delete, leave, tags and pinning | Sharing invitations and account administration |
 | Project dashboard | Toolkit status, metric values and detail URLs | Third-party integration setup |
-| SEO setup | Create an SEO project and explicitly start automatic Site Audit/Position Tracking setup | Custom audit configuration and keyword tracking settings |
-| Site Audit | Campaign list and project site-health metric | Detailed issue, crawl and scheduling workflows |
+| SEO setup | Create an SEO project and explicitly start automatic Site Audit/Position Tracking setup | Keyword tracking settings and protected-site audit setup |
+| Site Audit | Campaign discovery, account limits, public-site configuration, manual or scheduled crawl setup, explicit launch, status, history and snapshots | Detailed issue/page tables, crawl stopping, protected-site authentication and Google Analytics connections |
 | Keyword Strategy Builder | List creation, structured strategy generation, pagination, metadata, rename/delete, keyword import, metric reads and updates, tags, deletion/undo and explicit clustering | Cluster/page editing, content generation and UI export formats |
 | Saved Keywords | Existing collection discovery | Collection management |
 | Local, social and content products | Project toolkit status and available dashboard metrics | Product-specific management and connected services |
@@ -43,6 +43,8 @@ and its
 Creation was also captured directly from the web form with submission blocked,
 before the CLI's live lifecycle verification. Internal endpoints can change.
 
-Live write verification did not start paid crawls, add tracking keywords, leave
-someone else's project or modify an existing website. SEO setup and leave have
-request-contract coverage, not live account execution evidence.
+Live verification enabled a disposable SEO project, saved manual Site Audit
+settings with email disabled, and launched a crawl capped at 10 pages on
+example.com. Existing account projects were not changed. Leave, automatic SEO
+setup and allowance-consuming keyword clustering retain request-contract coverage
+without live execution.

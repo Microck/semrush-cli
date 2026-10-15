@@ -12,7 +12,7 @@ semrush-cli auth login
 semrush-cli domain-overview --domain openai.com --json
 ```
 
-`setup` installs Chromium and starts a private, authenticated Galleton daemon at `127.0.0.1:8768`. It stores encrypted credentials under `~/.local/share/semrush-cli/galleton`. On Linux, Chromium may need system libraries. Install them with `npx patchright install-deps chromium` if the browser fails to launch.
+`setup` installs Chromium and starts a private, authenticated Galleton daemon at `127.0.0.1:8771`. It stores encrypted credentials under `~/.local/share/semrush-cli/galleton`. On Linux, Chromium may need system libraries. Install them with `npx patchright install-deps chromium` if the browser fails to launch.
 
 `auth login` opens a browser. Complete Semrush sign-in there. The CLI verifies your session, stores it in Galleton, and closes the window. It does not ask for your password in the terminal.
 

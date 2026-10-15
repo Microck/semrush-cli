@@ -70,3 +70,30 @@ for (const sample of keywordListCases) {
     expect(webRequest(parsed.definition, parsed.query)).toEqual({ method: 'POST', path: '/kwm/rpc', body: { id: 1, jsonrpc: '2.0', method: parsed.definition.method, params: sample.params } });
   });
 }
+
+const auditCases: { name: string; input: Query; path: string; body: Query | null }[] = [
+  { name: 'audit_limits', input: {}, path: '/siteaudit/api/limits', body: {} },
+  { name: 'audit_info', input: { campaign_id: 789 }, path: '/siteaudit/api/campaigns/789/info', body: {} },
+  { name: 'audit_status', input: { campaign_id: 789 }, path: '/siteaudit/api/campaigns/status/789', body: {} },
+  { name: 'audit_snapshots', input: { campaign_id: 789 }, path: '/siteaudit/api/campaigns/789/snapshots', body: {} },
+  { name: 'audit_snapshot', input: { campaign_id: 789, snapshot_id: '12' }, path: '/siteaudit/api/campaigns/789/snapshot', body: { snapshot_id: '12' } },
+  { name: 'audit_start', input: { campaign_id: 789, confirm: true }, path: '/siteaudit/api/campaigns/789/launch', body: null },
+];
+for (const sample of auditCases) test(`matches Site Audit web contract: ${sample.name}`, async () => {
+  const parsed = await Effect.runPromise(parseReport(sample.name, sample.input));
+  expect(webRequest(parsed.definition, parsed.query)).toEqual({ method: sample.name === 'audit_start' ? 'POST' : 'GET', path: sample.path, body: sample.body });
+});
+test('Site Audit configuration uses manual, notification-free defaults and normalized paths', async () => {
+  const parsed = await Effect.runPromise(parseReport('audit_configure', { campaign_id: 789, name: 'Fixture', domain: 'example.com', page_limit: 10, allow: ['blog'], dry_run: true }));
+  const planned = webRequest(parsed.definition, parsed.query);
+  expect(planned).toMatchObject({ method: 'POST', path: '/siteaudit/api/campaigns/789/save', body: { scheduleDay: 0, notify: false, pageLimit: 10, allow: ['/blog'], withSubfolder: true, domain: 'example.com', rootDomain: 'example.com' } });
+  expect(planned.body).not.toHaveProperty('campaign_id');
+  expect(planned.body).not.toHaveProperty('dry_run');
+});
+
+test('Site Audit creation and replacement share the source save contract', async () => {
+  const input = { campaign_id: 789, name: 'Fixture', domain: 'example.com', page_limit: 10, dry_run: true };
+  const created = await Effect.runPromise(parseReport('audit_create', input));
+  const configured = await Effect.runPromise(parseReport('audit_configure', input));
+  expect(webRequest(created.definition, created.query)).toEqual(webRequest(configured.definition, configured.query));
+});

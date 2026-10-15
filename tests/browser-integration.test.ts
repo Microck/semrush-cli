@@ -1,4 +1,4 @@
-import { createServer } from 'node:http';
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { execFile, spawn, type ChildProcess } from 'node:child_process';
 import { promisify } from 'node:util';
 import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
@@ -22,6 +22,9 @@ let daemonURL: string;
 let fixtureURL: string;
 let authenticated = true;
 let failReport = false;
+let auditConfigured = false;
+let auditStarted = false;
+let auditProtected = false;
 const observed: string[] = [];
 let keywordList: { BasketID: number; Owner: { ID: number }; Name: string } | undefined;
 let listKeywords: { Phrase: string; Database: string; Tags: string[] }[] = [];
@@ -69,6 +72,8 @@ const fixture = createServer(async (request, response) => {
     }
     response.writeHead(404); response.end('{}'); return;
   }
+  if (url.pathname === '/siteaudit/api/campaigns/seolist') { response.setHeader('Content-Type', 'application/json'); response.end(JSON.stringify(auditConfigured ? [{ id: 789 }] : [])); return; }
+  if (url.pathname.startsWith('/siteaudit/api/')) { await serveAuditFixture(request, response, url); return; }
   if (url.pathname === '/kwm/rpc') {
     let encoded = '';
     for await (const chunk of request) encoded += chunk;
@@ -236,3 +241,47 @@ test('real browser and Galleton manage keyword lists, import, tags, deletion and
     expect(keywordList).toBeUndefined(); expect(listKeywords).toHaveLength(0);
   }).pipe(Effect.provide(fixtureLayer()))));
 }, 30000);
+
+test('Site Audit settings save without launching; business status and authenticated GET query survive', async () => {
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const semrush = yield* Semrush;
+    const settings = { campaign_id: 789, name: 'Fixture audit', domain: 'example.com', page_limit: 10, confirm: true };
+    const savesBefore = observed.filter(entry => entry.endsWith('/save')).length;
+    auditProtected = true;
+    const protectedFailure = yield* semrush.report(yield* parseReport('audit_configure', settings)).pipe(Effect.flip);
+    expect(protectedFailure.message).toContain('protected-site authentication');
+    auditProtected = false;
+    const domainFailure = yield* semrush.report(yield* parseReport('audit_configure', { ...settings, domain: 'other.example.com' })).pipe(Effect.flip);
+    expect(domainFailure.message).toContain('must match');
+    expect(observed.filter(entry => entry.endsWith('/save'))).toHaveLength(savesBefore);
+    const configured = yield* semrush.report(yield* parseReport('audit_create', { campaign_id: 789, name: 'Fixture audit', domain: 'example.com', page_limit: 10, confirm: true }));
+    expect(configured.data).toMatchObject({ status: 'FINISHED' });
+    expect(auditStarted).toBe(false);
+    const duplicate = yield* semrush.report(yield* parseReport('audit_create', settings)).pipe(Effect.flip);
+    expect(duplicate.message).toContain('already has a Site Audit');
+    yield* semrush.report(yield* parseReport('audit_configure', settings));
+    yield* semrush.report(yield* parseReport('audit_snapshot', { campaign_id: 789, snapshot_id: '12' }));
+    const started = yield* semrush.report(yield* parseReport('audit_start', { campaign_id: 789, confirm: true }));
+    expect(started.data).toMatchObject({ status: 'RUNNING' });
+    expect(auditStarted).toBe(true);
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+async function serveAuditFixture(request: IncomingMessage, response: ServerResponse, url: URL) {
+    expect(url.searchParams.get('key')).toBe('fixture-secret');
+    observed.push(`${request.method} ${url.pathname}`);
+    let encoded = '';
+    for await (const chunk of request) encoded += chunk;
+    response.setHeader('Content-Type', 'application/json');
+    if (url.pathname.endsWith('/save')) {
+      const settings = JSON.parse(encoded);
+      expect(settings.pageLimit).toBe(10); expect(settings.scheduleDay).toBe(0); expect(settings.notify).toBe(false);
+      expect(settings.authEnabled).toBe(false); expect(settings).not.toHaveProperty('confirm');
+      auditConfigured = true;
+    } else if (url.pathname.endsWith('/launch')) {
+      expect(auditConfigured).toBe(true); expect(encoded).toBe(''); auditStarted = true;
+    } else if (url.pathname.endsWith('/snapshot')) {
+      expect(url.searchParams.get('snapshot_id')).toBe('12');
+    }
+    response.end(JSON.stringify({ id: 789, status: auditStarted ? 'RUNNING' : 'FINISHED', projectDomain: 'example.com', authEnabled: auditProtected, gaSettings: {}, webBotAuthEnabled: false })); return;
+}

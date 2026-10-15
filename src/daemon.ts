@@ -5,7 +5,7 @@ import { chmod, mkdir, open, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { Effect } from 'effect';
-import { defaultStateDirectory, origin } from './session-layer.js';
+import { defaultStateDirectory, defaultDaemonURL, origin } from './session-layer.js';
 import { SessionError } from './errors.js';
 
 const exec = promisify(execFile);
@@ -24,12 +24,12 @@ export const initializeDaemon = Effect.fn('Daemon.initialize')(function* () {
 
 export const startDaemon = Effect.fn('Daemon.start')(function* () {
   // A successful authenticated list proves this is the existing owned daemon.
-  const listed = yield* io(() => exec(daemonPath(), ['list', '--dir', defaultStateDirectory, '--api', 'http://127.0.0.1:8768'])).pipe(Effect.match({ onSuccess: () => true, onFailure: () => false }));
-  if (listed) return { running: true, url: 'http://127.0.0.1:8768' };
+  const listed = yield* io(() => exec(daemonPath(), ['list', '--dir', defaultStateDirectory, '--api', defaultDaemonURL])).pipe(Effect.match({ onSuccess: () => true, onFailure: () => false }));
+  if (listed) return { running: true, url: defaultDaemonURL };
   yield* io(async () => {
     const log = await open(join(defaultStateDirectory, 'daemon.log'), 'a', 0o600);
     try {
-      const child = spawn(daemonPath(), ['serve', '--dir', defaultStateDirectory, '--listen', '127.0.0.1:8768'], { detached: true, stdio: ['ignore', log.fd, log.fd] });
+      const child = spawn(daemonPath(), ['serve', '--dir', defaultStateDirectory, '--listen', new URL(defaultDaemonURL).host], { detached: true, stdio: ['ignore', log.fd, log.fd] });
       await new Promise<void>((resolve, reject) => { child.once('spawn', resolve); child.once('error', reject); });
       child.unref();
     } finally { await log.close(); }
@@ -37,16 +37,16 @@ export const startDaemon = Effect.fn('Daemon.start')(function* () {
   // Bounded startup readiness, without launching duplicate daemons on failure.
   yield* io(async () => {
     for (let attempt = 0; attempt < 30; attempt++) {
-      try { await exec(daemonPath(), ['list', '--dir', defaultStateDirectory, '--api', 'http://127.0.0.1:8768']); return; }
+      try { await exec(daemonPath(), ['list', '--dir', defaultStateDirectory, '--api', defaultDaemonURL]); return; }
       catch { await delay(100); }
     }
     throw new Error('Daemon did not become ready');
   });
-  return { running: true, url: 'http://127.0.0.1:8768' };
+  return { running: true, url: defaultDaemonURL };
 });
 
 export const stopDaemon = Effect.fn('Daemon.stop')(function* () {
-  yield* io(() => exec(daemonPath(), ['shutdown', '--dir', defaultStateDirectory, '--api', 'http://127.0.0.1:8768']));
+  yield* io(() => exec(daemonPath(), ['shutdown', '--dir', defaultStateDirectory, '--api', defaultDaemonURL]));
   return { stopping: true };
 });
 
