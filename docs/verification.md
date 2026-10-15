@@ -49,13 +49,16 @@ operations can affect shared projects or consume additional allowances.
 
 ## Published artifacts
 
-The public npm 0.3.0 archive matches the local/GitHub archive byte-for-byte:
-SHA-256 `6f022375455a1fc642caac14a3e5e8a76dfdf60e439d671fa9139ff7151ff580`.
+The public npm 0.4.0 archive matches the local release archive byte-for-byte:
+SHA-256 `092d2eb9b57760d979c816487438c6e8505f6580aa4bdfc3a27e12f56443d71a`.
 The registry initially processed it asynchronously before making it public.
-Its [CI run](https://github.com/Microck/semrush-cli/actions/runs/38660471382)
+Its [CI run](https://github.com/Microck/semrush-cli/actions/runs/38666069399)
 passed source checks, Fumadocs build, and packed-package installation/setup on
 Ubuntu, macOS and Windows. Linux arm64 also has local native execution evidence.
 Other bundled architectures are cross-compiled, not all natively tested here.
+The installed 0.4.0 executable passed live `doctor`. Its MCP server advertised
+89 tools, including 22 confirmed writes, and passed a live keyword read and an
+authentication-free Site Audit dry run.
 
 The production docs are [semrush.micr.dev](https://semrush.micr.dev), with
 [semrush-cli.vercel.app](https://semrush-cli.vercel.app) as an alias. Chromium
