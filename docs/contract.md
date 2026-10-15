@@ -348,3 +348,34 @@ composite campaign strings. Sorting uses native `sort[field]`, `sort[order]`,
 Primary sources are the Position Tracking 1.280.2 entry module's report sagas,
 `api/utils.ts`, `api/endpoint.ts` and `tracking-shared/api/utils.ts`. These are
 JSON report reads. Paid-only export and email-delivery paths are not used.
+
+
+## Chart notes
+
+The shared notes client uses `/notes/api/notes/v2/` and the current session's
+bootstrap API token in the native `Authorization: Token ...` header. List,
+detail, create, update, delete, hide and show use fixed `notes/` paths. Database
+options use `/notes/api/databases/`. Per-chart hidden categories use
+`hidden/categories/`, a tool and, for project tools, an SEO project ID.
+
+Notes list parameters use comma-separated tools, projects and categories,
+country plus `ALL` database selection, ISO date bounds, one-based pagination and
+native ordering. Results retain the provider's page, per-page and count fields.
+Dates use the current client's `Date.toISOString()` serialization. Hidden
+category replacement returns HTTP 201 with an empty body.
+Individual hide/show actions return HTTP 200 with an empty body.
+Create fixes the category to `USER_NOTE`. Update first reads the owned note and
+preserves omitted content, date, tool and project selections. Published or
+read-only notes cannot be edited or deleted. All note and visibility writes
+require explicit confirmation. Internal tokens never appear in previews.
+
+Primary sources are the notes loader, `notes/static/js/762.v-b5401496.js`
+(native middleware and serializers), `notes/static/js/index.v-5fd37a33.js`
+(state and API path), and the shared chart-notes adapter. Authenticated read
+probes verified database options, note listing, detail and project-specific
+category preferences before implementation.
+
+The all-notes CSV export uses a form POST to `/notes/api/notes/export/` with
+only the runtime bootstrap token. The token enters the browser-owned request,
+never a preview or tool result. The native export applies no list filters.
+Its form contract and a successful download were captured from the web UI.

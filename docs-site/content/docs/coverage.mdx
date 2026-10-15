@@ -3,7 +3,7 @@ title: Web UI coverage
 description: Supported web workflows, evidence and remaining gaps.
 ---
 
-The CLI has 195 fixed operations: 136 reads and 59 confirmed writes.
+The CLI has 206 fixed operations: 141 reads and 65 confirmed writes.
 It uses your web session and the current web UI's request contracts. Account
 permissions and quotas apply to both interfaces. This is not full Semrush suite
 parity. The table distinguishes implemented workflows from remaining gaps.
@@ -23,103 +23,50 @@ parity. The table distinguishes implemented workflows from remaining gaps.
 | Project dashboard | Toolkit status, metric values and detail URLs | Third-party integration setup |
 | SEO setup | Create an SEO project and explicitly start automatic Site Audit/Position Tracking setup | Protected-site audit setup |
 | Site Audit | Discovery, limits, public-site settings, schedules, launch, page and issue tables, page recrawl, execution status, abort/finalize, structure, performance, linking, history, snapshots, CSV/XLSX exports | Protected-site authentication, Google Analytics connections and crawled-links export |
-| Position Tracking | Target creation, locations, limits, keyword add/delete/tags, competitor replacement, partial address/business/brand/volume settings edits, campaign settings reads, alert listing/counts, rule lifecycle, rankings, pages, ranking distribution, competitor discovery, target comparison, visibility/distribution/cannibalization trends | Engine/device/language/location replacement, Tier 3 crawl schedules, brand-list clearing, alert-event changes, notes and paid-only UI exports |
+| Position Tracking | Target creation, locations, limits, keyword add/delete/tags, competitor replacement, partial address/business/brand/volume settings edits, campaign settings reads, alert listing/counts, rule lifecycle, rankings, pages, ranking distribution, competitor discovery, target comparison, visibility/distribution/cannibalization trends | Engine/device/language/location replacement, Tier 3 crawl schedules, brand-list clearing, alert-event changes and paid-only UI exports |
 | Keyword Strategy Builder | Domain strategy lifecycle, presets, filtered page opportunities, page URLs/SERPs, existing/recommended keywords, keyword deletion and CSV/XLSX exports; seed-based basket lifecycle, topics/pages, paginated clusters, favorites, selected-cluster deletion and metric refresh, keyword import, tags, deletion/undo, clustering, four native export selections and owner-aware selected keyword/cluster copy/move | Mind-map image exports, content generation and connected tracking actions |
 | Saved Keywords | Create, rename, delete/undo collections; keyword import, filters, metrics, tags, workflow labels, copy/move, deletion/undo, metadata and CSV/semicolon CSV/XLSX exports | Content generation and connected tracking actions |
+| Chart notes | List, detail, database options, owned note lifecycle, hide/show and per-chart category preferences and all-notes CSV export | Native chart rendering |
 | Local, social and content products | Project toolkit status and available dashboard metrics | Product-specific management and connected services |
 
 ## Verification
 
-All 48 original research request mappings have differential tests against the
-Python reference. Stateful project lifecycle tests use real Chromium, a private
-Galleton daemon and an HTTP fixture. Live account checks verified project
-creation, readback, renaming, tag replacement, pinning, toolkit status and metrics.
-The disposable verification project was deleted and its absence checked.
-Existing account projects were not modified.
+The source suite has 145 tests, including real Chromium, a private Galleton
+daemon and stateful HTTP fixtures. All 48 original research mappings also have
+differential tests against the Python reference. Across versioned live passes,
+all 141 reads and 64 of 65 writes have execution evidence. Shared-project leave
+has request-contract coverage but no shared-account fixture.
 
-The request sources are Semrush's current
-[project dashboard client](https://static.semrush.com/crossroad/release/app-bootstrap-b747fd8495662359751f.min.js)
-and its
-[project selector module](https://static.semrush.com/crossroad/release/774-b153c46fe3f656452904.min.js).
-Creation was also captured directly from the web form with submission blocked,
-before the CLI's live lifecycle verification. Internal endpoints can change.
+Live checks covered project lifecycle, bounded Site Audit crawls and stop
+controls, tracking targets and rankings, alert rules, saved keyword collections,
+seed-based strategies and domain strategies. Native CSV/XLSX exports passed
+file and resource checks. Tracking comparison returned positive desktop and
+mobile ranks for the same phrase; pagination, sorting and intersection selectors
+passed on owned targets.
 
-Live verification enabled a disposable SEO project, saved manual Site Audit
-settings with email disabled, and launched a crawl capped at 10 pages on
-example.com. Existing account projects were not changed. Shared-project leave retains request-contract coverage without live execution.
-Automatic SEO setup created a target and a completed audit. A later live pass verified metric refresh, clustering and structured
-strategy generation on disposable keyword lists.
+The notes pass verified all eleven operations. Partial edits preserved omitted
+fields. Explicit project-scope and nonempty-link clearing, hide/show and category
+replacement/restoration passed readbacks. MCP reconstructed the 2,781,804-byte
+CSV in three chunks. CLI saving produced identical bytes and refused an existing
+destination.
 
+Each completed pass deleted its owned fixtures and checked their absence.
+Existing account resources were preserved. Credentials and detailed responses
+stay outside the repository. [Versioned verification evidence](https://github.com/Microck/semrush-cli/blob/main/docs/verification.md)
+records the tested releases and their public artifacts.
 
-The current verification pass also checked Position Tracking creation and
-rankings on a disposable example.com target. Keyword, tag and competitor writes
-passed readback checks, including deletion and clearing competitors. Site Audit
-stop controls passed on an isolated slow-crawl fixture; finalize saved a new
-snapshot after processing. Page, issue-summary and individual-issue exports
-passed as both CSV and XLSX, with MCP resource reads.
+## Account and provider limits
 
-The current account has no prompt-tracking allowance and the Advertising Toolkit
-UI displays a paywall. A full paid-position request returned an access denial.
-Those products are not verified as working, and no subscription was purchased.
+The verification account has no prompt-tracking allowance. The Advertising
+Toolkit displays a paywall, and full paid-position research returned an access
+denial. Those products are not verified as working.
 
+The Position Tracking export menu requires a paid subscription. Its matching
+request returned HTTP 403 with error code 1001, "action is not allowed". Tracking
+exports remain unsupported. The native crawl-scheduling form requires SEO Tier
+3, above this account's plan.
 
-All 90 reads in version 0.6.0 passed live calls on 2026-10-15. This includes
-empty-result reports and account capability reads; it does not imply every
-paid toolkit is unlocked. Clustering forecast used a structured strategy,
-and audit page details used a fresh page ID from the current crawl.
-
-The Saved Keywords pass added 28 operations, all verified through live calls.
-Thirteen new writes passed state readbacks on two disposable collections.
-CSV, semicolon CSV and XLSX exports passed file checks, including CLI saving
-and overwrite refusal. Cleanup verified both collection IDs and the disposable
-audit project were absent; unrelated account data was preserved.
-
-The domain-strategy pass verified all 17 new operations on a disposable strategy
-with 134 page opportunities. Pagination, filters, keyword deletion and all three
-export formats passed. Cleanup checked the strategy ID was absent. The shared
-download change also passed all six Site Audit and three Saved Keywords export
-regressions. Across these passes, all 118 reads and 46 of 47 writes have live
-execution evidence.
-Shared-project leave remains unverified.
-
-
-The seed-based pass verified 15 additional operations. One generated strategy
-contained 10 topics and 243 pages. Favorites and removal, selected-cluster metric
-refresh and cluster deletion passed readback checks. All four export selections
-passed CSV, semicolon CSV and XLSX checks. Full exports contained 1,979 keyword
-rows; selected-cluster and selected-phrase exports contained only their selected
-rows. The owned strategy was deleted and its ID checked absent. Across the
-versioned passes, all 129 reads and 50 of 51 writes have live execution evidence.
-Shared-project leave still has contract coverage only.
-
-
-The settings and transfer pass verified five additional writes. Partial tracking
-edits preserved omitted fields and the target identity. Business-name clearing
-passed; empty brand-list clearing did not, and the input schema now rejects it.
-All four selected transfer operations passed source and destination readbacks,
-including the seven expected destination rows. Across versioned passes, all
-129 reads and 55 of 56 writes have live execution evidence. Shared-project leave
-still has contract coverage only.
-
-
-The alert pass verified four reads and three rule writes on an owned target.
-Creation, replacement and deletion passed readback checks, including the final
-zero rule count. Listing preserved unread state in the HTTP fixture; the live
-fresh target had no alert events. All 133 reads and 58 of 59 writes now have live
-execution evidence across versioned passes. Shared-project leave remains
-unverified. The native crawl-scheduling form requires SEO Tier 3, above the
-verification account's plan.
-
-
-The trial account's native Position Tracking export menu requires a paid
-subscription. A matching native request returned HTTP 403, error code 1001,
-"action is not allowed". Tracking exports remain unsupported and unverified.
-
-
-The tracking-report pass verified ranking distribution, competitor discovery and
-target comparison. Competitor pagination returned disjoint pages from 55 sites.
-All supported sort fields, both discovery sort directions, distribution change
-selectors and four comparison modes passed. Desktop and mobile comparison
-returned positive ranks for the same phrase. All 136 reads and 58 of 59 writes
-have live execution evidence across versioned passes. Shared-project leave
-remains unverified.
+The provider retained old brands after an empty brand-list write, so the CLI
+rejects that request. Notes also have a native URL-validation quirk documented
+in the [notes guide](/docs/notes). No subscription was purchased, outreach sent
+or third-party service connected during verification.

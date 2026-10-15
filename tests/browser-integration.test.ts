@@ -13,6 +13,7 @@ import { Semrush } from '../src/browser-service.js';
 import { Exports, exportsLive } from '../src/exports.js';
 import { parseReport } from '../src/validation.js';
 import type { Query } from '../src/report-parameters.js';
+import { makeNotesFixture } from './notes-fixture.js';
 import { makeTrackingAlertsFixture } from './tracking-alerts-fixture.js';
 import { makeTransferFixture } from './basket-transfer-fixture.js';
 import { makeSeedFixture } from './seed-strategy-fixture.js';
@@ -45,6 +46,8 @@ const serveDomainFixture = makeDomainFixture();
 const serveSeedFixture = makeSeedFixture();
 const serveTransferFixture = makeTransferFixture();
 const serveTrackingAlertsFixture = makeTrackingAlertsFixture();
+const serveNotesFixture = makeNotesFixture();
+const fixtureHandlers = new Map([[folderPath, serveProjectFixture], [savedPath, serveSavedFixture], ['/notes/api/', serveNotesFixture]]);
 const fixture = createServer(async (request, response) => {
   const url = new URL(request.url ?? '/', fixtureURL);
   if (url.pathname === '/robots.txt') { response.end('User-agent: *\nDisallow: /'); return; }
@@ -55,8 +58,8 @@ const fixture = createServer(async (request, response) => {
     if (!authenticated || !request.headers.cookie?.includes('session=authorized')) { response.writeHead(302, { Location: '/login/' }); }
     response.end(); return;
   }
-  if (url.pathname.startsWith(folderPath)) { await serveProjectFixture(request, response, url); return; }
-  if (url.pathname.startsWith(savedPath)) { await serveSavedFixture(request, response, url); return; }
+  const handler = [...fixtureHandlers].find(([prefix]) => url.pathname.startsWith(prefix))?.[1];
+  if (handler) { await handler(request, response, url); return; }
   if (url.pathname === '/siteaudit/api/campaigns/seolist') { response.setHeader('Content-Type', 'application/json'); response.end(JSON.stringify(auditConfigured ? [{ id: 789 }] : [])); return; }
   if (url.pathname.startsWith('/siteaudit/export/')) {
     expect(url.searchParams.get('key')).toBe('fixture-secret');
@@ -691,5 +694,41 @@ test('native tracking distribution, competitor discovery and target comparison p
     expect(competitors.data).toMatchObject({ data: { competitors: [{ competitor: 'example.org' }] } });
     const comparison = yield* call('position_targets_compare', { ...selection, competitors: ['*.example.com/*'], target_ids: ['789_42', '789_43'], intersection_type: 'shared' });
     expect(comparison.data).toMatchObject({ data: { keywords: [{ targets: [{ id: '789_42' }, { id: '789_43' }] }] } });
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+test('native notes preserve partial edits, personal visibility and ownership through the real browser', async () => {
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const service = yield* Semrush;
+    const call = (name: string, query: Query = {}) => Effect.gen(function* () { return yield* service.report(yield* parseReport(name, query)); });
+    const chart = { tool: 'POSITION_TRACKING', project_id: 789 };
+    const list = { tools: ['POSITION_TRACKING'], project_ids: [789], database: 'us' };
+    expect((yield* call('notes_export')).artifact).toMatchObject({ filename: 'semrush_notes_export.csv', mime_type: 'text/csv' });
+    expect((yield* call('note_databases')).data).toEqual({ databases: ['US', 'ES'] });
+    expect((yield* call('note_hidden_categories', chart)).data).toEqual(['UNCONFIRMED']);
+    yield* call('note_hidden_categories_set', { ...chart, categories: [], confirm: true });
+    expect((yield* call('note_hidden_categories', chart)).data).toEqual([]);
+    const created = yield* call('note_create', { title: 'Owned note', note: 'Keep this content',
+      datetime: '2026-10-15T00:00:00Z', tools: ['POSITION_TRACKING'], project_id: 789, link: 'https://example.com/', confirm: true });
+    expect(created.data).toMatchObject({ id: 'owned-note', category: 'USER_NOTE', hidden: false });
+    const updated = yield* call('note_update', { note_id: 'owned-note', title: 'Changed title', project_id: null, link: '', confirm: true });
+    expect(updated.data).toMatchObject({ title: 'Changed title', note: 'Keep this content', project: null, link: null });
+    expect(updated.data).not.toHaveProperty('user_id');
+    yield* call('note_hide', { note_id: 'owned-note', confirm: true });
+    expect((yield* call('note', { note_id: 'owned-note' })).data).toMatchObject({ hidden: true });
+    expect((yield* call('notes', { ...list, include_hidden: false })).data).toMatchObject({ count: 2 });
+    yield* call('note_show', { note_id: 'owned-note', confirm: true });
+    expect((yield* call('notes', list)).data).toMatchObject({ count: 3 });
+    for (const note_id of ['published-note', 'other-note']) {
+      for (const name of ['note_update', 'note_delete']) {
+        const input: Query = { note_id, confirm: true };
+        if (name === 'note_update') input.title = 'Refuse this';
+        const denied = yield* call(name, input).pipe(Effect.flip);
+        expect(denied.message).toContain('Only your own editable user notes');
+        expect(denied.message).not.toContain('fixture-secret');
+      }
+    }
+    expect((yield* call('note_delete', { note_id: 'owned-note', confirm: true })).data).toBeNull();
+    expect((yield* call('notes', list)).data).toMatchObject({ count: 2 });
   }).pipe(Effect.provide(fixtureLayer()))));
 }, 30000);

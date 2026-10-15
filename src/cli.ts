@@ -7,6 +7,7 @@ import { Sessions } from './session-service.js';
 import { sessionsLive } from './session-layer.js';
 import { initializeDaemon, startDaemon, stopDaemon, installBrowser } from './daemon.js';
 import { Exports } from './exports.js';
+import { UsageError } from './errors.js';
 
 const interruption = new AbortController();
 const cli = new Command().name('semrush').description('Semrush research through your signed-in account. CLI + MCP, powered by Effect and Galleton.').version(version).exitOverride().showHelpAfterError().option('--json', 'Emit compact JSON').option('--no-input', 'Never prompt for terminal input').option('--no-color', 'Disable terminal colors');
@@ -28,6 +29,32 @@ cli.command('reports').description('List research reports and project operations
 });
 
 interface Property { type?: string; default?: unknown; description?: string; anyOf?: { type?: string }[]; }
+/** Convert CLI text at one boundary; schema validation still owns defaults and constraints. */
+function parseCliInput(properties: Record<string, Property>, options: Record<string, string | boolean | undefined>): Query {
+  const input: Query = {};
+  for (const [key, property] of Object.entries(properties)) {
+    const value = options[key.replace(/_([a-z])/g, (_match, char: string) => char.toUpperCase())];
+    if (value === undefined) continue;
+    const type = property.type ?? property.anyOf?.find(candidate => candidate.type !== 'null')?.type;
+    if (value === 'null' && property.anyOf?.some(candidate => candidate.type === 'null')) { input[key] = null; continue; }
+    if (type === 'boolean') {
+      if (![true, false, 'true', 'false'].includes(value)) throw new InvalidArgumentError('--' + key.replaceAll('_', '-') + ' expects true or false.');
+      input[key] = value === true || value === 'true'; continue;
+    }
+    const text = String(value);
+    if (type === 'integer' || type === 'number') {
+      if (!text.trim() || !Number.isFinite(Number(text))) throw new InvalidArgumentError('--' + key.replaceAll('_', '-') + ' expects a number.');
+      input[key] = Number(text); continue;
+    }
+    if (type === 'array' || type === 'object') {
+      try { input[key] = JSON.parse(text); } catch { throw new InvalidArgumentError('--' + key.replaceAll('_', '-') + ' expects valid JSON.'); }
+      continue;
+    }
+    input[key] = text;
+  }
+  return input;
+}
+
 for (const [name, definition] of Object.entries(reports)) {
   const report = cli.command(name.replaceAll('_', '-')).description(definition.description);
   if ('response_type' in definition && ['download', 'download_url', 'export_id'].includes(definition.response_type)) report.requiredOption('--output <path>', 'Save the export file; refuses an existing destination');
@@ -37,29 +64,17 @@ for (const [name, definition] of Object.entries(reports)) {
     const description = (property.description ?? key.replaceAll('_', ' ')) + (property.default === undefined ? '' : ` (default: ${JSON.stringify(property.default)})`);
     const type = property.type ?? property.anyOf?.find(candidate => candidate.type !== 'null')?.type;
     const option = new CliOption(type === 'boolean' ? `--${flag} [boolean]` : `--${flag} <${type === 'array' || type === 'object' ? 'json' : 'value'}>`, description);
-    option.argParser((text: string) => {
-      if (type === 'boolean') {
-        if (!['true', 'false'].includes(text)) throw new InvalidArgumentError('Expected true or false.');
-        return text === 'true';
-      }
-      if (type === 'integer' || type === 'number') {
-        if (!text.trim() || !Number.isFinite(Number(text))) throw new InvalidArgumentError('Expected a number.');
-        return Number(text);
-      }
-      if (type === 'array' || type === 'object') {
-        try { return JSON.parse(text); } catch { throw new InvalidArgumentError('Expected valid JSON.'); }
-      }
-      return text;
-    });
     if (schema.required?.includes(key)) option.makeOptionMandatory();
     report.addOption(option);
   }
   report.action(async (_options, command: Command) => {
     const { parseReport } = await import('./validation.js');
-    const options = command.opts<Query>();
-    const input = Object.fromEntries(Object.keys(schema.properties).map(key => [key, options[key.replace(/_([a-z])/g, (_match, char: string) => char.toUpperCase())]]).filter(([, value]) => value !== undefined));
-    // Parse before acquiring any credential-bearing browser resources.
-    const parsed = await Effect.runPromise(parseReport(name, input).pipe(Effect.match({ onSuccess: value => ({ ok: true as const, value }), onFailure: error => ({ ok: false as const, error }) })));
+    // Commander normalizes null parser returns to empty strings. Parse raw values once here.
+    const parsed = await Effect.runPromise(Effect.try({
+      try: () => parseCliInput(schema.properties, command.opts<Record<string, string | boolean | undefined>>()),
+      catch: error => new UsageError({ message: error instanceof InvalidArgumentError ? error.message : 'Invalid command option value.' }),
+    }).pipe(Effect.flatMap(input => parseReport(name, input)),
+      Effect.match({ onSuccess: value => ({ ok: true as const, value }), onFailure: error => ({ ok: false as const, error }) })));
     if (!parsed.ok) { process.stderr.write(`semrush: ${parsed.error.message}\n`); process.exitCode = 2; return; }
     const preview = previewMutation(parsed.value.name, parsed.value.definition, parsed.value.query);
     if (preview) { output(preview, command); return; }

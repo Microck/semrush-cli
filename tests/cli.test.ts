@@ -16,8 +16,8 @@ test('built CLI runs help and version without credentials', async () => {
 test('built catalog distinguishes read reports and project writes', async () => {
   const { stdout, stderr } = await cli(['reports', '--json']);
   const listed = JSON.parse(stdout);
-  expect(listed).toHaveLength(195);
-  expect(listed.filter((entry: { read_only: boolean }) => !entry.read_only)).toHaveLength(59);
+  expect(listed).toHaveLength(206);
+  expect(listed.filter((entry: { read_only: boolean }) => !entry.read_only)).toHaveLength(65);
   expect(stderr).toBe('');
 });
 test('invalid usage fails before attempting authentication', async () => {
@@ -44,7 +44,7 @@ test('MCP advertises write safety and previews without an authenticated runtime'
     expect((await client.listResourceTemplates()).resourceTemplates[0]?.uriTemplate).toBe('semrush-export://{export_id}{?offset,limit}');
     await expect(client.readResource({ uri: 'semrush-export://unknown' })).rejects.toThrow('Download an export first');
     const listed = await client.listTools();
-    expect(listed.tools).toHaveLength(195);
+    expect(listed.tools).toHaveLength(206);
     expect(listed.tools.find(tool => tool.name === 'project_delete')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
     expect(listed.tools.find(tool => tool.name === 'project_create')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false });
     const preview = await client.callTool({ name: 'project_create', arguments: { name: 'example', dry_run: true } });
@@ -65,8 +65,15 @@ test('keyword list dry runs never acquire credentials and expose no RPC auth fie
 });
 
 test('CLI exports require an output path before authentication', async () => {
+  await expect(cli(['notes-export'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('--output') });
   expect((await cli(['audit-export-pages', '--help'])).stdout).toContain('--output');
   await expect(cli(['keyword-list-export', '--basket-id', '456', '--owner-id', '123'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('--output') });
   await expect(cli(['domain-strategy-export', '--strategy-id', '123'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('--output') });
   await expect(cli(['audit-export-pages', '--snapshot-id', 'opaque_snapshot'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('--output') });
+});
+
+test('notes accept explicit null project scope in CLI previews without loading credentials', async () => {
+  const reply = JSON.parse((await cli(['note-update', '--note-id', 'owned-1', '--project-id', 'null', '--dry-run', '--json'])).stdout);
+  expect(reply.request.body).toEqual({ project: null });
+  await expect(cli(['note-update', '--note-id', 'owned-1', '--project-id', 'not-a-number', '--dry-run'])).rejects.toMatchObject({ code: 2, stdout: '' });
 });

@@ -1,8 +1,54 @@
 # Verification
 
-Current source verification: 2026-10-15. The 0.12.0 source suite passed 142 tests in a private Raft container. Live responses and credentials remain
+Current source verification: 2026-10-15. The notes source suite passed 145 tests
+in a private Raft container. Live responses and credentials remain
 outside the repository. Evidence below distinguishes local fixtures, native CI
 and real account execution.
+
+## Version 0.13.0 chart notes verification
+
+All eleven new operations passed authenticated native calls. Note creation,
+partial edits, hide/show, category replacement/restoration and deletion passed
+readback checks on owned fixtures. Edits preserved omitted content, timestamps,
+tools, project and link fields. Explicit null project scope and clearing a
+nonempty link passed, followed by restoration. The owned note was absent from
+the selected list after deletion; the owned project was absent from the folder
+list. Existing account resources were preserved.
+
+The native CSV export returned 2,781,804 bytes. MCP resource reads reconstructed
+the file in three chunks. CLI saving returned identical bytes, and a second
+save refused the existing destination without changing it. The export includes
+all notes and does not apply list filters.
+
+Live verification corrected response and serialization assumptions. Category
+replacement returns HTTP 201 with no body; hide/show return HTTP 200 with no
+body. Dates use the native client's millisecond ISO serialization. The tested
+root URLs ending in `/` failed native URL validation, including through the
+web form; a root URL without that slash passed. The CLI does not alter URLs.
+
+The real Chromium/Galleton/HTTP fixture verifies owner and read-only refusal,
+partial preservation, nullable scope, native form exports and empty responses.
+Commander replaces null parser returns with empty strings, so CLI text now
+converts once at the command boundary before schema validation. All 145 tests,
+strict TypeScript, Oxlint, reference generation and packaging passed. Three
+independent simplification reviews found no changes needed.
+
+All 141 reads and 64 of 65 writes have live execution evidence across versioned
+passes. Shared-project leave still lacks a shared-account fixture. Detailed
+responses and credentials remain outside the repository.
+
+## Version 0.12.0 published artifacts
+
+The public npm archive matches the tested release archive:
+SHA-256 `3b04c7e676ecf08bf9d3953ebb6f181cd58c28918c757bcc1bf8dd18a9fdb1fb`.
+The [CI run](https://github.com/Microck/semrush-cli/actions/runs/38819399955)
+passed source, docs and installation/setup on Linux, macOS and Windows.
+Fresh packed and public-registry processes advertised 195 tools and passed
+authenticated reads. The global command reported 0.12.0. The
+[GitHub release](https://github.com/Microck/semrush-cli/releases/tag/v0.12.0)
+includes the archive and checksum. The tracking guide and coverage page passed
+production Chromium checks at 390px with expected content, HTTP 200, no page
+errors and no horizontal overflow.
 
 ## Version 0.12.0 tracking report verification
 

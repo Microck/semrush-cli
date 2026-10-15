@@ -193,3 +193,22 @@ test('tracking comparison keeps composite target IDs, native intersection codes 
   await expect(preview('position_targets_compare', { ...selected, target_ids: ['123_456','123_456'] })).rejects.toThrow('duplicate');
   await expect(preview('position_targets_compare', { ...selected, target_ids: ['123'] })).rejects.toThrow('pattern');
 });
+
+test('notes plans retain native selections, nullable project scope and chart category arrays', async () => {
+  expect(await preview('notes_export', {})).toEqual({ method: 'POST', path: '/notes/api/notes/export/', body: {}, encoding: 'form' });
+  expect((await preview('notes', { tools: ['POSITION_TRACKING'], project_ids: [123], database: 'us', include_hidden: false })).body).toEqual({
+    tools: 'POSITION_TRACKING', projects: '123', databases: 'US,ALL', get_hidden: 'false', ordering: '-datetime,-created', page: 1, per_page: 20, locale: 'en',
+  });
+  expect(await preview('note_hidden_categories_set', { tool: 'POSITION_TRACKING', project_id: 123, categories: [], dry_run: true })).toEqual({
+    method: 'PUT', path: '/notes/api/notes/v2/hidden/categories/?tool=POSITION_TRACKING&project_id=123', body: [],
+  });
+  expect((await preview('note_create', { title: 'Owned', datetime: '2026-10-15T00:00:00Z', tools: ['POSITION_TRACKING'], dry_run: true })).body).toMatchObject({ category: 'USER_NOTE', project: null, databases: [], note: '', datetime: '2026-10-15T00:00:00.000Z' });
+  expect((await preview('note_update', { note_id: 'owned-1', project_id: null, dry_run: true })).body).toEqual({ project: null });
+  await expect(preview('note_update', { note_id: 'owned-1', dry_run: true })).rejects.toThrow();
+  await expect(preview('note_delete', { note_id: '../published', dry_run: true })).rejects.toThrow('pattern');
+  await expect(preview('note_hide', { note_id: 'owned-1' })).rejects.toThrow('--confirm');
+  await expect(preview('note_hidden_categories', { tool: 'POSITION_TRACKING' })).rejects.toThrow('project_id');
+  await expect(preview('note_create', { title: 'Owned', datetime: '2026-10-15T00:00:00Z', tools: ['DOMAIN_OVERVIEW'], dry_run: true })).rejects.toThrow();
+  await expect(preview('note_create', { title: 'Owned', datetime: '2026-02-30T00:00:00Z', tools: ['POSITION_TRACKING'], dry_run: true })).rejects.toThrow('valid UTC');
+  await expect(preview('notes', { datetime_from: '2026-10-16T00:00:00Z', datetime_to: '2026-10-15T00:00:00Z' })).rejects.toThrow('must not exceed');
+});

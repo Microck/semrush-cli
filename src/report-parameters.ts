@@ -21,6 +21,7 @@ export interface Query { [key: string]: Schema.Json; }
 /** Fixed request shapes observed in semrush-web-mcp. No arbitrary RPC or URL input. */
 export function reportParameters(definition: Report, q: Query): Query {
   const family = definition.transport;
+  if (family === 'notes_web') return noteParameters(definition, q);
   if (family === 'ksb') return domainStrategyParameters(definition, q);
   if (family === 'saved_web') return savedParameters(definition, q);
   if (family === 'tracking_web') return trackingParameters(definition, q);
@@ -207,10 +208,20 @@ function projectParameters(definition: Report, q: Query): Query {
   return Object.fromEntries(Object.entries(q).filter(([key]) => key !== 'confirm' && key !== 'dry_run'));
 }
 
+export interface WebRequest { method: string; path: string; body: Schema.Json; encoding?: 'form'; }
+
 /** Fixed public request plans. RPC credentials enter only inside the browser layer. */
-export function webRequest(definition: Report, query: Query) {
+export function webRequest(definition: Report, query: Query): WebRequest {
   if (definition.transport === 'kwm' || definition.transport === 'ksb') return { method: 'POST', path: definition.transport === 'ksb' ? '/ksb/rpc' : '/kwm/rpc', body: rpcBody(definition.method, reportParameters(definition, query)) };
   const parameters = reportParameters(definition, query);
+  if ('request_encoding' in definition && definition.request_encoding === 'form') return {
+    method: definition.http_method, path: definition.method, body: parameters, encoding: 'form',
+  };
+  if (definition.transport === 'notes_web' && definition.http_method === 'PUT' && definition.method.endsWith('/hidden/categories/')) {
+    const context = new URLSearchParams({ tool: String(parameters.tool) });
+    if ('project_id' in parameters) context.set('project_id', String(parameters.project_id));
+    return { method: 'PUT', path: definition.method + '?' + context, body: parameters.categories ?? [] };
+  }
   return {
     method: definition.http_method,
     path: definition.method.replace(/\{([a-z_]+)\}/g, (_match, key: string) => encodeURIComponent(String(query[key]))),
@@ -391,4 +402,31 @@ function trackingParameters(definition: Report, query: Query): Query {
   if (definition.method.endsWith('/get_locations')) return { q: query.query ?? '' };
   if (definition.method.startsWith('/tracking/web-api/reports/')) return trackingReportParameters(definition, query);
   return publicParameters(definition, query);
+}
+
+/** The shared notes client uses comma-separated selections and UTC date strings. */
+function noteParameters(definition: Report, query: Query): Query {
+  const parameters = publicParameters(definition, query);
+  for (const key of ['datetime', 'datetime_from', 'datetime_to']) {
+    if (key in parameters) parameters[key] = new Date(String(parameters[key])).toISOString();
+  }
+  if (definition.method.endsWith('/hidden/categories/')) return parameters;
+  if (definition.http_method === 'GET' && definition.method.endsWith('/notes/')) {
+    for (const key of ['tools', 'categories', 'project_ids']) {
+      const value = parameters[key];
+      if (Array.isArray(value)) {
+        if (value.length) parameters[key === 'project_ids' ? 'projects' : key] = value.join(',');
+        else delete parameters[key];
+      }
+      if (key === 'project_ids') delete parameters.project_ids;
+    }
+    if ('database' in parameters) { parameters.databases = String(parameters.database).toUpperCase() + ',ALL'; delete parameters.database; }
+    parameters.ordering = query.descending ? '-datetime,-created' : 'datetime,created'; delete parameters.descending;
+    if (query.include_hidden === false) parameters.get_hidden = 'false';
+    delete parameters.include_hidden;
+    return parameters;
+  }
+  if ('project_id' in parameters) { parameters.project = parameters.project_id ?? null; delete parameters.project_id; }
+  if (definition.http_method === 'POST' && definition.method.endsWith('/notes/')) parameters.category = 'USER_NOTE';
+  return parameters;
 }

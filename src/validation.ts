@@ -17,6 +17,13 @@ export const parseReport = Effect.fn('Reports.parse')(function* (name: string, i
     return yield* Effect.fail(new UsageError({ message: 'Source and destination Saved Keywords collections must be different.' }));
   }
   const definition = reports[name];
+  if (definition.transport === 'notes_web') {
+    for (const key of ['datetime', 'datetime_from', 'datetime_to']) {
+      const timestamp = query[key];
+      if (Predicate.isString(timestamp) && (!Number.isFinite(Date.parse(timestamp)) || new Date(timestamp).toISOString().replace('.000Z', 'Z') !== timestamp.replace('.000Z', 'Z'))) return yield* Effect.fail(new UsageError({ message: key + ' must be a valid UTC ISO timestamp.' }));
+    }
+    if (Predicate.isString(query.datetime_from) && Predicate.isString(query.datetime_to) && Date.parse(query.datetime_from) > Date.parse(query.datetime_to)) return yield* Effect.fail(new UsageError({ message: 'datetime_from must not exceed datetime_to.' }));
+  }
   if (definition.transport === 'kwm' && 'target_basket_id' in query && query.basket_id === query.target_basket_id) return yield* Effect.fail(new UsageError({ message: 'Source and destination Keyword Strategy Builder baskets must be different.' }));
   if (definition.transport === 'ksb' && 'volume_min' in query) {
     const bounds = [['volume_min', 'volume_max'], ['difficulty_min', 'difficulty_max']] satisfies [string, string][];

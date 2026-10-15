@@ -14,7 +14,7 @@ npm --prefix docs-site run build
 
 Development builds require Node.js 22 or newer, Go 1.23 or newer, `tar` and `patch` to compile the pinned Galleton daemon with its documented static-provider extension. Published npm users do not need Go. `scripts/build-daemon.mjs` downloads one pinned Galleton source archive and caches the resulting platform binaries in the OS temporary directory.
 
-`src/report-catalog.json` records 195 operations: 136 reads and 59 writes. The original 48 research schemas come from `semrush-web-mcp`; the additional project, keyword-list and audit contracts come from the web clients. CLI options, MCP tools and input validation derive from this catalog. `src/report-parameters.ts` maps validated queries to fixed request shapes. Differential cases in `tests/reference-cases.json` preserve the Python reference's wire contract.
+`src/report-catalog.json` records 206 operations: 141 reads and 65 writes. The original 48 research schemas come from `semrush-web-mcp`; the additional project, keyword-list and audit contracts come from the web clients. CLI options, MCP tools and input validation derive from this catalog. `src/report-parameters.ts` maps validated queries to fixed request shapes. Differential cases in `tests/reference-cases.json` preserve the Python reference's wire contract.
 
 Effect service contracts live in `session-service.ts` and `browser-service.ts`. Their layers own the Galleton SDK and browser lifecycle. Browser reports serialize within each runtime. The CLI and MCP are transport boundaries around the same service. Expected failures use tagged Effect errors. Browser resources close when their scope ends.
 

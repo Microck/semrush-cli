@@ -142,16 +142,16 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     if (request.method !== 'GET') {
       // JSON POSTs need the web origin. Closing this page aborts fetch and revokes its Blob URL.
       yield* browserCall(() => exportPage.goto(browserOrigin + '/robots.txt', { waitUntil: 'domcontentloaded', timeout: 45000 }));
-      const attachment = yield* browserCall(() => exportPage.evaluate(async ({ address, body, extension }) => {
-        const response = await fetch(address, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body), signal: AbortSignal.timeout(45000) });
+      const attachment = yield* browserCall(() => exportPage.evaluate(async ({ address, body, extension, encoding }) => {
+        const response = await fetch(address, { method: 'POST', credentials: 'include', headers: { 'Content-Type': encoding === 'form' ? 'application/x-www-form-urlencoded' : 'application/json' },
+          body: encoding === 'form' ? new URLSearchParams(Object.entries(body ?? {}).map(([key, value]) => [key, String(value)])) : JSON.stringify(body), signal: AbortSignal.timeout(45000) });
         const contentType = response.headers.get('content-type') ?? '';
         if (!response.ok || /text\/html|application\/(?:[^;]+\+)?json/i.test(contentType)) return { status: response.status, url: '', filename: '' };
         const disposition = response.headers.get('content-disposition') ?? '';
         const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
         const filename = encoded ? decodeURIComponent(encoded) : (disposition.match(/filename="([^"]+)"|filename=([^;]+)/i)?.slice(1).find(Boolean)?.trim() ?? 'semrush-export.' + extension);
         return { status: response.status, url: URL.createObjectURL(await response.blob()), filename };
-      }, { address: address.href, body: request.body, extension: format === 'xlsx' ? 'xlsx' : 'csv' }));
+      }, { address: address.href, body: request.body, extension: format === 'xlsx' ? 'xlsx' : 'csv', encoding: 'encoding' in request ? request.encoding : 'json' }));
       if (!attachment.url) return yield* Effect.fail(new ReportError({ message: `Semrush did not return an export file (HTTP ${attachment.status}). Check your session, export permissions and selected resource.` }));
       file = attachment;
     }
@@ -228,6 +228,44 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       type: settings.tracking_url_type, businessName: settings.business_name ?? '', brands: settings.brands ?? [],
       volume_type: metadata.data.filters.volume_type, display_hash: edit.info.campaign_edit.hash, rnd: edit.info.campaign_edit.random }, changes);
   });
+  /** Notes updates replace native fields; read ownership and retain omitted selections first. */
+  const noteBody = Effect.fn('Semrush.noteBody')(function* (name: string, path: string, changes: Schema.Json) {
+    if (name !== 'note_update' && name !== 'note_delete') return changes;
+    const current = yield* request(path, {}, 'GET', { authorization: 'Token ' + auth.apiKey });
+    const note = yield* Schema.decodeUnknownEffect(Schema.Struct({
+      id: Schema.Union([Schema.String, Schema.Number]), user_id: Schema.NullOr(Schema.Union([Schema.String, Schema.Number])),
+      read_only: Schema.Boolean, category: Schema.String, title: Schema.String, note: Schema.NullOr(Schema.String),
+      datetime: Schema.String, tools: Schema.Array(Schema.String), databases: Schema.Array(Schema.String),
+      project: Schema.NullOr(Schema.Union([Schema.String, Schema.Number])), link: Schema.NullOr(Schema.String),
+    }))(current).pipe(Effect.mapError(() => new ReportError({ message: 'Note metadata is unavailable. Read the note before sending another edit.' })));
+    if (note.read_only || note.category !== 'USER_NOTE' || String(note.user_id) !== String(auth.userId)) return yield* Effect.fail(new ReportError({ message: 'Only your own editable user notes can be changed or deleted. Published notes are read-only.' }));
+    if (name === 'note_delete') return changes;
+    const body: Query = { id: note.id, title: note.title, note: note.note ?? '', datetime: note.datetime,
+      tools: [...note.tools], databases: [...note.databases], project: note.project, category: 'USER_NOTE' };
+    if (note.link) body.link = note.link;
+    Object.assign(body, changes);
+    if (!body.link) delete body.link;
+    return body;
+  });
+  /** Acquire native metadata and credentials only after public validation and write consent. */
+  const prepareWebRequest = Effect.fn('Semrush.prepareWebRequest')(function* ({ name, definition, query }: ReportRequest, planned: ReturnType<typeof webRequest>) {
+    const family = definition.transport;
+    // The web UI only allows adding a website to a project that has none.
+    if (name === 'project_update' && query.domain !== undefined) {
+      const current = yield* request('/apis/v4-raw/folders/api/v0/folders/folder', { folder_id: query.folder_id ?? null }, 'GET');
+      if (!objectValue(current) || !objectValue(current.folder)) return yield* Effect.fail(new ReportError({ message: 'Project metadata unavailable. Inspect the project before adding a website.' }));
+      if (Predicate.isString(current.folder.domain) && current.folder.domain.length > 0) return yield* Effect.fail(new ReportError({ message: 'This project already has a website. The Semrush web UI only allows adding a website when none is set.' }));
+    }
+    if (family === 'audit_web') yield* checkAuditSettings(name, query);
+    const authParameter = family === 'audit_web' ? 'key' : 'auth_parameter' in definition ? definition.auth_parameter : '';
+    const path = authParameter ? planned.path + '?' + new URLSearchParams({ [authParameter]: auth.apiKey }) : planned.path;
+    const formEncoded = 'encoding' in planned && planned.encoding === 'form';
+    const headers: Record<string, string> = family === 'notes_web' && !formEncoded ? { authorization: 'Token ' + auth.apiKey } : {};
+    if (formEncoded) return { ...planned, path, headers, body: { token: auth.apiKey } };
+    const body = family === 'tracking_web' ? yield* trackingBody(definition, query, planned.body)
+      : family === 'notes_web' ? yield* noteBody(name, path, planned.body) : planned.body;
+    return { ...planned, path, headers, body };
+  });
   const report = Effect.fn('Semrush.report')(function* ({ name, definition, query }: ReportRequest) {
     const valid = yield* browserCall(() => page.evaluate(async () => {
       const response = await fetch('/home/', { method: 'HEAD', credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(15000) });
@@ -235,27 +273,18 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     }));
     if (!valid) return yield* Effect.fail(new SessionError({ message: 'Semrush session expired. Run semrush auth login or import a signed-in browser.' }));
     const family = definition.transport;
-    const planned = ['project_web', 'audit_web', 'tracking_web', 'saved_web'].includes(family) ? webRequest(definition, query) : undefined;
+    const planned = ['project_web', 'audit_web', 'tracking_web', 'saved_web', 'notes_web'].includes(family) ? webRequest(definition, query) : undefined;
     const params = planned ? {} : reportParameters(definition, query);
     let reportData: Schema.Json | undefined;
     if (planned) {
-      // The web UI only allows adding a website to a project that has none.
-      if (name === 'project_update' && query.domain !== undefined) {
-        const current = yield* request('/apis/v4-raw/folders/api/v0/folders/folder', { folder_id: query.folder_id ?? null }, 'GET');
-        if (!objectValue(current) || !objectValue(current.folder)) return yield* Effect.fail(new ReportError({ message: 'Project metadata unavailable. Inspect the project before adding a website.' }));
-        if (Predicate.isString(current.folder.domain) && current.folder.domain.length > 0) return yield* Effect.fail(new ReportError({ message: 'This project already has a website. The Semrush web UI only allows adding a website when none is set.' }));
-      }
-      if (family === 'audit_web') yield* checkAuditSettings(name, query);
-      const authParameter = family === 'audit_web' ? 'key' : 'auth_parameter' in definition ? definition.auth_parameter : '';
-      const path = authParameter ? planned.path + '?' + new URLSearchParams({ [authParameter]: auth.apiKey }) : planned.path;
+      const prepared = yield* prepareWebRequest({ name, definition, query }, planned);
       if ('response_type' in definition && definition.response_type === 'download') {
-        const artifact = yield* Effect.scoped(downloadExport({ ...planned, path }, query.format));
+        const artifact = yield* Effect.scoped(downloadExport(prepared, query.format));
         yield* captureCookies(context, sessions.capture, browserOrigin);
         return { authenticated: true as const, report: name, data: null, artifact };
       }
       const responseType = 'response_type' in definition && definition.response_type === 'empty' ? 'empty' : 'json';
-      const body = family === 'tracking_web' ? yield* trackingBody(definition, query, planned.body) : planned.body;
-      reportData = yield* request(path, body, planned.method, {}, responseType);
+      reportData = yield* request(prepared.path, prepared.body, prepared.method, prepared.headers, responseType);
     } else if (['keyword', 'domain', 'direct', 'magic', 'kwm', 'ksb'].includes(family)) {
       reportData = yield* rpc(definition.method, params, family, definition.web_report);
       if ('response_type' in definition && ['download_url', 'export_id'].includes(definition.response_type)) {

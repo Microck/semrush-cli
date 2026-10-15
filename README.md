@@ -15,7 +15,7 @@
 
 ---
 
-`semrush` is a terminal cli for semrush. research keywords, check rankings and backlinks, compare competitors, manage projects and keyword lists, track positions, and run site audits from your own account. output is json, so you can pipe it into `jq` or give the same commands to an agent through mcp. built with typescript and effect.
+`semrush` is a terminal cli for semrush. research keywords, check rankings and backlinks, compare competitors, manage projects and keyword lists, track positions, add chart notes, and run site audits from your own account. output is json, so you can pipe it into `jq` or give the same commands to an agent through mcp. built with typescript and effect.
 
 [documentation](https://semrush.micr.dev) | [command reference](https://semrush.micr.dev/docs/reports) | [npm](https://www.npmjs.com/package/semrush-cli) | [mcp](https://semrush.micr.dev/docs/mcp)
 
@@ -75,7 +75,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 
 ## command surface
 
-195 operations, available as cli commands and mcp tools. 136 reads and 59 writes that need explicit confirmation.
+206 operations, available as cli commands and mcp tools. 141 reads and 65 writes that need explicit confirmation.
 
 | command | what it does |
 | --- | --- |
@@ -124,6 +124,10 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 | `audit-pages`, `audit-page`, `audit-issue`, `audit-history` | inspect crawled pages, issues and crawl history |
 | `audit-recrawl`, `audit-abort`, `audit-finalize` | recrawl a page, cancel a crawl or process results early |
 | `audit-export-pages`, `audit-export-issues`, `audit-export-issue` | download native csv or xlsx reports |
+| `notes`, `note`, `note-databases`, `note-hidden-categories` | list and read chart notes, database options and hidden categories |
+| `notes-export` | download all chart notes as native csv |
+| `note-create`, `note-update`, `note-delete` | create, edit or delete your own user notes |
+| `note-hide`, `note-show`, `note-hidden-categories-set` | change note visibility or replace hidden categories for a chart |
 | `reports` | list every operation and its inputs |
 | `mcp` | run the stdio mcp server |
 | `doctor` | check the browser, session engine and semrush connection |
@@ -415,6 +419,51 @@ semrush position-trigger-delete --campaign-id 456_789 --trigger-id '<trigger_id>
 
 copy `--domain` exactly from `position-info`'s `data.campaign_settings.tracking_url`, or use a competitor url from that result. thresholds run from 1 to 100. keep trigger ids as strings. updates replace the rule, so supply its domain, condition and threshold together. writes require `--confirm`, or use `--dry-run` to preview them.
 
+### chart notes
+
+read notes for a chart, then inspect a note by its returned id:
+
+```bash
+semrush notes --tools '["DOMAIN_OVERVIEW"]' --database us --page 1 --per-page 20
+semrush note --note-id '<note_id>'
+semrush note-databases
+semrush note-hidden-categories --tool POSITION_TRACKING --project-id 456
+```
+
+lists include hidden notes by default. use `--categories '["USER_NOTE"]'` to select user notes, or `--datetime-from` and `--datetime-to` with utc timestamps such as `2026-10-15T00:00:00Z` to narrow the dates. project filters use numeric seo project ids.
+
+export all notes as semrush's native csv:
+
+```bash
+semrush notes-export --output notes.csv
+```
+
+export does not apply list filters. `--output` is required and refuses an existing file.
+
+create a note for a change you want to track:
+
+```bash
+semrush note-create --title 'updated landing page' --datetime 2026-10-15T12:00:00Z \
+  --tools '["DOMAIN_OVERVIEW"]' --databases '["US"]' --confirm
+semrush note-update --note-id '<note_id>' --note 'changed the headline and signup form' --confirm
+semrush note-delete --note-id '<note_id>' --dry-run
+```
+
+`note-update` reads the current note and preserves fields you omit. pass `--note ''` or `--link ''` to clear those fields. only your own editable user notes can be updated or deleted. published notes and other users' notes are protected.
+
+note creation and updates use uppercase database codes such as `US`, or `ALL`. domain overview and organic positions notes need a database selection. omitting `--project-id` when creating a note applies it to all projects.
+
+hide or show a note without changing its content, or replace a chart's hidden categories:
+
+```bash
+semrush note-hide --note-id '<note_id>' --confirm
+semrush note-show --note-id '<note_id>' --confirm
+semrush note-hidden-categories-set --tool POSITION_TRACKING --project-id 456 \
+  --categories '["GOOGLE_ORGANIC","UNCONFIRMED"]' --confirm
+```
+
+category writes replace the whole selection. use `--categories '[]'` to show every category. project tools require `--project-id` for category preferences. every notes write needs `--confirm`, or use `--dry-run` to preview it.
+
 ### site audits
 
 ```bash
@@ -486,7 +535,7 @@ the cli uses the published [`galleton` 0.1.0 sdk](https://www.npmjs.com/package/
 
 ## documentation
 
-full docs live at [semrush.micr.dev](https://semrush.micr.dev). setup, authentication, projects, saved keywords, keyword strategy builder, position tracking, site audits, exports, mcp and the complete command reference.
+full docs live at [semrush.micr.dev](https://semrush.micr.dev). setup, authentication, projects, saved keywords, keyword strategy builder, position tracking, chart notes, site audits, exports, mcp and the complete command reference.
 
 - [coverage](https://semrush.micr.dev/docs/coverage)
 - [authentication](https://semrush.micr.dev/docs/authentication)

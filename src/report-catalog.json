@@ -10367,5 +10367,680 @@
         "main_competitor"
       ]
     }
+  },
+  "notes": {
+    "method": "/notes/api/notes/v2/notes/",
+    "description": "List chart notes with native pagination, tool, category and date filters.",
+    "transport": "notes_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "DOMAIN_OVERVIEW",
+              "ORGANIC_POSITIONS",
+              "SENSOR",
+              "POSITION_TRACKING",
+              "SEO_IDEAS",
+              "ORGANIC_TRAFFIC_INSIGHTS",
+              "BACKLINK_AUDIT",
+              "SITE_AUDIT"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 8,
+          "uniqueItems": true
+        },
+        "project_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "minItems": 0,
+          "maxItems": 100,
+          "uniqueItems": true
+        },
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "GOOGLE_ORGANIC",
+              "GOOGLE_PAID",
+              "UNCONFIRMED",
+              "SEMRUSH_SENSOR",
+              "SEMRUSH",
+              "USER_NOTE"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 6,
+          "uniqueItems": true
+        },
+        "database": {
+          "type": "string",
+          "pattern": "^[a-zA-Z]{2}$"
+        },
+        "datetime_from": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z$",
+          "description": "UTC ISO timestamp, for example 2026-10-15T00:00:00Z."
+        },
+        "datetime_to": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z$",
+          "description": "UTC ISO timestamp, for example 2026-10-15T00:00:00Z."
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        },
+        "per_page": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 20
+        },
+        "descending": {
+          "type": "boolean",
+          "default": true
+        },
+        "include_hidden": {
+          "type": "boolean",
+          "default": true
+        },
+        "locale": {
+          "type": "string",
+          "enum": [
+            "en",
+            "de",
+            "es",
+            "fr",
+            "it",
+            "pt",
+            "zh",
+            "ja",
+            "tr",
+            "ko",
+            "vi",
+            "pl",
+            "sv",
+            "nl"
+          ],
+          "default": "en"
+        }
+      },
+      "required": []
+    }
+  },
+  "note": {
+    "method": "/notes/api/notes/v2/notes/{note_id}/",
+    "description": "Read a chart note without changing its visibility.",
+    "transport": "notes_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "note_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "note_id"
+      ]
+    }
+  },
+  "note_databases": {
+    "method": "/notes/api/databases/",
+    "description": "Read available country databases for chart notes.",
+    "transport": "notes_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    }
+  },
+  "note_hidden_categories": {
+    "method": "/notes/api/notes/v2/hidden/categories/",
+    "description": "Read hidden note categories for a chart context.",
+    "transport": "notes_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tool": {
+          "type": "string",
+          "enum": [
+            "DOMAIN_OVERVIEW",
+            "ORGANIC_POSITIONS",
+            "SENSOR",
+            "POSITION_TRACKING",
+            "SEO_IDEAS",
+            "ORGANIC_TRAFFIC_INSIGHTS",
+            "BACKLINK_AUDIT",
+            "SITE_AUDIT"
+          ]
+        },
+        "project_id": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "tool"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "tool": {
+                "enum": [
+                  "POSITION_TRACKING",
+                  "SEO_IDEAS",
+                  "ORGANIC_TRAFFIC_INSIGHTS",
+                  "BACKLINK_AUDIT",
+                  "SITE_AUDIT"
+                ]
+              }
+            },
+            "required": [
+              "tool"
+            ]
+          },
+          "then": {
+            "required": [
+              "project_id"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "note_create": {
+    "method": "/notes/api/notes/v2/notes/",
+    "description": "Create a user note for selected chart tools.",
+    "transport": "notes_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "pattern": "\\S"
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 10000,
+          "default": ""
+        },
+        "datetime": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z$",
+          "description": "UTC ISO timestamp, for example 2026-10-15T00:00:00Z."
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "DOMAIN_OVERVIEW",
+              "ORGANIC_POSITIONS",
+              "SENSOR",
+              "POSITION_TRACKING",
+              "SEO_IDEAS",
+              "ORGANIC_TRAFFIC_INSIGHTS",
+              "BACKLINK_AUDIT",
+              "SITE_AUDIT"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true
+        },
+        "databases": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(?:[A-Z]{2}|ALL)$"
+          },
+          "minItems": 0,
+          "maxItems": 100,
+          "uniqueItems": true,
+          "default": []
+        },
+        "project_id": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "SEO project ID; null applies the note to all projects.",
+          "default": null
+        },
+        "link": {
+          "type": "string",
+          "maxLength": 2000,
+          "pattern": "^(?:https?://[^\\s]+)?$",
+          "description": "Related HTTP(S) URL; an empty string clears it."
+        },
+        "confirm": {
+          "type": "boolean",
+          "description": "Confirm this account change."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "description": "Preview without signing in or sending the change."
+        }
+      },
+      "required": [
+        "title",
+        "datetime",
+        "tools"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "tools": {
+                "contains": {
+                  "enum": [
+                    "DOMAIN_OVERVIEW",
+                    "ORGANIC_POSITIONS"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "tools"
+            ]
+          },
+          "then": {
+            "properties": {
+              "databases": {
+                "minItems": 1
+              }
+            },
+            "required": [
+              "databases"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "note_update": {
+    "method": "/notes/api/notes/v2/notes/{note_id}/",
+    "description": "Update an owned note while preserving omitted fields.",
+    "transport": "notes_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "PUT",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "note_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "maxLength": 200
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "pattern": "\\S"
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 10000
+        },
+        "datetime": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z$",
+          "description": "UTC ISO timestamp, for example 2026-10-15T00:00:00Z."
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "DOMAIN_OVERVIEW",
+              "ORGANIC_POSITIONS",
+              "SENSOR",
+              "POSITION_TRACKING",
+              "SEO_IDEAS",
+              "ORGANIC_TRAFFIC_INSIGHTS",
+              "BACKLINK_AUDIT",
+              "SITE_AUDIT"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true
+        },
+        "databases": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(?:[A-Z]{2}|ALL)$"
+          },
+          "minItems": 0,
+          "maxItems": 100,
+          "uniqueItems": true
+        },
+        "project_id": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "SEO project ID; null applies the note to all projects."
+        },
+        "link": {
+          "type": "string",
+          "maxLength": 2000,
+          "pattern": "^(?:https?://[^\\s]+)?$",
+          "description": "Related HTTP(S) URL; an empty string clears it."
+        },
+        "confirm": {
+          "type": "boolean",
+          "description": "Confirm this account change."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "description": "Preview without signing in or sending the change."
+        }
+      },
+      "required": [
+        "note_id"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "title"
+          ]
+        },
+        {
+          "required": [
+            "note"
+          ]
+        },
+        {
+          "required": [
+            "datetime"
+          ]
+        },
+        {
+          "required": [
+            "tools"
+          ]
+        },
+        {
+          "required": [
+            "databases"
+          ]
+        },
+        {
+          "required": [
+            "project_id"
+          ]
+        },
+        {
+          "required": [
+            "link"
+          ]
+        }
+      ]
+    }
+  },
+  "note_delete": {
+    "method": "/notes/api/notes/v2/notes/{note_id}/",
+    "description": "Delete an owned user note; published notes are protected.",
+    "transport": "notes_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "DELETE",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "note_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "maxLength": 200
+        },
+        "confirm": {
+          "type": "boolean",
+          "description": "Confirm this account change."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "description": "Preview without signing in or sending the change."
+        }
+      },
+      "required": [
+        "note_id"
+      ]
+    }
+  },
+  "note_hide": {
+    "method": "/notes/api/notes/v2/notes/{note_id}/hide/",
+    "description": "Hide a note in your chart view.",
+    "transport": "notes_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "note_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "maxLength": 200
+        },
+        "confirm": {
+          "type": "boolean",
+          "description": "Confirm this account change."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "description": "Preview without signing in or sending the change."
+        }
+      },
+      "required": [
+        "note_id"
+      ]
+    },
+    "response_type": "empty"
+  },
+  "note_show": {
+    "method": "/notes/api/notes/v2/notes/{note_id}/show/",
+    "description": "Show a note in your chart view.",
+    "transport": "notes_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "note_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "maxLength": 200
+        },
+        "confirm": {
+          "type": "boolean",
+          "description": "Confirm this account change."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "description": "Preview without signing in or sending the change."
+        }
+      },
+      "required": [
+        "note_id"
+      ]
+    },
+    "response_type": "empty"
+  },
+  "note_hidden_categories_set": {
+    "method": "/notes/api/notes/v2/hidden/categories/",
+    "description": "Replace hidden categories for one chart context.",
+    "transport": "notes_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "PUT",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tool": {
+          "type": "string",
+          "enum": [
+            "DOMAIN_OVERVIEW",
+            "ORGANIC_POSITIONS",
+            "SENSOR",
+            "POSITION_TRACKING",
+            "SEO_IDEAS",
+            "ORGANIC_TRAFFIC_INSIGHTS",
+            "BACKLINK_AUDIT",
+            "SITE_AUDIT"
+          ]
+        },
+        "project_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "GOOGLE_ORGANIC",
+              "GOOGLE_PAID",
+              "UNCONFIRMED",
+              "SEMRUSH_SENSOR",
+              "SEMRUSH",
+              "USER_NOTE"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 6,
+          "uniqueItems": true
+        },
+        "confirm": {
+          "type": "boolean",
+          "description": "Confirm this account change."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "description": "Preview without signing in or sending the change."
+        }
+      },
+      "required": [
+        "tool",
+        "categories"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "tool": {
+                "enum": [
+                  "POSITION_TRACKING",
+                  "SEO_IDEAS",
+                  "ORGANIC_TRAFFIC_INSIGHTS",
+                  "BACKLINK_AUDIT",
+                  "SITE_AUDIT"
+                ]
+              }
+            },
+            "required": [
+              "tool"
+            ]
+          },
+          "then": {
+            "required": [
+              "project_id"
+            ]
+          }
+        }
+      ]
+    },
+    "response_type": "empty"
+  },
+  "notes_export": {
+    "method": "/notes/api/notes/export/",
+    "description": "Export all chart notes as the native CSV file; the web export does not apply list filters.",
+    "transport": "notes_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "request_encoding": "form",
+    "response_type": "download",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    }
   }
 }

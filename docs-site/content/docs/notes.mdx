@@ -1,0 +1,85 @@
+---
+title: Chart notes
+description: Add chart annotations, edit your notes and control their visibility.
+---
+
+Notes annotate report dates. They do not change rankings, start crawls or send
+messages. Use an SEO project ID for project-based chart contexts.
+
+## Find notes
+
+```sh
+semrush note-databases
+semrush notes --tools '["POSITION_TRACKING"]' --project-ids '[456]' --page 1 --per-page 20
+semrush notes --tools '["DOMAIN_OVERVIEW"]' --database us --include-hidden false
+semrush note --note-id opaque-note-id
+```
+
+List results keep native `page`, `per_page`, `count` and `results` fields.
+Pagination starts at 1. `--descending false` lists older dates first.
+Optional `--datetime-from` and `--datetime-to` use UTC ISO timestamps, such as
+`2026-10-15T00:00:00Z`. The first bound must not exceed the second.
+
+## Export notes
+
+```sh
+semrush notes-export --output notes.csv
+```
+
+The native CSV export includes all notes and does not apply list filters.
+The CLI refuses to overwrite an existing file. MCP returns an export resource
+that the client can read in chunks.
+
+## Create and edit a note
+
+```sh
+semrush note-create --title 'launch' --note 'updated the website' \
+  --datetime 2026-10-15T00:00:00Z --tools '["POSITION_TRACKING"]' \
+  --project-id 456 --dry-run
+
+semrush note-create --title 'launch' --note 'updated the website' \
+  --datetime 2026-10-15T00:00:00Z --tools '["POSITION_TRACKING"]' \
+  --project-id 456 --confirm
+```
+
+Creation returns the note's `id`. User notes have the fixed category `USER_NOTE`.
+Domain Overview and Organic Positions notes require at least one database,
+for example `--databases '["US"]'`. Write selections use uppercase country
+codes; `ALL` selects all databases.
+
+```sh
+semrush note-update --note-id opaque-note-id --title 'launch follow-up' --confirm
+semrush note-update --note-id opaque-note-id --note '' --link '' --confirm
+semrush note-update --note-id opaque-note-id --project-id null --confirm
+semrush note-delete --note-id opaque-note-id --confirm
+```
+
+Updates preserve fields you omit. Empty note text clears its body; an empty
+link clears the link. A null project applies the note to all projects.
+Semrush rejected the tested root URLs ending in `/`, including through its
+own web form. `https://www.semrush.com` without that slash passed creation.
+The CLI sends the URL you supply without changing it.
+The CLI reads current metadata before editing or deleting. It refuses
+published notes, read-only notes and notes owned by another account.
+Deletion permanently removes an owned note.
+
+## Control chart visibility
+
+```sh
+semrush note-hide --note-id opaque-note-id --confirm
+semrush note-show --note-id opaque-note-id --confirm
+
+semrush note-hidden-categories --tool POSITION_TRACKING --project-id 456
+semrush note-hidden-categories-set --tool POSITION_TRACKING --project-id 456 \
+  --categories '["UNCONFIRMED"]' --dry-run
+semrush note-hidden-categories-set --tool POSITION_TRACKING --project-id 456 \
+  --categories '["UNCONFIRMED"]' --confirm
+```
+
+Hiding and showing change your view of a note. They do not edit its content.
+Category replacement sets the complete hidden-category list for one chart
+context. An empty array shows every category. Read the current list before
+replacing it. Project tools require an SEO project ID for this preference.
+
+Every write supports `--dry-run` and requires `--confirm` to send a change.
+MCP uses the same operations with snake_case fields and `confirm:true`.
