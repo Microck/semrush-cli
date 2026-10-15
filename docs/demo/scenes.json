@@ -1,0 +1,12 @@
+[
+  {
+    "name": "keywords",
+    "command": "semrush keyword-overview --keyword 'email marketing' | jq '.data | {phrase, volume, difficulty, cpc}'",
+    "output": "{\n  \"phrase\": \"email marketing\",\n  \"volume\": 33100,\n  \"difficulty\": 79,\n  \"cpc\": 29.59\n}\n"
+  },
+  {
+    "name": "projects",
+    "command": "semrush project-create --name 'my website' --domain example.com --dry-run | jq '{dry_run, request: .request | {method, path}}'",
+    "output": "{\n  \"dry_run\": true,\n  \"request\": {\n    \"method\": \"POST\",\n    \"path\": \"/apis/v4-raw/folders/api/v0/folders\"\n  }\n}\n"
+  }
+]

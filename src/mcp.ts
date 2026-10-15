@@ -28,7 +28,7 @@ export async function serveMcp(): Promise<void> {
     if (preview) return { content: [{ type: 'text', text: JSON.stringify(preview) }] };
     const outcome = await runtime.runPromise(Effect.gen(function* () {
       return yield* (yield* Semrush).report(validated.value);
-    }).pipe(Effect.match({ onSuccess: value => ({ ok: true as const, text: JSON.stringify(value) }), onFailure: error => ({ ok: false as const, text: error.message }) }))).catch(() => ({ ok: false as const, text: 'Semrush session or browser unavailable. Run semrush-cli doctor, then reconnect this MCP server.' }));
+    }).pipe(Effect.match({ onSuccess: value => ({ ok: true as const, text: JSON.stringify(value) }), onFailure: error => ({ ok: false as const, text: error.message }) }))).catch(() => ({ ok: false as const, text: 'Semrush session or browser unavailable. Run semrush doctor, then reconnect this MCP server.' }));
     return { isError: !outcome.ok, content: [{ type: 'text', text: outcome.text }] };
   });
   let closing = false;

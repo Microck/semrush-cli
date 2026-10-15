@@ -1,10 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 518 320" role="img" aria-labelledby="title">
-  <title id="title">semrush-cli</title>
-  <defs>
-    <mask id="terminal">
-      <rect width="518" height="320" fill="white"/>
-      <path d="m340 130 29 29-29 29m45 0h35" fill="none" stroke="black" stroke-width="12" stroke-linejoin="miter"/>
-    </mask>
-  </defs>
-  <path d="M357.481 3C333.269 3 306.873 11.7835 277.382 27.1205L113.044 114.41H247.71L3 244.524H272.376L136.164 316.977H361.44C446.818 314.792 515.038 245.48 515.038 160.011C515.038 74.5425 444.178 3.04552 357.481 3.04552V3Z" fill="#ff642d" mask="url(#terminal)"/>
+  <title id="title">semrush terminal comet</title>
+  <path d="M357.481 3C333.269 3 306.873 11.7835 277.382 27.1205L113.044 114.41H247.71L3 244.524H272.376L136.164 316.977H361.44C446.818 314.792 515.038 245.48 515.038 160.011C515.038 74.5425 444.178 3.04552 357.481 3.04552V3Z" fill="#ff642d"/>
+  <path d="M136.164 316.977L272.376 244.524H408L272 316.977Z" fill="#a76bff"/>
+  <path d="m317 116 47 44-47 44m73 0h52" fill="none" stroke="#421983" stroke-width="22" stroke-linecap="square" stroke-linejoin="miter"/>
 </svg>

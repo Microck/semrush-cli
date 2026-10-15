@@ -11,7 +11,7 @@ import type { ReportRequest } from './validation.js';
 
 const transportPaths = new Map([['domain', '/dpa/rpc'], ['direct', '/dpa/rpc'], ['magic', '/kmtgw/v2/webapi'], ['keyword', '/kwogw/v2/webapi'], ['kwm', '/kwm/rpc']]);
 const json = JSONbig({ storeAsString: true, protoAction: 'error', constructorAction: 'error' });
-const safeBrowserError = () => new ReportError({ message: 'Semrush browser request failed. Run semrush-cli doctor. If your session expired, sign in again with semrush-cli auth login.' });
+const safeBrowserError = () => new ReportError({ message: 'Semrush browser request failed. Run semrush doctor. If your session expired, sign in again with semrush auth login.' });
 const browserCall = <A>(run: () => Promise<A>) => Effect.tryPromise({ try: run, catch: safeBrowserError });
 const objectValue = (value: Schema.Json | undefined): value is Schema.JsonObject => Predicate.isObject(value) && !Array.isArray(value);
 
@@ -44,7 +44,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     return { status: response.status, text: await response.text() };
   }));
   // Extract the JSON value with a balanced scanner, never eval page-owned JavaScript.
-  const auth = yield* Effect.try({ try: () => readBootstrap(bootstrap.text), catch: () => new SessionError({ message: 'Semrush sign-in metadata unavailable. Run semrush-cli auth login or import a signed-in browser.' }) });
+  const auth = yield* Effect.try({ try: () => readBootstrap(bootstrap.text), catch: () => new SessionError({ message: 'Semrush sign-in metadata unavailable. Run semrush auth login or import a signed-in browser.' }) });
   const semaphore = yield* Semaphore.make(1);
   let spectrumToken = '';
   const request = Effect.fn('Semrush.request')(function* (path: string, payload: Query | null, method = 'POST', extraHeaders: Record<string, string> = {}) {
@@ -93,7 +93,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       const response = await fetch('/home/', { method: 'HEAD', credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(15000) });
       return response.ok && new URL(response.url).pathname === '/home/';
     }));
-    if (!valid) return yield* Effect.fail(new SessionError({ message: 'Semrush session expired. Run semrush-cli auth login or import a signed-in browser.' }));
+    if (!valid) return yield* Effect.fail(new SessionError({ message: 'Semrush session expired. Run semrush auth login or import a signed-in browser.' }));
     const family = definition.transport;
     const planned = ['project_web', 'audit_web'].includes(family) ? webRequest(definition, query) : undefined;
     const params = planned?.body ?? reportParameters(definition, query);

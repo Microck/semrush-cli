@@ -72,8 +72,7 @@ this host temporarily retained an earlier negative DNS cache.
 
 This does not prove every report is available on every plan, indefinite session
 validity, or complete Semrush suite parity. The coverage page names remaining
-web-only workflows. Internal endpoints can change. The README and published
-package use `semrush-cli`, preserving the existing `semrush-mcp` executable.
+web-only workflows. Internal endpoints can change. The npm package is `semrush-cli`; the executable is `semrush`.
 
 The CLI-owned daemon uses loopback port 8771. Its encrypted vault is unchanged.
 An unrelated service occupied the former port during verification and was left

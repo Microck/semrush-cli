@@ -11,7 +11,7 @@ const lines = [
 ];
 for (const [name, definition] of Object.entries(catalog)) {
   const command = name.replaceAll('_', '-');
-  lines.push(`## ${command}`, '', definition.description, '', '```sh', `semrush-cli ${command} --help`, '```', '');
+  lines.push(`## ${command}`, '', definition.description, '', '```sh', `semrush ${command} --help`, '```', '');
   if (definition.mutation) lines.push('Requires `--confirm`. Use `--dry-run` to inspect the request without sending it.', '');
   const properties = Object.entries(definition.schema.properties);
   if (!properties.length) continue;

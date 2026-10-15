@@ -9,6 +9,8 @@ const cli = (args: string[]) => exec(process.execPath, ['dist/cli.js', ...args],
 
 test('built CLI runs help and version without credentials', async () => {
   expect((await cli(['--version'])).stdout.trim()).toBe(packageInfo.version);
+  expect(packageInfo.bin).toEqual({ semrush: 'dist/cli.js' });
+  expect((await cli(['--help'])).stdout).toMatch(/^Usage: semrush /);
   expect((await cli(['domain-keywords', '--help'])).stdout).toContain('--page-size');
 });
 test('built catalog distinguishes read reports and project writes', async () => {
@@ -22,7 +24,7 @@ test('invalid usage fails before attempting authentication', async () => {
   await expect(cli(['keyword-magic', '--keyword', 'foo', '--page', '0'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('must be >= 1') });
 });
 test('missing session is an actionable failure with no stdout', async () => {
-  await expect(cli(['account-status', '--json'])).rejects.toMatchObject({ code: 1, stdout: '', stderr: expect.stringContaining('semrush-cli setup') });
+  await expect(cli(['account-status', '--json'])).rejects.toMatchObject({ code: 1, stdout: '', stderr: expect.stringContaining('semrush setup') });
 });
 
 test('project writes require confirmation before credentials are loaded', async () => {

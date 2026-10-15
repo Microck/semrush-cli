@@ -1,233 +1,237 @@
 <p align="center">
-  <img src="assets/logo.svg" width="220" alt="semrush-cli">
+  <img src="assets/logo-lockup.svg" width="720" alt="semrush cli logo">
 </p>
-<h1 align="center">semrush-cli</h1>
+
 <p align="center">
-  <a href="https://github.com/Microck/semrush-cli/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Microck/semrush-cli/ci.yml?branch=main&style=flat-square&label=ci&color=000000" alt="CI"></a>
-  <a href="https://www.npmjs.com/package/semrush-cli"><img src="https://img.shields.io/npm/v/semrush-cli?style=flat-square&color=000000" alt="npm"></a>
-  <a href="https://github.com/Microck/semrush-cli/releases/latest"><img src="https://img.shields.io/github/v/release/Microck/semrush-cli?style=flat-square&color=000000" alt="release"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/Microck/semrush-cli?style=flat-square&color=000000" alt="license"></a>
+  <a href="https://github.com/Microck/semrush-cli/releases"><img src="https://img.shields.io/github/v/release/Microck/semrush-cli?display_name=tag&style=flat-square&label=release&color=000000" alt="release badge"></a>
+  <a href="https://www.npmjs.com/package/semrush-cli"><img src="https://img.shields.io/npm/dt/semrush-cli?style=flat-square&label=downloads&color=000000" alt="npm downloads"></a>
+  <a href="https://github.com/Microck/semrush-cli/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Microck/semrush-cli/ci.yml?branch=main&style=flat-square&label=ci&color=000000" alt="ci badge"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-mit-000000?style=flat-square" alt="license badge"></a>
 </p>
 
 ---
 
-semrush from your terminal and MCP clients. keyword research, organic rankings,
-competitors, backlinks and AI visibility, through your signed-in web account.
-built with TypeScript + Effect. sessions stored in Galleton.
+`semrush` is a terminal cli for semrush. research keywords, check rankings and backlinks, compare competitors, manage projects and keyword lists, and run site audits from your own account. output is json, so you can pipe it into `jq` or give the same commands to an agent through mcp. built with typescript and effect.
 
-[docs](https://semrush.micr.dev) · [npm](https://www.npmjs.com/package/semrush-cli) · [mcp](#mcp) · [issues](https://github.com/Microck/semrush-cli/issues)
+[documentation](https://semrush.micr.dev) | [command reference](https://semrush.micr.dev/docs/reports) | [npm](https://www.npmjs.com/package/semrush-cli) | [mcp](https://semrush.micr.dev/docs/mcp)
+
+![keyword research demo](assets/demo-keywords.gif)
 
 ## why
 
-89 operations with the same input schemas in the CLI and MCP. JSON output for
-scripts, account totals and pagination, project management, and encrypted session storage.
-no Semrush developer API key or Python runtime required.
+if you already pay for semrush, you should be able to use it from the terminal too. this cli uses your existing web session, so there is no developer api key to buy or configure. look up a keyword, save the result, compare a few domains, or let an agent do it through mcp.
 
-The executable is `semrush-cli`. It can coexist with other tools named `semrush`.
+your plan's permissions and limits still apply. it doesn't cover the whole semrush suite. the [coverage page](https://semrush.micr.dev/docs/coverage) lists what works and what still needs the web ui.
 
 ## quickstart
 
-Requires Node.js 22+. Includes Galleton binaries for Linux x64/arm64,
-macOS x64/arm64 and Windows x64.
+### install
 
-```sh
+requires node.js 22 or newer. linux, macos and windows are supported.
+
+```bash
 npm install -g semrush-cli
-semrush-cli setup
-semrush-cli auth login
-semrush-cli domain-overview --domain openai.com --json
+semrush setup
+semrush auth login
+semrush keyword-overview --keyword 'email marketing'
 ```
 
-`setup` installs Chromium and starts a private Galleton daemon. `auth login`
-opens an isolated browser for sign-in, verifies the session, and stores it in
-Galleton. It requires a graphical desktop. On Linux, missing Chromium system
-libraries can be installed with `npx patchright install-deps chromium`.
+`semrush-cli` is the npm package. `semrush` is the command.
 
-To import an existing, authorized Chromium session on a headless machine:
+`setup` downloads chromium and starts the bundled galleton session engine. there is no separate python or go install. on linux, if chromium needs system libraries, run `npx patchright install-deps chromium`.
 
-```sh
-semrush-cli auth import --cdp-url http://127.0.0.1:9234
-semrush-cli doctor --json
+### auth
+
+`semrush auth login` opens a browser. sign in to semrush there and the cli saves the session in galleton's encrypted vault. it doesn't ask for your password in the terminal.
+
+```bash
+semrush auth login
+semrush auth status --check --json
+semrush doctor
 ```
 
-The browser must already expose CDP on a literal loopback HTTP address. This
-supports the browser managed by [semrush-web-mcp](https://github.com/Microck/semrush-web-mcp).
-Import does not stop or change that browser. Keep CDP private; forward it over
-SSH when necessary.
+already have a signed-in browser with a local debugging port? import its session instead:
 
-## projects
-
-```sh
-semrush-cli projects --json
-semrush-cli project-create --name 'my website' --domain example.com --dry-run
-semrush-cli project-create --name 'my website' --domain example.com --confirm --json
-semrush-cli project-get --folder-id 123 --json
-semrush-cli project-update --folder-id 123 --name 'new name' --confirm
-semrush-cli project-set-tags --folder-id 123 --tags '["client"]' --confirm
-semrush-cli project-pin --folder-id 123 --pinned --confirm
-semrush-cli project-delete --folder-id 123 --confirm
+```bash
+semrush auth import --cdp-url http://127.0.0.1:9234
+semrush doctor
 ```
 
-Project commands use the current web UI's folder IDs. Creation does not start
-crawls or share the project. Every write requires `--confirm`; `--dry-run` prints
-the request without authentication or network access. SEO project creation and
-automatic Site Audit/Position Tracking setup are separate, explicit commands.
-See [projects](https://semrush.micr.dev/docs/projects) and
-[web UI coverage](https://semrush.micr.dev/docs/coverage).
+the browser has to be running with debugging enabled. import doesn't start or stop it. see the [authentication guide](https://semrush.micr.dev/docs/authentication) for headless hosts and remote browsers.
 
-## keyword lists
+semrush can expire your session. sign in or import again when that happens. the cli saves rotated cookies after successful requests, but doesn't renew expired sessions in the background.
 
-```sh
-semrush-cli keyword-lists --json
-semrush-cli keyword-list-create --name 'research' --confirm --json
-semrush-cli keyword-list-import --basket-id 456 --owner-id 123 --keywords '["email marketing"]' --confirm
-semrush-cli keyword-list-keywords --basket-id 456 --owner-id 123 --page-size 20 --json
-semrush-cli keyword-list-add-tags --basket-id 456 --owner-id 123 --keywords '["email marketing"]' --tags '["opportunity"]' --confirm
-semrush-cli keyword-strategy-create --name 'example strategy' --domain example.com --dry-run
+```bash
+semrush auth logout
+semrush daemon stop
+semrush daemon start
 ```
 
-Builder list IDs and owner IDs come from `keyword-lists`. Regular list creation
-and structured strategy generation are separate commands. Metric refresh and
-clustering require explicit confirmation and consume account allowances.
-See [keyword lists](https://semrush.micr.dev/docs/keyword-lists).
+logout forgets this cli's saved session. it doesn't log out your other browsers. the daemon keeps running after the terminal closes. start it again after a reboot.
 
-## site audit
+## command surface
 
-```sh
-semrush-cli audit-create --campaign-id 456 --name "Example audit" --domain example.com --page-limit 100 --confirm
-semrush-cli audit-start --campaign-id 456 --confirm
-semrush-cli audit-snapshots --campaign-id 456
-```
+89 operations, available as cli commands and mcp tools.
 
-[Site Audit guide](https://semrush.micr.dev/docs/site-audit). Configuration and launch are separate. Defaults use manual scheduling and no email.
-
-
-## commands
-
-```sh
-semrush-cli keyword-overview --keyword 'email marketing' --json
-semrush-cli keyword-magic --keyword 'email marketing' --questions-only --page-size 20 --json
-semrush-cli domain-keywords --domain openai.com --page 2 --page-size 20 --json
-semrush-cli domain-competitors --domain openai.com --page-size 10 --json
-semrush-cli keyword-gap --domains '["openai.com","anthropic.com"]' --json
-semrush-cli backlink-gap --domains '["openai.com","anthropic.com"]' --json
-semrush-cli backlink-links --domain openai.com --filters '+|type||nofollow' --json
-semrush-cli domain-ai-visibility --domain openai.com --json
-semrush-cli snapshot-dates --database us --json
-semrush-cli reports --json
-semrush-cli domain-keywords --help
-```
-
-| Area | Reports |
+| command | what it does |
 | --- | --- |
-| Keywords | Overview, ideas, questions, SERPs, ads, clusters, paginated Keyword Magic and groups |
-| Organic | Rankings, pages, subdomains, changes, competitors, topics and trends |
-| Gaps | Keyword overlaps and gaps, backlink prospects and profile comparisons |
-| Backlinks | Links, referring domains, anchors, indexed pages, outbound domains, history and authority |
-| AI visibility | Visibility, mentions, citation sources and country distribution |
-| Keyword lists | Create, read, rename/delete, import, metrics, tags, deletion/undo, clustering and structured strategy generation |
-| Projects | Create, inspect, rename, delete, leave, tags, pinning, toolkit status, dashboard metrics and explicit SEO setup |
-| Site Audit | Create/configure, explicit launch, status, limits, history and snapshots |
-| Account | Limits, permissions, databases, snapshots, folders, saved lists and audit campaigns |
+| `keyword-overview`, `keyword-magic` | volume, difficulty, cpc, intent, related keywords and filtered research |
+| `keyword-serp`, `keyword-ads`, `keyword-clusters` | search results, ads and keyword clusters |
+| `domain-overview`, `domain-keywords`, `domain-competitors` | organic rankings and competing domains |
+| `domain-pages`, `domain-subdomains`, `domain-position-changes` | pages, subdomains and ranking changes |
+| `keyword-gap`, `backlink-gap` | compare domains and find keyword or backlink opportunities |
+| `backlink-links`, `backlink-referring-domains`, `backlink-anchors` | inspect backlinks, referring domains and anchor text |
+| `domain-ai-visibility`, `domain-ai-countries`, `domain-ai-sources` | ai visibility, countries and citation sources |
+| `project-create`, `project-get`, `project-update`, `project-delete` | create and manage projects |
+| `project-tags`, `project-set-tags`, `project-pin` | organize your projects |
+| `project-enable-seo`, `project-tools`, `project-toolkits` | enable seo and read project tool status |
+| `keyword-lists`, `keyword-list-create`, `keyword-list-import` | manage keyword lists and import keywords |
+| `keyword-strategy-create`, `keyword-list-cluster` | generate a strategy or cluster a list |
+| `audit-create`, `audit-configure`, `audit-start` | configure and launch a site audit |
+| `audit-status`, `audit-snapshots`, `audit-snapshot` | check progress and read audit results |
+| `reports` | list every operation and its inputs |
+| `mcp` | run the stdio mcp server |
+| `doctor` | check the browser, session engine and semrush connection |
 
-All successful reports use `{authenticated: true, report, data}`. Domain ranking
-and page reports include provider totals. Large integers remain exact as decimal
-strings. Errors go to stderr with a nonzero exit. `--json` works before or after
-the command. Objects and arrays use JSON flags; booleans support explicit `false`.
-See the [full command reference](https://semrush.micr.dev/docs/reports).
+```bash
+semrush reports
+semrush keyword-magic --help
+semrush project-create --help
+```
+
+global flags: `--json`, `--no-color`, `--no-input`. reports return json with or without `--json`. objects and arrays use json arguments. use `--help` on a command for its filters, pagination and defaults.
+
+## examples
+
+### keyword research
+
+```bash
+semrush keyword-overview --keyword 'email marketing'
+semrush keyword-magic --keyword 'email marketing' --questions-only --page-size 20
+semrush keyword-serp --keyword 'email marketing'
+```
+
+pull out the numbers you care about:
+
+```bash
+semrush keyword-overview --keyword 'email marketing' \
+  | jq '.data | {phrase, volume, difficulty, cpc}'
+```
+
+### competitors and backlinks
+
+```bash
+semrush domain-overview --domain openai.com
+semrush domain-keywords --domain openai.com --page-size 20
+semrush keyword-gap --domains '["openai.com","anthropic.com"]'
+semrush backlink-links --domain openai.com
+semrush backlink-gap --domains '["openai.com","anthropic.com"]'
+```
+
+### projects
+
+preview a write before sending it:
+
+```bash
+semrush project-create --name 'my website' --domain example.com --dry-run
+```
+
+then create it when you're ready:
+
+```bash
+semrush project-create --name 'my website' --domain example.com --confirm
+```
+
+![project request preview demo](assets/demo-projects.gif)
+
+writes need `--confirm`. `--dry-run` validates the inputs and prints the request without connecting to semrush. creating a project doesn't start tools or share it.
+
+### keyword lists
+
+```bash
+semrush keyword-lists
+semrush keyword-list-create --name 'content ideas' --confirm
+```
+
+use the list id and owner id returned by semrush:
+
+```bash
+semrush keyword-list-import --basket-id 123 --owner-id 456 \
+  --keywords '["email marketing","email automation"]' --database us --confirm
+semrush keyword-list-keywords --basket-id 123 --owner-id 456
+```
+
+strategy generation, clustering and metric updates can consume your account allowance. they need explicit confirmation too. see [keyword lists](https://semrush.micr.dev/docs/keyword-lists).
+
+### site audits
+
+```bash
+semrush project-enable-seo --folder-id 123 --confirm
+```
+
+use the returned seo project `id` as the campaign id:
+
+```bash
+semrush audit-create --campaign-id 456 --name 'my audit' \
+  --domain example.com --page-limit 100 --confirm
+semrush audit-start --campaign-id 456 --confirm
+semrush audit-status --campaign-id 456
+semrush audit-snapshots --campaign-id 456
+```
+
+creating an audit saves its settings. starting it is a separate command. defaults are manual scheduling and email off. see [site audit](https://semrush.micr.dev/docs/site-audit) for crawl settings and limits.
 
 ## mcp
 
-Complete setup and authentication, then configure your MCP client:
+finish setup and sign in first, then add this to your client's mcp config:
 
 ```json
 {
   "mcpServers": {
     "semrush": {
-      "command": "semrush-cli",
+      "command": "semrush",
       "args": ["mcp"]
     }
   }
 }
 ```
 
-Use an absolute executable path if your client does not inherit the terminal's
-PATH. `npx -y semrush-cli@0.4.0 mcp` also works. MCP tool names use underscores,
-for example `keyword_overview` and `domain_keywords`. Input schemas and reports
-match the CLI. The 67 read tools carry read-only annotations. The 22 write tools require
-`confirm:true`, or accept `dry_run:true` to preview the request. Delete and leave
-also carry destructive annotations. Login, arbitrary URLs and JavaScript
-execution are not MCP tools.
+the server exposes the same operations as the cli. tool names use underscores, such as `keyword_overview` and `project_create`. writes need `confirm: true`, or `dry_run: true` to preview the request. it doesn't expose login, arbitrary urls or javascript execution.
 
-## sessions
+## what it looks like
 
-```sh
-semrush-cli auth status --check --json
-semrush-cli auth logout
-semrush-cli daemon stop
-semrush-cli daemon start
-```
+the gifs use captured output for public keyword research and an offline project preview. no account details or credentials. the [capture notes and renderer](docs/demo/README.md) are in the repo if you want to regenerate them.
 
-Galleton stores credentials under `~/.local/share/semrush-cli/galleton`. The
-private daemon listens on `127.0.0.1:8771`. It continues after the terminal closes;
-run `daemon start` after reboot. The CLI installs no system startup service.
+## building from source
 
-Each CLI process restores its encrypted session into a fresh, transient Chromium
-context. The MCP server reuses one context and serializes requests. Successful
-reports capture cookie updates back to Galleton. Session expiry requires sign-in
-or import again. No anonymous fallback or automatic request retries.
-
-The unchanged Galleton TypeScript SDK is vendored at a pinned upstream commit
-because it is not on npm. The bundled daemon adds a tested `static` provider for
-storage without renewal. Semrush has no proven renewal contract in the reference
-integration, so this tool does not invent one. See [architecture](docs/architecture.md)
-and [SDK provenance](src/vendor/README.md).
-
-| Variable | Default |
-| --- | --- |
-| `SEMRUSH_GALLETON_URL` | `http://127.0.0.1:8771` |
-| `SEMRUSH_GALLETON_TOKEN_FILE` | `~/.local/share/semrush-cli/galleton/api.token` |
-| `SEMRUSH_SESSION` | `semrush-cli` |
-| `SEMRUSH_BROWSER_EXECUTABLE` | Patchright's Chromium |
-
-The setup/daemon commands manage only the default CLI-owned daemon. An external
-daemon must support the documented static-provider extension. Never expose its
-API token or credential directory.
-
-## limits
-
-Semrush account permissions, quotas and product access apply. A read-only report
-can consume an allowance. Internal web endpoints may change. Provider caps remain
-visible; there is no unlimited-export claim. Galleton encrypts at rest but its key
-and vault share a private local directory. Other processes running as your OS user
-are within the same trust boundary.
-
-## development
-
-```sh
+```bash
+git clone https://github.com/Microck/semrush-cli.git
+cd semrush-cli
 npm ci
+npm run build
+node dist/cli.js --help
 npm run check
-npm --prefix docs-site ci
-npm --prefix docs-site run build
 ```
 
-Development builds require Go 1.23+ and `tar`/`patch` to build the pinned Galleton
-daemon with its storage-only extension. The build runs the upstream core suite
-with the extension's integration test. Published users do not need Go.
+the source build uses go to build the pinned galleton engine. npm releases include the engine for supported platforms.
 
-Tests compare all 48 request shapes against the Python reference, use real
-Chromium and Galleton with a local HTTP fixture, and exercise the built executable.
-They never require a Semrush account. See [verification](docs/verification.md) for
-the separate live-account evidence.
+## documentation
 
-## uninstall
+full docs live at [semrush.micr.dev](https://semrush.micr.dev). setup, authentication, projects, keyword lists, site audits, mcp and the complete command reference.
 
-```sh
-semrush-cli auth logout
-semrush-cli daemon stop
-npm uninstall -g semrush-cli
-```
+- [coverage](https://semrush.micr.dev/docs/coverage)
+- [authentication](https://semrush.micr.dev/docs/authentication)
+- [scripting](https://semrush.micr.dev/docs/scripting)
+- [architecture](docs/architecture.md)
 
-The private vault and browser cache remain on disk. Remove them only after
-checking they contain nothing you need.
+## contributing
 
-MIT. Independent project, not affiliated with Semrush.
+issues and pull requests are welcome. if semrush changes an endpoint, include the command you ran and the error. leave cookies and account details out of the report.
+
+## disclaimer
+
+this is an unofficial client, not affiliated with semrush. it uses the web product's internal endpoints, which can change. your subscription and account limits apply.
+
+## license
+
+[mit license](LICENSE)

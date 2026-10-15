@@ -11,12 +11,12 @@ lists retain their owner's ID. Semrush enforces the list's access permissions.
 ## Create and manage lists
 
 ```sh
-semrush-cli keyword-list-limits --json
-semrush-cli keyword-lists --page 1 --page-size 100 --json
-semrush-cli keyword-list-create --name 'research' --dry-run
-semrush-cli keyword-list-create --name 'research' --confirm --json
-semrush-cli keyword-list-get --basket-id 456 --owner-id 123 --json
-semrush-cli keyword-list-rename --basket-id 456 --owner-id 123 --name 'new name' --confirm
+semrush keyword-list-limits --json
+semrush keyword-lists --page 1 --page-size 100 --json
+semrush keyword-list-create --name 'research' --dry-run
+semrush keyword-list-create --name 'research' --confirm --json
+semrush keyword-list-get --basket-id 456 --owner-id 123 --json
+semrush keyword-list-rename --basket-id 456 --owner-id 123 --name 'new name' --confirm
 ```
 
 Regular list creation adds an empty list. It does not start strategy generation
@@ -32,12 +32,12 @@ runtime credentials. No command accepts API keys or arbitrary RPC methods.
 ## Keywords and tags
 
 ```sh
-semrush-cli keyword-list-import --basket-id 456 --owner-id 123 --keywords '["email marketing","seo"]' --database us --confirm
-semrush-cli keyword-list-keywords --basket-id 456 --owner-id 123 --page 1 --page-size 20 --json
-semrush-cli keyword-list-summary --basket-id 456 --owner-id 123 --json
-semrush-cli keyword-list-add-tags --basket-id 456 --owner-id 123 --keywords '["seo"]' --tags '["opportunity"]' --confirm
-semrush-cli keyword-list-tags --basket-id 456 --owner-id 123 --json
-semrush-cli keyword-list-remove-tags --basket-id 456 --owner-id 123 --keywords '["seo"]' --tags '["opportunity"]' --confirm
+semrush keyword-list-import --basket-id 456 --owner-id 123 --keywords '["email marketing","seo"]' --database us --confirm
+semrush keyword-list-keywords --basket-id 456 --owner-id 123 --page 1 --page-size 20 --json
+semrush keyword-list-summary --basket-id 456 --owner-id 123 --json
+semrush keyword-list-add-tags --basket-id 456 --owner-id 123 --keywords '["seo"]' --tags '["opportunity"]' --confirm
+semrush keyword-list-tags --basket-id 456 --owner-id 123 --json
+semrush keyword-list-remove-tags --basket-id 456 --owner-id 123 --keywords '["seo"]' --tags '["opportunity"]' --confirm
 ```
 
 Keyword selections use a JSON array of phrases and a database flag. Import can
@@ -55,12 +55,12 @@ current account's permissions and the provider's undo lifetime.
 ## Generation and metric refresh
 
 ```sh
-semrush-cli keyword-strategy-create --name 'example strategy' --domain example.com --dry-run
-semrush-cli keyword-strategy-create --name 'topic strategy' --seed-keywords '["email marketing"]' --database us --confirm
-semrush-cli keyword-list-update-metrics --basket-id 456 --owner-id 123 --keywords '["seo"]' --confirm
-semrush-cli keyword-list-cluster-forecast --basket-id 456 --owner-id 123 --json
-semrush-cli keyword-list-cluster --basket-id 456 --owner-id 123 --confirm
-semrush-cli keyword-list-cluster-status --basket-id 456 --owner-id 123 --json
+semrush keyword-strategy-create --name 'example strategy' --domain example.com --dry-run
+semrush keyword-strategy-create --name 'topic strategy' --seed-keywords '["email marketing"]' --database us --confirm
+semrush keyword-list-update-metrics --basket-id 456 --owner-id 123 --keywords '["seo"]' --confirm
+semrush keyword-list-cluster-forecast --basket-id 456 --owner-id 123 --json
+semrush keyword-list-cluster --basket-id 456 --owner-id 123 --confirm
+semrush keyword-list-cluster-status --basket-id 456 --owner-id 123 --json
 ```
 
 Strategy generation accepts a domain, seed phrases, or both, plus optional

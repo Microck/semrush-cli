@@ -9,9 +9,9 @@ SEO project IDs. Use the `id` from `projects`, `folders` or `project-create`.
 ## Create a project
 
 ```sh
-semrush-cli project-limits --json
-semrush-cli project-create --name 'my website' --domain example.com --dry-run
-semrush-cli project-create --name 'my website' --domain example.com --confirm --json
+semrush project-limits --json
+semrush project-create --name 'my website' --domain example.com --dry-run
+semrush project-create --name 'my website' --domain example.com --confirm --json
 ```
 
 Creation adds a project to the dashboard. The website is optional, as in the web
@@ -27,13 +27,13 @@ before issuing it again.
 ## Manage projects
 
 ```sh
-semrush-cli project-get --folder-id 123 --json
-semrush-cli project-update --folder-id 123 --name 'new name' --confirm
-semrush-cli project-set-tags --folder-id 123 --tags '["client","seo"]' --confirm
-semrush-cli project-pin --folder-id 123 --pinned --confirm
-semrush-cli project-pin --folder-id 123 --pinned false --confirm
-semrush-cli project-tags --json
-semrush-cli project-check-domain --domain example.com --json
+semrush project-get --folder-id 123 --json
+semrush project-update --folder-id 123 --name 'new name' --confirm
+semrush project-set-tags --folder-id 123 --tags '["client","seo"]' --confirm
+semrush project-pin --folder-id 123 --pinned --confirm
+semrush project-pin --folder-id 123 --pinned false --confirm
+semrush project-tags --json
+semrush project-check-domain --domain example.com --json
 ```
 
 `project-update --domain` adds a website only when a project has none. Semrush
@@ -48,10 +48,10 @@ project. Both MCP tools carry destructive annotations.
 ## Dashboard and SEO tools
 
 ```sh
-semrush-cli project-toolkits --folder-ids '["123"]' --json
-semrush-cli project-tools --folder-id 123 --tools '[23,27,28,31]' --json
-semrush-cli project-enable-seo --folder-id 123 --confirm --json
-semrush-cli project-seo-auto-setup --folder-id 123 --confirm --json
+semrush project-toolkits --folder-ids '["123"]' --json
+semrush project-tools --folder-id 123 --tools '[23,27,28,31]' --json
+semrush project-enable-seo --folder-id 123 --confirm --json
+semrush project-seo-auto-setup --folder-id 123 --confirm --json
 ```
 
 `project-toolkits` reads toolkit status and detail URLs. `project-tools` reads the

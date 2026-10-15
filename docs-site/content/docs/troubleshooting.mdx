@@ -4,22 +4,22 @@ description: Diagnose browser, session and account failures.
 ---
 
 ```sh
-semrush-cli doctor --json
-semrush-cli auth status --json
-semrush-cli auth status --check --json
+semrush doctor --json
+semrush auth status --json
+semrush auth status --check --json
 ```
 
 ## Galleton unavailable
 
-Run `semrush-cli setup` once, then `semrush-cli daemon start` after reboot or a deliberate shutdown. The daemon's private log is `~/.local/share/semrush-cli/galleton/daemon.log`. Keep that directory private. If port 8771 belongs to another process, stop that process deliberately or use your own Galleton instance through the documented configuration.
+Run `semrush setup` once, then `semrush daemon start` after reboot or a deliberate shutdown. The daemon's private log is `~/.local/share/semrush-cli/galleton/daemon.log`. Keep that directory private. If port 8771 belongs to another process, stop that process deliberately or use your own Galleton instance through the documented configuration.
 
 ## Browser unavailable
 
-Run `semrush-cli setup` to install Chromium. On Linux, install missing browser libraries with `npx patchright install-deps chromium`. `SEMRUSH_BROWSER_EXECUTABLE` can select an installed Chromium binary. Headless report commands do not require a graphical desktop; `auth login` does.
+Run `semrush setup` to install Chromium. On Linux, install missing browser libraries with `npx patchright install-deps chromium`. `SEMRUSH_BROWSER_EXECUTABLE` can select an installed Chromium binary. Headless report commands do not require a graphical desktop; `auth login` does.
 
 ## Session expired or renewal blocked
 
-Run `semrush-cli auth login`, or reimport a signed-in browser. Restart your MCP client. The tool does not bypass login, CAPTCHA, account revocation or provider challenges. A Galleton cookie refresh cannot guarantee that Semrush will keep a session valid.
+Run `semrush auth login`, or reimport a signed-in browser. Restart your MCP client. The tool does not bypass login, CAPTCHA, account revocation or provider challenges. A Galleton cookie refresh cannot guarantee that Semrush will keep a session valid.
 
 ## Report denied or empty
 
@@ -32,8 +32,8 @@ Internal Semrush endpoints can change. Open an issue with the command, CLI versi
 ## Uninstall
 
 ```sh
-semrush-cli auth logout
-semrush-cli daemon stop
+semrush auth logout
+semrush daemon stop
 npm uninstall -g semrush-cli
 ```
 

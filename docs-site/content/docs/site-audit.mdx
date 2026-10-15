@@ -7,9 +7,9 @@ Enable SEO on a project first. Use the returned numeric `id` as `campaign_id`.
 The project's `folder_id` is a different identifier.
 
 ```sh
-semrush-cli project-enable-seo --folder-id 123 --confirm
-semrush-cli audit-limits
-semrush-cli audit-info --campaign-id 456
+semrush project-enable-seo --folder-id 123 --confirm
+semrush audit-limits
+semrush audit-info --campaign-id 456
 ```
 
 ## Create before starting
@@ -20,11 +20,11 @@ It does not launch a crawl. To replace an existing configuration, use
 the documented defaults. Its domain must match the project's `projectDomain`.
 
 ```sh
-semrush-cli audit-create \
+semrush audit-create \
   --campaign-id 456 --name 'Example audit' --domain example.com \
   --page-limit 100 --dry-run
 
-semrush-cli audit-create \
+semrush audit-create \
   --campaign-id 456 --name 'Example audit' --domain example.com \
   --page-limit 100 --confirm
 ```
@@ -47,12 +47,12 @@ UI. The CLI refuses to replace settings when those connections already exist.
 ## Start and inspect
 
 ```sh
-semrush-cli audit-start --campaign-id 456 --dry-run
-semrush-cli audit-start --campaign-id 456 --confirm
-semrush-cli audit-status --campaign-id 456
-semrush-cli audit-info --campaign-id 456
-semrush-cli audit-snapshots --campaign-id 456
-semrush-cli audit-snapshot --campaign-id 456 --snapshot-id 789
+semrush audit-start --campaign-id 456 --dry-run
+semrush audit-start --campaign-id 456 --confirm
+semrush audit-status --campaign-id 456
+semrush audit-info --campaign-id 456
+semrush audit-snapshots --campaign-id 456
+semrush audit-snapshot --campaign-id 456 --snapshot-id 789
 ```
 
 Starting consumes crawl allowance and uses the saved schedule and notification

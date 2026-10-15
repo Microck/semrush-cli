@@ -3,27 +3,27 @@ title: MCP
 description: Connect agents to the same research and project operations.
 ---
 
-First complete `semrush-cli setup` and authentication. Add this to your MCP client's configuration:
+First complete `semrush setup` and authentication. Add this to your MCP client's configuration:
 
 ```json
 {
   "mcpServers": {
     "semrush": {
-      "command": "semrush-cli",
+      "command": "semrush",
       "args": ["mcp"]
     }
   }
 }
 ```
 
-If your client cannot find global npm executables, use the absolute path printed by `command -v semrush-cli`, or configure:
+If your client cannot find global npm executables, use the absolute path printed by `command -v semrush`, or configure:
 
 ```json
 {
   "mcpServers": {
     "semrush": {
       "command": "npx",
-      "args": ["-y", "semrush-cli@0.4.0", "mcp"]
+      "args": ["-y", "semrush-cli@0.5.0", "mcp"]
     }
   }
 }

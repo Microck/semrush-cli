@@ -54,9 +54,9 @@ jobs:
           name: npm-package
       - run: npm install --global ./semrush-cli-*.tgz
         shell: bash
-      - run: semrush-cli --version
-      - run: semrush-cli domain-keywords --help
-      - run: semrush-cli reports --json
-      - run: semrush-cli setup
-      - run: semrush-cli daemon stop
+      - run: semrush --version
+      - run: semrush domain-keywords --help
+      - run: semrush reports --json
+      - run: semrush setup
+      - run: semrush daemon stop
         if: always()

@@ -26,5 +26,5 @@ environment `npm`. This is a one-time npm account setting. No npm publish token
 is stored in the repository or GitHub Actions. Local authenticated publication
 is the verified first-release path.
 
-The `semrush-cli` executable deliberately coexists with the separately installed
-`semrush-mcp` package, which owns the `semrush` command on this host.
+
+The npm package is `semrush-cli`; its only executable is `semrush`.

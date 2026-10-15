@@ -6,9 +6,9 @@ description: Sign in, import a browser, and manage encrypted sessions.
 ## Visible sign-in
 
 ```sh
-semrush-cli setup
-semrush-cli auth login
-semrush-cli auth status --check --json
+semrush setup
+semrush auth login
+semrush auth status --check --json
 ```
 
 Sign-in requires a graphical desktop. The CLI waits up to five minutes. Credentials remain in the browser and encrypted Galleton vault. The CLI never logs cookies or page-owned API keys.
@@ -18,8 +18,8 @@ Sign-in requires a graphical desktop. The CLI waits up to five minutes. Credenti
 Start a dedicated Chromium profile with a loopback debugging port, sign into Semrush, then import it:
 
 ```sh
-semrush-cli auth import --cdp-url http://127.0.0.1:9234
-semrush-cli doctor
+semrush auth import --cdp-url http://127.0.0.1:9234
+semrush doctor
 ```
 
 The browser must already be running with CDP enabled. The reference `semrush-web-mcp` browser on port 9234 is supported. Import opens and closes one temporary page. It does not stop or reconfigure that browser. Use SSH forwarding for remote browsers. Public CDP endpoints are rejected.
@@ -35,9 +35,9 @@ Galleton encrypts its vault with AES-256-GCM. The local key and vault share a pr
 The bundled Galleton daemon includes a documented storage-only provider. It never schedules renewal or fabricates a refresh token. Semrush validates the stored session before each report. If it expires, sign in or import again. The TypeScript SDK remains unchanged. See the repository architecture document for the exact patch, tests and upstream removal criteria.
 
 ```sh
-semrush-cli auth logout
-semrush-cli daemon stop
-semrush-cli daemon start
+semrush auth logout
+semrush daemon stop
+semrush daemon start
 ```
 
 Logout forgets only this CLI's Galleton profile. It does not log out your other browsers. The default daemon continues after the terminal closes; run `daemon start` after a machine reboot. No system startup service is installed automatically.
