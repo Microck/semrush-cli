@@ -8,9 +8,9 @@ import { Semrush } from './browser-service.js';
 import { Sessions } from './session-service.js';
 import { origin } from './session-layer.js';
 import { ReportError, SessionError } from './errors.js';
-import { reportResponseType, reportParameters, webRequest, rpcBody, type Query, type WebRequest } from './report-parameters.js';
+import { reportResponseType, reportParameters, webRequest, rpcBody, reports, type ReportName, type Query, type WebRequest } from './report-parameters.js';
 import type { ReportRequest } from './validation.js';
-import { Exports } from './exports.js';
+import { Exports, type ExportWriter } from './exports.js';
 
 type ExportDownload = { readonly request: WebRequest; readonly headers: Record<string, string> } & (
   { readonly kind: 'file' } | { readonly kind: 'job'; readonly filename: string }
@@ -243,7 +243,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     address.searchParams.set('filename', job.filename);
     return { kind: 'job', request: { method: 'GET', path: address.href, body: {} }, headers: { Authorization: auth.apiKey }, filename: job.filename };
   });
-  const downloadExport = Effect.fn('Semrush.downloadExport')(function* (downloadRequest: ExportDownload, format: Schema.Json | undefined) {
+  const downloadExport = Effect.fn('Semrush.downloadExport')(function* (downloadRequest: ExportDownload, format: Schema.Json | undefined, writer: ExportWriter) {
     const { request, headers } = downloadRequest;
     const extension = format === 'xlsx' ? 'xlsx' : format === 'txt' ? 'txt' : 'csv';
     const address = new URL(request.path, browserOrigin);
@@ -295,7 +295,55 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     ) : fetchFile;
     if (!file.bytes || !file.filename) return yield* Effect.fail(new ReportError({ message: 'Semrush did not return an export file (HTTP ' + file.status + '). Check your session, export permissions and selected resource.' }));
     const bytes = file.bytes;
-    return yield* exports.create(file.filename, exportMimeTypes[extension], destination => writeFile(destination, bytes, { mode: 0o600 }));
+    return yield* writer.create(file.filename, exportMimeTypes[extension], (destination, signal) => writeFile(destination, bytes, { mode: 0o600, signal }));
+  });
+  /** Native All reports starts separate downloads; stage them privately before publishing one archive. */
+  const auditExportAll = Effect.fn('Semrush.auditExportAll')(function* (query: Query) {
+    const snapshot = Schema.Struct({ snapshot_id: Schema.String.check(Schema.isPattern(/^[A-Za-z0-9_-]{1,128}$/)), finish_date: Schema.Number });
+    const metadata = Schema.Struct({ current_snapshot: Schema.NullOr(snapshot), jsImpactReportDataAvailable: Schema.NullOr(Schema.Boolean) });
+    const infoPath = '/siteaudit/api/campaigns/' + query.campaign_id + '/info';
+    const readInfo = Effect.fn('Semrush.auditExportInfo')(function* () {
+      return yield* Schema.decodeUnknownEffect(metadata)(yield* request(infoPath, { key: auth.apiKey }, 'GET')).pipe(
+        Effect.mapError(() => new ReportError({ message: 'Site Audit export metadata is unavailable. Inspect the campaign before exporting all reports.' })),
+      );
+    });
+    const initial = yield* readInfo();
+    const current = initial.current_snapshot;
+    if (!current || current.finish_date <= 0) return yield* Effect.fail(new ReportError({ message: 'All reports requires a completed Site Audit crawl. Inspect the campaign with semrush audit-info.' }));
+    const history = yield* Schema.decodeUnknownEffect(Schema.Struct({ snapshots: Schema.Array(snapshot) }))(
+      yield* request('/siteaudit/api/campaigns/' + query.campaign_id + '/snapshots', { key: auth.apiKey }, 'GET'),
+    ).pipe(Effect.mapError(() => new ReportError({ message: 'Site Audit snapshot history is unavailable. No report downloads were started.' })));
+    if (!history.snapshots.some(row => row.snapshot_id === current.snapshot_id)) return yield* Effect.fail(new ReportError({ message: 'Site Audit history does not contain the current crawl. Retry after the crawl has finished.' }));
+    const previous = history.snapshots.filter(row => row.snapshot_id !== current.snapshot_id && row.finish_date > 0 && row.finish_date < current.finish_date).sort((a, b) => b.finish_date - a.finish_date)[0];
+    const format = query.format ?? 'csv';
+    const table = { format, relative: query.relative ?? false, sort: query.sort ?? 'url_asc', filter: query.filter ?? '' };
+    const pages = { snapshot_id: current.snapshot_id, ...table };
+    const downloads: { name: ReportName; query: Query }[] = [
+      { name: 'audit_export_pages', query: pages },
+      { name: 'audit_export_page_issues', query: { campaign_id: query.campaign_id ?? null, ...table } },
+      { name: 'audit_export_markup', query: pages },
+      { name: 'audit_export_issues', query: { snapshot_id: current.snapshot_id, format } },
+    ];
+    const omitted: Schema.Json[] = [];
+    if (previous) downloads.push({ name: 'audit_export_compare', query: { first_snapshot_id: previous.snapshot_id, second_snapshot_id: current.snapshot_id, format } });
+    else omitted.push({ report: 'audit_export_compare', reason: 'No earlier completed snapshot is available.' });
+    if (initial.jsImpactReportDataAvailable) downloads.push({ name: 'audit_export_js_impact', query: { campaign_id: query.campaign_id ?? null, format, sort: 'desc', status: 'all' } });
+    else omitted.push({ report: 'audit_export_js_impact', reason: 'JS Impact data is unavailable for the selected crawl.' });
+    return yield* exports.archive('semrush-site-audit-' + query.campaign_id + '.zip', writer => Effect.gen(function* () {
+      const files: { uri: string; filename: string }[] = [];
+      const manifestFiles: Schema.Json[] = [];
+      for (const download of downloads) {
+        const definition = reports[download.name];
+        const prepared = yield* prepareWebRequest({ name: download.name, definition, query: download.query }, webRequest(definition, download.query));
+        const artifact = yield* Effect.scoped(downloadExport({ kind: 'file', request: prepared, headers: prepared.headers }, format, writer));
+        const filename = download.name.replaceAll('_', '-') + '.' + format;
+        files.push({ uri: artifact.uri, filename });
+        manifestFiles.push({ report: download.name, filename, provider_filename: artifact.filename, mime_type: artifact.mime_type, size_bytes: artifact.size_bytes });
+      }
+      const latest = yield* readInfo();
+      if (latest.current_snapshot?.snapshot_id !== current.snapshot_id) return yield* Effect.fail(new ReportError({ message: 'The latest Site Audit crawl changed during download. No archive was saved. Retry after the crawl has finished.' }));
+      return { files, manifest: { campaign_id: query.campaign_id ?? null, snapshot_id: current.snapshot_id, comparison: previous ? { first_snapshot_id: previous.snapshot_id, second_snapshot_id: current.snapshot_id } : null, format, files: manifestFiles, omitted } };
+    }));
   });
   /** Prepare native tracking bodies. Settings replace all fields and require current values plus fresh edit metadata. */
   const trackingBody = Effect.fn('Semrush.trackingBody')(function* (definition: ReportRequest['definition'], query: Query, changes: Schema.Json) {
@@ -387,20 +435,28 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       : family === 'notes_web' ? yield* noteBody(name, path, planned.body) : planned.body;
     return { ...planned, path, headers, body };
   });
-  const report = Effect.fn('Semrush.report')(function* ({ name, definition, query }: ReportRequest) {
+  const checkSession = Effect.fn('Semrush.checkSession')(function* () {
     const session = yield* browserCall(() => page.evaluate(async () => {
       const response = await fetch('/home/', { method: 'HEAD', credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(15000) });
       return { ok: response.ok, path: new URL(response.url).pathname };
     }));
     if (session.path === '/multilogin/') return yield* Effect.fail(new SessionError({ code: 'session_confirmation_required', message: 'Semrush requires session confirmation at /multilogin/. Open Semrush in your signed-in browser, resolve the prompt, then reimport that browser with semrush auth import --cdp-url <url>. No report was sent.' }));
     if (!session.ok || session.path !== '/home/') return yield* Effect.fail(new SessionError({ message: 'Semrush session expired. Run semrush auth login or import a signed-in browser.' }));
+  });
+  const report = Effect.fn('Semrush.report')(function* ({ name, definition, query }: ReportRequest) {
+    yield* checkSession();
+    if (name === 'audit_export_all') {
+      const archive = yield* auditExportAll(query);
+      yield* captureCookies(context, sessions.capture, browserOrigin);
+      return { authenticated: true as const, report: name, data: archive.manifest, artifact: archive.artifact };
+    }
     const family = definition.transport;
     const responseType = reportResponseType(definition);
     const planned = ['project_web', 'audit_web', 'tracking_web', 'saved_web', 'notes_web', 'bla_file'].includes(family) ? webRequest(definition, query) : undefined;
     const params = planned ? {} : reportParameters(definition, query);
     if (name === 'backlink_audit_export') {
       const prepared = yield* backlinkAuditCSV(query, params);
-      const artifact = yield* Effect.scoped(downloadExport(prepared, query.format));
+      const artifact = yield* Effect.scoped(downloadExport(prepared, query.format, exports));
       yield* captureCookies(context, sessions.capture, browserOrigin);
       return { authenticated: true as const, report: name, data: null, artifact };
     }
@@ -414,7 +470,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       const prepared = yield* prepareWebRequest({ name, definition, query }, planned);
       if (objectValue(prepared.body) && 'display_hash' in prepared.body && Predicate.isString(prepared.body.display_hash)) requestSecret = prepared.body.display_hash;
       if (responseType === 'download') {
-        const artifact = yield* Effect.scoped(downloadExport({ kind: 'file', request: prepared, headers: prepared.headers }, query.format));
+        const artifact = yield* Effect.scoped(downloadExport({ kind: 'file', request: prepared, headers: prepared.headers }, query.format, exports));
         yield* captureCookies(context, sessions.capture, browserOrigin);
         return { authenticated: true as const, report: name, data: null, artifact };
       }
@@ -425,7 +481,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       reportData = yield* rpc(definition.method, name === 'backlink_audit_create' ? yield* createBacklinkAudit(params) : params, family, definition.web_report);
       if (responseType === 'download_url' || responseType === 'export_id') {
         const href = yield* nativeExportURL(responseType, reportData, browserOrigin, auth);
-        const artifact = yield* Effect.scoped(downloadExport({ kind: 'file', request: { method: 'GET', path: href, body: {} }, headers: {} }, query.format));
+        const artifact = yield* Effect.scoped(downloadExport({ kind: 'file', request: { method: 'GET', path: href, body: {} }, headers: {} }, query.format, exports));
         yield* captureCookies(context, sessions.capture, browserOrigin);
         return { authenticated: true as const, report: name, data: null, artifact };
       }

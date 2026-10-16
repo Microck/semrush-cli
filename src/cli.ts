@@ -67,7 +67,7 @@ async function parseCliInput(properties: Record<string, Property>, options: Reco
 
 for (const [name, definition] of Object.entries(reports)) {
   const report = cli.command(name.replaceAll('_', '-')).description(definition.description);
-  if (['download', 'download_url', 'export_id', 'download_job'].includes(reportResponseType(definition) ?? '')) report.requiredOption('--output <path>', 'Save the export file; refuses an existing destination');
+  if (['download', 'download_url', 'export_id', 'download_job', 'archive'].includes(reportResponseType(definition) ?? '')) report.requiredOption('--output <path>', 'Save the export file; refuses an existing destination');
   const schema: { properties: Record<string, Property>; required?: string[] } = definition.schema;
   for (const [key, property] of Object.entries(schema.properties)) {
     const flag = key.replaceAll('_', '-');
@@ -96,7 +96,9 @@ for (const [name, definition] of Object.entries(reports)) {
       if (!response.artifact) return response;
       const destination = command.opts<{ output: string }>().output;
       const artifact = yield* (yield* Exports).saveAs(response.artifact.uri, destination);
-      return { authenticated: true, report: name, data: { saved: destination, bytes: artifact.size_bytes, mime_type: artifact.mime_type } };
+      const saved = { saved: destination, bytes: artifact.size_bytes, mime_type: artifact.mime_type };
+      const data = response.data === null ? saved : { ...saved, manifest: response.data };
+      return { authenticated: true, report: name, data };
     }).pipe(Effect.provide(appLayer)), command);
   });
 }

@@ -1,6 +1,6 @@
 # Architecture
 
-The CLI and stdio MCP share a catalog of 270 operations, 184 reads and 86 writes,
+The CLI and stdio MCP share a catalog of 271 operations, 185 reads and 86 writes,
 and one Semrush Effect service. Input validation populates defaults before
 credential-bearing resources are acquired. The browser layer owns a transient
 Chromium context, reads page bootstrap metadata without evaluating page-owned
@@ -14,6 +14,12 @@ Disposal aborts an interrupted download while leaving the report client usable.
 Both paths disable network retries because Chromium fetch can silently replay
 a committed POST after a connection reset. Artifact files retain the provider's
 bytes and remain private to the runtime.
+
+The All reports operation stages native downloads in a private scoped directory,
+then streams them into one ZIP with a JSON manifest. Staged files never become
+MCP resources. Only the completed archive is registered. Cancellation aborts
+active writers before the scope removes staging and partial output. Snapshot
+metadata is checked before and after downloads to reject a changed crawl.
 
 Galleton owns durable encrypted cookies. Its TypeScript SDK is the published, pinned `galleton@0.1.0` npm dependency. The npm package bundles platform builds of the pinned Galleton daemon plus the storage-only provider extension in `patches/galleton-static-provider.patch`.
 

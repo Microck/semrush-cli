@@ -70,6 +70,11 @@ filtered strategy; it does not accept a page preset. Alternatively, call
 local `output` path. The result includes an `artifact` with `uri`, `filename`,
 `mime_type` and `size_bytes`.
 
+Call `audit_export_all` with `campaign_id` and optional `format:"xlsx"` to
+collect available Site Audit reports into one ZIP. Its `data` contains the
+manifest, and `artifact` identifies the ZIP resource. The archive contains the
+same manifest as `manifest.json`; individual staged downloads are not resources.
+
 Use MCP `resources/read` with that URI. Each response contains up to 65536 bytes
 as base64. For larger files, request `?offset=65536&limit=65536` and continue
 until the total matches `size_bytes`. Decode each chunk and concatenate the

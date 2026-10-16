@@ -79,7 +79,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 
 ## command surface
 
-270 operations, available as cli commands and mcp tools. 184 reads and 86 writes that need explicit confirmation.
+271 operations, available as cli commands and mcp tools. 185 reads and 86 writes that need explicit confirmation.
 
 | command | what it does |
 | --- | --- |
@@ -150,6 +150,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 | `audit-export-page-issues` | download the latest crawl's page-by-issue matrix |
 | `audit-export-markup` | download a crawl's markup and structured data |
 | `audit-export-compare` | download a comparison of two crawls |
+| `audit-export-all` | collect available native reports in one zip with an availability manifest |
 | `audit-js-impact-guide`, `audit-js-impact-changed-pages`, `audit-js-impact-pages` | inspect changes caused by javascript rendering |
 | `audit-export-js-impact` | download matching javascript impact rows as csv or xlsx |
 | `notes`, `note`, `note-databases`, `note-hidden-categories` | list and read chart notes, database options and hidden categories |
@@ -696,6 +697,19 @@ semrush audit-export-compare --first-snapshot-id '<previous_snapshot_id>' \
 
 both ids are required, and the cli preserves their order. semrush puts the second crawl's columns before the first crawl's columns. the download keeps semrush's calculated changes intact. csv is the default, or use `--format xlsx`. live cli and mcp checks verified both formats on existing 23-page historical crawls. csv bytes matched fresh native downloads exactly. xlsx workbook contents matched except for semrush's creation timestamp in `docProps/core.xml`.
 
+collect the latest crawl's available reports in one zip:
+
+```bash
+semrush audit-export-all --campaign-id 456 --output reports.zip
+semrush audit-export-all --campaign-id 456 --format xlsx --output reports-xlsx.zip
+```
+
+semrush's web ui downloads each report separately. the cli collects those native files unchanged into a zip, with `manifest.json` recording the snapshot id, included files and any omitted reports. every archive includes crawled pages, the page-by-issue matrix, markup and issues. it adds a comparison with the previous completed crawl when one exists, and javascript impact when that crawl has data for it.
+
+csv is the default. `--relative`, `--sort` and `--filter` apply to the three page exports. `--output` is required and refuses an existing file. if the latest crawl changes during download, the command fails without saving an archive. failed or cancelled downloads leave no partial mcp artifact resources. mcp exposes `audit_export_all` and returns one zip artifact with the manifest in `data`.
+
+live source cli and mcp checks on raft verified five-file archives after a first crawl, with comparison omitted, and six-file csv and xlsx archives after a second crawl. all 34 file comparisons matched independent native downloads. csv bytes matched exactly; xlsx contents matched except for semrush's creation timestamp. zip integrity, manifests and mcp resource reads also passed.
+
 `audit-recrawl` queues a page again. `audit-abort` cancels a running crawl; `audit-finalize` stops collecting pages and processes what it has. these writes need `--confirm`. see [site audit](https://semrush.micr.dev/docs/site-audit) for crawl settings, stop conditions and limits.
 
 ### javascript rendering impact
@@ -716,7 +730,7 @@ these commands read existing crawl results and do not start rendering or analysi
 
 `--parameters` accepts `clientSideRedirect`, `metaRobots`, `title`, `metaDescription`, `linksCount`, `wordsCount`, `canonical` and `googleStructuredData`. a non-empty selection requires `--status changed`. exports use the same filters, request page `0` with a limit of `100000`, and require `--output`. csv is the default; xlsx is also supported. mcp returns an artifact resource.
 
-live cli and mcp checks on an owned three-page crawl with rendering enabled matched native summary, count and filtered/paginated page json. the results included one unchanged page and no changed-title rows. csv bytes matched native downloads for both clients. mcp xlsx bytes matched exactly; cli xlsx workbook contents matched except for semrush's creation timestamp in `docProps/core.xml`. the web ui's all reports download remains outside cli coverage.
+live cli and mcp checks on an owned three-page crawl with rendering enabled matched native summary, count and filtered/paginated page json. the results included one unchanged page and no changed-title rows. csv bytes matched native downloads for both clients. mcp xlsx bytes matched exactly; cli xlsx workbook contents matched except for semrush's creation timestamp in `docProps/core.xml`.
 
 ## mcp
 
@@ -754,7 +768,7 @@ npm run check
 
 the cli uses the published [`galleton` 0.1.0 sdk](https://www.npmjs.com/package/galleton). the bundled galleton daemon is still required for sessions. building it from source requires go 1.23 or newer, `tar` and `patch`. published cli packages include the daemon for supported platforms, so npm users do not need go.
 
-the current source passed 193 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
+the current source passed 200 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
 
 ## documentation
 

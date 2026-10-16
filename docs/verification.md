@@ -1,5 +1,33 @@
 # Verification
 
+## Version 0.23.0 All reports
+
+The source catalog contains 271 operations, 185 reads and 86 confirmed writes.
+TypeScript, Oxlint, generated references, five daemon targets and 200 tests
+passed on the private ARM64 Raft runner. Three independent simplification
+reviews found one unfinished-snapshot selection issue; it was fixed and the
+full checks passed again. All compilation and browser verification ran remotely.
+
+Real HTTP fixtures verify available reports, explicit omissions, exclusion of
+unfinished comparison snapshots, metadata failures, provider denial, a changed
+crawl, cancellation and subsequent authenticated reads. Archive tests verify
+untouched file bytes, manifest contents, one public resource, private staging,
+unreadable staged-file failure and cleanup after interrupted writes. CLI checks
+require a fresh output path and reject invalid formats before authentication.
+Source CLI and MCP native archive verification passed using a new owned audit
+capped at three pages, with JavaScript rendering, manual scheduling and no
+notifications. Its first crawl produced five-file CSV archives with comparison
+explicitly omitted. After a second crawl, both clients produced six-file CSV
+and XLSX archives including Compare Crawls and JS Impact.
+
+All 34 independent native file comparisons passed. CSV bytes matched exactly;
+XLSX workbook contents matched with only provider creation timestamps allowed
+to differ. ZIP CRC checks, embedded manifests, snapshot pairs, CLI receipts and
+bounded MCP resource reads passed. Only completed ZIPs appeared as MCP resources.
+The authenticated doctor passed. The owned project was deleted and its remote
+session forgotten and vault removed. These checks used the source build;
+registry and release-archive verification is recorded separately.
+
 ## Version 0.22.0 JS Impact
 
 The source catalog contains 270 operations, 184 reads and 86 confirmed writes.
@@ -30,6 +58,13 @@ matched native bytes; MCP XLSX matched exactly and CLI XLSX matched all workbook
 contents apart from the provider creation timestamp. The source fixture was
 deleted and its remote session removed. Positive changed-row behavior has real
 HTTP fixture coverage, not live-account evidence.
+
+A fresh public npm installation matched the exact CI and GitHub release archive
+and reported version 0.22.0. Its actual CLI and MCP repeated the native JSON and
+CSV/XLSX checks successfully, and its authenticated doctor passed. The owned
+three-page fixture was deleted. Project reads returned 404 immediately; the
+audit returned 404 on a later independent read after an initial deletion delay.
+The remote session was forgotten and its vault removed.
 
 ## Version 0.21.0 Compare Crawls
 

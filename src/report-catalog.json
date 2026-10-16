@@ -15076,5 +15076,51 @@
         "scope"
       ]
     }
+  },
+  "audit_export_all": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/info",
+    "description": "Download available Site Audit reports as a CLI-created ZIP with untouched native CSV/XLSX files and an availability manifest.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "response_type": "archive",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "SEO project/campaign ID from project-enable-seo, not the folder ID."
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "csv",
+            "xlsx"
+          ],
+          "default": "csv"
+        },
+        "relative": {
+          "type": "boolean",
+          "default": false
+        },
+        "sort": {
+          "type": "string",
+          "default": "url_asc"
+        },
+        "filter": {
+          "type": "string",
+          "default": ""
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    }
   }
 }

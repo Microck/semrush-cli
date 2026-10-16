@@ -22,6 +22,8 @@ import { makeDomainFixture } from './domain-strategy-fixture.js';
 import { makeSavedFixture, savedPath } from './saved-keywords-fixture.js';
 import { text as readText } from 'node:stream/consumers';
 import { makeBacklinkAuditFixture } from './backlink-audit-fixture.js';
+import { makeAuditArchiveFixture, archivePaths } from './audit-archive-fixture.js';
+import { unzipSync } from 'fflate';
 
 const exec = promisify(execFile);
 const binary = resolve(`dist/daemon/galleton-${process.platform}-${process.arch}${process.platform === 'win32' ? '.exe' : ''}`);
@@ -58,7 +60,8 @@ const serveTrackingAlertsFixture = makeTrackingAlertsFixture();
 const trackingTargetsFixture = makeTrackingTargetsFixture();
 const serveNotesFixture = makeNotesFixture();
 const backlinkAuditFixture = makeBacklinkAuditFixture();
-const fixtureHandlers = new Map([[folderPath, serveProjectFixture], [savedPath, serveSavedFixture], ['/notes/api/', serveNotesFixture], ['/siteaudit/api/campaigns/789/js-impact/', serveJSImpactFixture], ['/siteaudit/export/js-impact/', serveJSImpactFixture]]);
+const auditArchiveFixture = makeAuditArchiveFixture();
+const fixtureHandlers = new Map([...archivePaths.map(path => [path, auditArchiveFixture.serve] as const), [folderPath, serveProjectFixture], [savedPath, serveSavedFixture], ['/notes/api/', serveNotesFixture], ['/siteaudit/api/campaigns/789/js-impact/', serveJSImpactFixture], ['/siteaudit/export/js-impact/', serveJSImpactFixture]]);
 /** Serve the native authentication checks separately from report fixtures. */
 function serveAuthenticationFixture(request: IncomingMessage, response: ServerResponse, url: URL): boolean {
   if (url.pathname === '/robots.txt') { response.end('User-agent: *\nDisallow: /'); return true; }
@@ -1264,5 +1267,58 @@ test('JS Impact reads apply native pagination and filters and preserve export by
     if (!exported.artifact) throw new Error('Expected native JS Impact artifact');
     expect(exported.artifact.filename).toBe('js_impact.csv');
     expect(Buffer.from((yield* (yield* Exports).read(exported.artifact.uri)).blob, 'base64').toString('utf8')).toBe(jsImpactCSV);
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+
+const archiveSelection = { campaign_id: 790, relative: true, sort: 'url_desc', filter: 'café' };
+test('All reports packages every available native file and explicit availability omissions', async () => {
+  for (const scenario of ['complete', 'single', 'single-js'] as const) {
+    auditArchiveFixture.use(scenario);
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const service = yield* Semrush;
+      const exported = yield* service.report(yield* parseReport('audit_export_all', archiveSelection));
+      if (!exported.artifact) throw new Error('Expected All reports ZIP');
+      const exports = yield* Exports;
+      expect(yield* exports.list()).toEqual([exported.artifact]);
+      const archive = unzipSync(Buffer.from((yield* exports.read(exported.artifact.uri + '?limit=1048576')).blob, 'base64'));
+      const manifest = JSON.parse(Buffer.from(archive['manifest.json'] ?? []).toString('utf8'));
+      expect(manifest).toEqual(exported.data);
+      expect(manifest.snapshot_id).toBe('archive_latest');
+      expect(manifest.comparison).toEqual(scenario === 'complete' ? { first_snapshot_id: 'archive_previous', second_snapshot_id: 'archive_latest' } : null);
+      expect(manifest.files).toHaveLength(scenario === 'complete' ? 6 : scenario === 'single' ? 4 : 5);
+      expect(manifest.omitted.map((item: { report: string }) => item.report)).toEqual(scenario === 'complete' ? [] : scenario === 'single' ? ['audit_export_compare', 'audit_export_js_impact'] : ['audit_export_compare']);
+      expect(Object.keys(archive)).toHaveLength(manifest.files.length + 1);
+      for (const file of manifest.files) expect(Buffer.from(archive[file.filename] ?? [])).toEqual(auditArchiveFixture.bytes(file.report));
+    }).pipe(Effect.provide(fixtureLayer()))));
+  }
+}, 30000);
+
+test('All reports fails without public artifacts on missing metadata, provider denial or a changed crawl', async () => {
+  for (const scenario of ['empty', 'malformed', 'failed', 'changed'] as const) {
+    auditArchiveFixture.use(scenario);
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const service = yield* Semrush;
+      const failure = yield* service.report(yield* parseReport('audit_export_all', archiveSelection)).pipe(Effect.flip);
+      expect(failure.message).toContain(scenario === 'empty' ? 'completed' : scenario === 'malformed' ? 'metadata' : scenario === 'failed' ? 'HTTP 403' : 'changed during download');
+      expect(yield* (yield* Exports).list()).toEqual([]);
+      if (scenario === 'empty' || scenario === 'malformed') expect(auditArchiveFixture.downloads).toEqual([]);
+      expect((yield* service.report(yield* parseReport('account_status', {}))).authenticated).toBe(true);
+    }).pipe(Effect.provide(fixtureLayer()))));
+  }
+}, 30000);
+
+test('cancelling an All reports download removes staged files and releases the browser slot', async () => {
+  auditArchiveFixture.use('delayed');
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const service = yield* Semrush;
+    const fiber = yield* Effect.forkChild(service.report(yield* parseReport('audit_export_all', archiveSelection)));
+    yield* Effect.promise(auditArchiveFixture.ready).pipe(Effect.timeout('5 seconds'));
+    expect(auditArchiveFixture.downloads).toEqual(['audit_export_pages', 'audit_export_page_issues']);
+    expect(yield* (yield* Exports).list()).toEqual([]);
+    yield* Fiber.interrupt(fiber).pipe(Effect.timeout('5 seconds'));
+    yield* Effect.promise(auditArchiveFixture.disconnected).pipe(Effect.timeout('5 seconds'));
+    expect(yield* (yield* Exports).list()).toEqual([]);
+    expect((yield* service.report(yield* parseReport('account_status', {}))).authenticated).toBe(true);
   }).pipe(Effect.provide(fixtureLayer()))));
 }, 30000);

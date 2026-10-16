@@ -149,7 +149,7 @@ require `--output <path>` and refuse an existing destination. Stdout remains a
 JSON receipt; downloaded bytes are never mixed with JSON or terminal messages.
 The file is saved before the transient browser and temporary export storage close.
 
-MCP export tools return `data: null` plus an `artifact` descriptor containing its
+Single-file MCP export tools return `data: null` plus an `artifact` descriptor containing its
 URI, suggested filename, MIME type and byte size. Resources remain available for
 that MCP process's lifetime. `resources/read` accepts optional `offset` and `limit`
 query parameters on the returned URI. The default chunk is 64 KiB, with a maximum
@@ -769,3 +769,35 @@ Primary evidence is current native review module39805 and its export caller.
 An owned, rendering-enabled Guru crawl completed at three pages with report
 availability true; native JSON returned one unchanged row and CSV/XLSX
 downloads succeeded. Changed-row live behavior requires separate verification.
+
+## Site Audit All reports archive
+
+`audit_export_all` is a read-only composite operation requiring `campaign_id`.
+It accepts `format=csv|xlsx` (default csv), `relative` (default false),
+`sort` (default url_asc) and `filter` (default empty). CLI requires a new
+`--output` ZIP file. MCP returns the existing single-artifact/resource contract,
+with the archive manifest in `data`. Single-file export results stay unchanged.
+
+Semrush's native All reports action starts separate downloads. This command
+creates a ZIP locally; it does not call or claim a provider ZIP endpoint. Four
+core reports are crawled pages, pages with all issues, markup and issue summary.
+The comparison uses the latest completed snapshot and its most recent earlier
+snapshot when available. JS Impact is included when campaign metadata marks
+its report available. `manifest.json` identifies the selected crawl and comparison pair, each
+included command, stable archive filename, original provider filename, MIME
+type and byte count. It explains missing comparison or JS Impact data.
+
+Files retain native bytes. Page filters and relative URLs apply to the three
+page exports; comparison, issue summary and JS Impact use their own native
+defaults. The JS Impact export requests all rows with page 0 and limit 100000.
+The command rechecks the latest snapshot after downloading and fails if it
+changed, because the native campaign issue-matrix endpoint cannot pin a crawl.
+A completed snapshot is required; unavailable or malformed metadata fails before
+downloads. Provider download failures fail the whole batch.
+
+Native files stage in a private scoped directory and are never registered as
+public MCP resources. Streaming ZIP creation publishes one complete artifact;
+failure or cancellation removes the staging files and partial archive. CLI
+saving preserves the existing exclusive-destination rule. Archive creation
+propagates cancellation to its output and lazy input streams and awaits pending
+writers before deleting their directory.
