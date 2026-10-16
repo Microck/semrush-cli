@@ -5,6 +5,24 @@ locally, including real Chromium, Galleton and stateful HTTP fixtures. Live resp
 outside the repository. Evidence below distinguishes local fixtures, native CI
 and real account execution.
 
+## Version 0.14.1 account diagnostics verification
+
+[CI run 38843252175](https://github.com/Microck/semrush-cli/actions/runs/38843252175)
+passed 150 tests, lint, TypeScript, the docs build and package installation on
+Linux, macOS and Windows. Three independent code-simplification reviews found
+no issues. Nine tests timed out during the local full run while swap was full;
+all 150 passed in CI without loosening assertions or timeouts. A disposable private runner expired
+before its logs could be retrieved and is not counted as verification.
+
+The new session-confirmation error was verified against the live
+`/multilogin/` response. Reimporting the valid reference browser's cookies
+with Galleton revision checking restored both `doctor` and
+`auth status --check`; both returned the same signed-in account's email.
+The public npm archive is byte-identical to the CI package. Its SHA-256 is
+`8913bada83ad757deafc1aa6ac03861e4a4097d5efaf1f08d2abdda2cb84520f`.
+The deployed authentication and coverage pages passed mobile Chromium checks
+at 390px with HTTP 200, expected content, no page errors and no overflow.
+
 ## Guru account verification
 
 The subscription page's SEO section explicitly displayed "Guru" and
@@ -17,9 +35,11 @@ identify the SEO subscription and must not be used to classify its plan.
 
 The export denials below describe observed provider responses for this Guru
 session. They do not establish that another account is required or that all
-Guru accounts lack export access. Further live checks currently encounter a
-`/multilogin/` redirect and HTTP 401 from the keyword gateway, even though the
-subscription page still shows Guru. No session takeover was submitted.
+Guru accounts lack export access. A stale CLI cookie snapshot subsequently
+encountered a `/multilogin/` redirect and HTTP 401 from the keyword gateway.
+The authorized reference browser's session check still succeeded. Reimporting
+that browser into Galleton with revision checking restored authenticated
+`doctor` access to the same account. No session takeover was submitted.
 
 ## Backlink Analytics export access
 

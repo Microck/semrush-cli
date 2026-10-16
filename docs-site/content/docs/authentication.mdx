@@ -46,8 +46,9 @@ for the actual toolkit subscription; "Trial active" can coexist with
 "Guru, Subscribed".
 
 If Semrush redirects the session check to `/multilogin/`, the CLI reports that
-session confirmation is required and sends no report. Open your signed-in
-browser and resolve the native prompt, then import that browser again. The CLI
+session confirmation is required and sends no report. If Semrush still works
+in your signed-in browser, import that browser's current session again. If the
+browser also shows a confirmation prompt, resolve it before importing. The CLI
 never confirms a session takeover automatically. Other login redirects still
 produce the expired-session error.
 
