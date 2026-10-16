@@ -809,3 +809,24 @@ failure or cancellation removes the staging files and partial archive. CLI
 saving preserves the existing exclusive-destination rule. Archive creation
 propagates cancellation to its output and lazy input streams and awaits pending
 writers before deleting their directory.
+
+## Native mind-map images
+
+`keyword-list-export-mindmap --basket-id <id> --owner-id <id> --format png|jpg
+--output <path>` downloads the selected structured strategy's native overview
+image. JPG is the default, matching the native primary export control. PNG keeps
+the native transparent background; JPG has a white background. The operation is
+read-only and never generates or clusters a strategy. Regular lists, unfinished strategies and unavailable access
+fail without an artifact. IDs come from `keyword-lists`.
+
+The operation opens the fixed Keyword Strategy Builder list route in a scoped
+headless page, selects Semrush's mind-map export and downloads its PNG or JPG.
+It executes the provider's renderer, rather than claiming an image API endpoint.
+The native image includes up to seven topics and a count of additional topics.
+The observed renderer produces 4336 by 2228 pixels. Full table exports remain
+separate. Provider filenames and bytes are preserved.
+
+CLI requires a fresh `--output` destination. MCP returns `data:null` and one
+artifact with MIME type `image/png` or `image/jpeg`; existing resource chunking
+applies. The renderer page and its browser download close after success, failure
+or cancellation. Runtime-owned export files follow the existing scoped lifetime.

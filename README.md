@@ -79,7 +79,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 
 ## command surface
 
-274 operations, available as cli commands and mcp tools. 185 reads and 89 writes that need explicit confirmation.
+275 operations, available as cli commands and mcp tools. 186 reads and 89 writes that need explicit confirmation.
 
 | command | what it does |
 | --- | --- |
@@ -124,6 +124,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 | `keyword-list-keywords-copy`, `keyword-list-keywords-move` | transfer selected phrases between owner-aware baskets |
 | `keyword-list-clusters-copy`, `keyword-list-clusters-move` | transfer keywords from selected clusters between baskets |
 | `keyword-list-export`, `keyword-list-export-keywords`, `keyword-list-export-pages`, `keyword-list-export-clusters` | export filtered keyword rows, page selections or selected phrases and clusters |
+| `keyword-list-export-mindmap` | download a structured strategy's native mind map as jpg or png |
 | `domain-strategies`, `domain-strategy-get`, `domain-strategy-summary`, `domain-strategy-status` | find domain strategies and read generation status |
 | `domain-strategy-create`, `domain-strategy-rename`, `domain-strategy-delete` | start domain strategy generation, rename or delete strategies |
 | `domain-strategy-presets`, `domain-strategy-pages`, `domain-strategy-pages-summary` | filter and page through existing or new page opportunities |
@@ -431,6 +432,19 @@ semrush keyword-list-export-clusters --basket-id 123 --owner-id 456 \
 ```
 
 `--output` is required and refuses an existing file. mcp exports return artifact resources. see [keyword lists](https://semrush.micr.dev/docs/keyword-lists) for native filters and selection inputs.
+
+download the native mind map for an existing structured strategy:
+
+```bash
+semrush keyword-list-export-mindmap --basket-id 123 --owner-id 456 --output mindmap.jpg
+semrush keyword-list-export-mindmap --basket-id 123 --owner-id 456 --format png --output mindmap.png
+```
+
+use `BasketID` and `Owner.ID` from `keyword-lists`. jpg is the default and has a white background; png has a transparent background. the native image is 4336 x 2228 pixels and shows up to seven topics, plus a count of extra topics. use the table exports above for all rows.
+
+this command downloads the image from semrush's web renderer without changing its bytes. it does not start clustering or strategy generation. `--output` is required and refuses an existing file. mcp exposes `keyword_list_export_mindmap` and returns an artifact resource with `data: null`.
+
+live source cli and mcp checks on raft matched native jpg and png bytes exactly, including image dimensions, file sizes and mcp resource reads. the authenticated connection check passed too.
 
 ### domain strategies
 
@@ -781,7 +795,7 @@ npm run check
 
 the cli uses the published [`galleton` 0.1.0 sdk](https://www.npmjs.com/package/galleton). the bundled galleton daemon is still required for sessions. building it from source requires go 1.23 or newer, `tar` and `patch`. published cli packages include the daemon for supported platforms, so npm users do not need go.
 
-the current source passed 202 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
+the current source passed 206 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
 
 ## documentation
 

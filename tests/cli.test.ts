@@ -64,7 +64,7 @@ test('built CLI runs help and version without credentials', async () => {
 test('built catalog distinguishes read reports and project writes', async () => {
   const { stdout, stderr } = await cli(['reports', '--json']);
   const listed = JSON.parse(stdout);
-  expect(listed).toHaveLength(274);
+  expect(listed).toHaveLength(275);
   expect(listed.filter((entry: { read_only: boolean }) => !entry.read_only)).toHaveLength(89);
   expect(stderr).toBe('');
 });
@@ -92,7 +92,7 @@ test('MCP advertises write safety and previews without an authenticated runtime'
     expect((await client.listResourceTemplates()).resourceTemplates[0]?.uriTemplate).toBe('semrush-export://{export_id}{?offset,limit}');
     await expect(client.readResource({ uri: 'semrush-export://unknown' })).rejects.toThrow('Download an export first');
     const listed = await client.listTools();
-    expect(listed.tools).toHaveLength(274);
+    expect(listed.tools).toHaveLength(275);
     expect(listed.tools.find(tool => tool.name === 'project_delete')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
     expect(listed.tools.find(tool => tool.name === 'backlink_audit_disavow_import')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
     expect(listed.tools.find(tool => tool.name === 'backlink_audit_export')?.annotations).toMatchObject({ readOnlyHint: true, idempotentHint: false });
@@ -101,7 +101,7 @@ test('MCP advertises write safety and previews without an authenticated runtime'
     expect(listed.tools.find(tool => tool.name === 'project_create')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false });
     for (const name of ['position_alert_read', 'position_alert_mark_all_read']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false, idempotentHint: false });
     expect(listed.tools.find(tool => tool.name === 'position_alert_delete')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true, idempotentHint: false });
-    for (const name of ['audit_js_impact_guide', 'audit_js_impact_changed_pages', 'audit_js_impact_pages', 'audit_export_js_impact', 'audit_export_all']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: true, destructiveHint: false });
+    for (const name of ['audit_js_impact_guide', 'audit_js_impact_changed_pages', 'audit_js_impact_pages', 'audit_export_js_impact', 'audit_export_all', 'keyword_list_export_mindmap']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: true, destructiveHint: false });
     const preview = await client.callTool({ name: 'project_create', arguments: { name: 'example', dry_run: true } });
     expect(preview.isError).not.toBe(true);
     expect(preview.content).toEqual([{ type: 'text', text: JSON.stringify({ dry_run: true, report: 'project_create', request: { method: 'POST', path: '/apis/v4-raw/folders/api/v0/folders', body: { properties: [{ name: { value: 'example' } }] } } }) }]);
@@ -156,4 +156,14 @@ test('All reports requires a new output path and validates native formats before
   expect((await cli(['audit-export-all', '--help'])).stdout).toContain('--output <path>');
   await expect(cli(['audit-export-all', '--campaign-id', '123'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('--output') });
   await expect(cli(['audit-export-all', '--campaign-id', '123', '--format', 'zip', '--output', 'reports.zip'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('allowed values') });
+});
+
+test('mind-map image export requires a destination and validates its fixed formats and numeric IDs', async () => {
+  const help = (await cli(['keyword-list-export-mindmap', '--help'])).stdout;
+  expect(help).toContain('--output <path>');
+  expect(help).toContain('(default: "jpg")');
+  const selected = ['keyword-list-export-mindmap', '--basket-id', '456', '--owner-id', '123'];
+  await expect(cli(selected)).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('--output') });
+  await expect(cli([...selected, '--format', 'svg', '--output', 'mindmap.svg'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('allowed values') });
+  await expect(cli(['keyword-list-export-mindmap', '--basket-id', '456/123', '--owner-id', '123', '--output', 'mindmap.png'])).rejects.toMatchObject({ code: 2, stdout: '' });
 });

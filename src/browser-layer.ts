@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { writeFile } from 'node:fs/promises';
 import { basename } from 'node:path';
 import { Config, Effect, Layer, Option, Semaphore, Schema, Predicate, Schedule } from 'effect';
-import { chromium, request as browserRequest, type BrowserContext, type Page } from 'patchright';
+import { chromium, request as browserRequest, type BrowserContext, type Page, type Download } from 'patchright';
 import JSONbig from 'json-bigint';
 import { Semrush } from './browser-service.js';
 import { Sessions } from './session-service.js';
@@ -297,6 +297,34 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     const bytes = file.bytes;
     return yield* writer.create(file.filename, exportMimeTypes[extension], (destination, signal) => writeFile(destination, bytes, { mode: 0o600, signal }));
   });
+  /** Semrush renders these images in its UI; a separate page owns the renderer and temporary download. */
+  const exportMindmap = Effect.fn('Semrush.exportMindmap')(function* (query: Query) {
+    const unavailable = () => new ReportError({ message: 'Mind-map export is unavailable. Inspect a completed structured strategy with semrush keyword-list-pages and verify your list access.' });
+    const uiCall = <A>(run: () => Promise<A>) => Effect.tryPromise({ try: run, catch: unavailable });
+    return yield* Effect.scoped(Effect.gen(function* () {
+      let pendingDownload: Download | undefined;
+      const renderer = yield* Effect.acquireRelease(browserCall(() => context.newPage()), page => Effect.promise(async () => {
+        await page.close();
+        if (pendingDownload) { await pendingDownload.cancel(); await pendingDownload.delete(); }
+      }));
+      // Capture ownership even if interruption happens before the download promise resumes.
+      renderer.once('download', download => { pendingDownload = download; });
+      const address = new URL('/analytics/keywordmanager/list', browserOrigin);
+      address.search = new URLSearchParams({ listId: query.basket_id + '/' + query.owner_id, tab: '0' }).toString();
+      const format = query.format === 'png' ? 'png' : 'jpg';
+      const download = yield* uiCall(async () => {
+        const response = await renderer.goto(address.href, { waitUntil: 'domcontentloaded', timeout: 45000 });
+        if (!response?.ok()) throw new Error('Strategy page unavailable');
+        await renderer.getByTestId('export-mindmap-button').waitFor({ state: 'visible', timeout: 45000 });
+        await renderer.evaluate(() => document.fonts.ready.then(() => undefined));
+        await renderer.getByTestId('export-mindmap-button').click({ timeout: 45000 });
+        const [file] = await Promise.all([renderer.waitForEvent('download', { timeout: 45000 }), renderer.getByRole('button', { name: format.toUpperCase(), exact: true }).click({ timeout: 45000 })]);
+        return file;
+      });
+      if (yield* uiCall(() => download.failure())) return yield* Effect.fail(unavailable());
+      return yield* exports.create(basename(download.suggestedFilename()), format === 'png' ? 'image/png' : 'image/jpeg', destination => download.saveAs(destination));
+    })).pipe(Effect.timeoutOrElse({ duration: '90 seconds', orElse: () => Effect.fail(unavailable()) }));
+  });
   /** Native All reports starts separate downloads; stage them privately before publishing one archive. */
   const auditExportAll = Effect.fn('Semrush.auditExportAll')(function* (query: Query) {
     const snapshot = Schema.Struct({ snapshot_id: Schema.String.check(Schema.isPattern(/^[A-Za-z0-9_-]{1,128}$/)), finish_date: Schema.Number });
@@ -445,6 +473,11 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
   });
   const report = Effect.fn('Semrush.report')(function* ({ name, definition, query }: ReportRequest) {
     yield* checkSession();
+    if (definition.transport === 'kwm_ui') {
+      const artifact = yield* exportMindmap(query);
+      yield* captureCookies(context, sessions.capture, browserOrigin);
+      return { authenticated: true as const, report: name, data: null, artifact };
+    }
     if (name === 'audit_export_all') {
       const archive = yield* auditExportAll(query);
       yield* captureCookies(context, sessions.capture, browserOrigin);

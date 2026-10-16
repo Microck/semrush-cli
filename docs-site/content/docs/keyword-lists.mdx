@@ -215,6 +215,28 @@ phrases in one database. Exports do not change collection membership.
 MCP returns chunked resources; it never returns the download address or its
 runtime credentials. See [MCP exports](/docs/mcp#read-an-export).
 
+## Export a mind map
+
+Use a completed structured strategy's basket and owner IDs. The native web
+client creates the image. Export does not generate or cluster keywords.
+
+```sh
+semrush keyword-list-export-mindmap --basket-id 456 --owner-id 123 --output mindmap.jpg
+semrush keyword-list-export-mindmap --basket-id 456 --owner-id 123 --format png --output mindmap.png
+```
+
+JPG is the default and has a white background. PNG preserves the native
+transparent background. Both use Semrush's 4336 x 2228 overview, including its
+seven-topic limit; use the keyword and page table exports for all rows.
+`--output` is required and an existing destination is preserved. The CLI
+returns the saved-file receipt. MCP returns `data:null` and one artifact with
+its native filename, MIME type, byte size and chunked resource URI. See
+[MCP exports](/docs/mcp#read-an-export).
+
+A list without an available mind map fails with a report error. Inspect
+`keyword-list-pages` and verify that the strategy has finished and that your
+account can access it. Exports do not retry or start generation automatically.
+
 ## Copy or move selected keywords and clusters
 
 Both source and destination require their basket and owner IDs. Copy retains

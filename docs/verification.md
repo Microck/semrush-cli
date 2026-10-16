@@ -1,5 +1,24 @@
 # Verification
 
+## Version 0.25.0 native mind-map images
+
+The catalog contains 275 operations, 186 reads and 89 confirmed writes.
+TypeScript, Oxlint, generated references, all five daemon targets and 206 tests
+passed on Raft. Three independent simplification reviewers found no changes
+needed. Real browser fixtures cover both formats, native bytes and filenames,
+cookie rotation, denied access and interrupted downloads followed by another
+successful report. CLI validation checks formats, exact IDs and required output
+paths before authentication.
+
+A new owned structured strategy generated one topic, one page and seven
+keywords from one seed. Its native web controls downloaded JPG and PNG. Source
+CLI and MCP downloads matched those files byte for byte: JPG 145,656 bytes,
+PNG 326,796 bytes, both 4336 x 2228. JPG has a white background; PNG preserves
+transparency. MCP filename, MIME, size and chunked resource reads passed. The
+CLI default JPG and saved-file receipts passed. Authenticated doctor passed.
+The strategy remains temporarily available for fresh public-package verification;
+existing user projects and lists were untouched. No articles or SEO briefs were generated.
+
 ## Version 0.24.0 alert event commands
 
 The source catalog contains 274 operations, 185 reads and 89 confirmed writes.

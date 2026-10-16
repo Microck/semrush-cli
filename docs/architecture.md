@@ -1,6 +1,6 @@
 # Architecture
 
-The CLI and stdio MCP share a catalog of 274 operations, 185 reads and 89 writes,
+The CLI and stdio MCP share a catalog of 275 operations, 186 reads and 89 writes,
 and one Semrush Effect service. Input validation populates defaults before
 credential-bearing resources are acquired. The browser layer owns a transient
 Chromium context, reads page bootstrap metadata without evaluating page-owned
@@ -14,6 +14,13 @@ Disposal aborts an interrupted download while leaving the report client usable.
 Both paths disable network retries because Chromium fetch can silently replay
 a committed POST after a connection reset. Artifact files retain the provider's
 bytes and remain private to the runtime.
+
+Mind-map images use a separate scoped renderer page at the fixed Keyword
+Strategy Builder route. Semrush's own client renders and downloads the image;
+the adapter waits for fonts and native controls, then stores the unchanged
+download bytes. It accepts only catalog basket/owner IDs and PNG or JPG, never
+caller JavaScript or a URL. Cancellation closes that page and cancels/deletes
+its browser download without closing the shared report context.
 
 The All reports operation stages native downloads in a private scoped directory,
 then streams them into one ZIP with a JSON manifest. Staged files never become

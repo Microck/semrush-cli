@@ -24,6 +24,7 @@ import { text as readText } from 'node:stream/consumers';
 import { makeBacklinkAuditFixture } from './backlink-audit-fixture.js';
 import { makeAuditArchiveFixture, archivePaths } from './audit-archive-fixture.js';
 import { unzipSync } from 'fflate';
+import { makeMindmapFixture } from './mindmap-fixture.js';
 
 const exec = promisify(execFile);
 const binary = resolve(`dist/daemon/galleton-${process.platform}-${process.arch}${process.platform === 'win32' ? '.exe' : ''}`);
@@ -61,7 +62,8 @@ const trackingTargetsFixture = makeTrackingTargetsFixture();
 const serveNotesFixture = makeNotesFixture();
 const backlinkAuditFixture = makeBacklinkAuditFixture();
 const auditArchiveFixture = makeAuditArchiveFixture();
-const fixtureHandlers = new Map([...archivePaths.map(path => [path, auditArchiveFixture.serve] as const), [folderPath, serveProjectFixture], [savedPath, serveSavedFixture], ['/notes/api/', serveNotesFixture], ['/siteaudit/api/campaigns/789/js-impact/', serveJSImpactFixture], ['/siteaudit/export/js-impact/', serveJSImpactFixture]]);
+const mindmapFixture = makeMindmapFixture();
+const fixtureHandlers = new Map([...archivePaths.map(path => [path, auditArchiveFixture.serve] as const), [folderPath, serveProjectFixture], [savedPath, serveSavedFixture], ['/notes/api/', serveNotesFixture], ['/siteaudit/api/campaigns/789/js-impact/', serveJSImpactFixture], ['/siteaudit/export/js-impact/', serveJSImpactFixture], ['/analytics/keywordmanager/list', mindmapFixture.serve], ['/mindmap-download', mindmapFixture.serve]]);
 /** Serve the native authentication checks separately from report fixtures. */
 function serveAuthenticationFixture(request: IncomingMessage, response: ServerResponse, url: URL): boolean {
   if (url.pathname === '/robots.txt') { response.end('User-agent: *\nDisallow: /'); return true; }
@@ -1291,6 +1293,49 @@ test('JS Impact reads apply native pagination and filters and preserve export by
 
 
 const archiveSelection = { campaign_id: 790, relative: true, sort: 'url_desc', filter: 'café' };
+test('native mind-map controls preserve PNG/JPG bytes, filenames and session rotation', async () => {
+  for (const format of ['png', 'jpg'] as const) {
+    mindmapFixture.use('complete');
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const service = yield* Semrush;
+      const exported = yield* service.report(yield* parseReport('keyword_list_export_mindmap', { basket_id: 456, owner_id: 123, format }));
+      expect(exported.data).toBeNull();
+      if (!exported.artifact) throw new Error('Expected native mind-map image');
+      expect(exported.artifact).toMatchObject({ filename: 'native mindmap.' + format, mime_type: format === 'png' ? 'image/png' : 'image/jpeg', size_bytes: mindmapFixture.bytes(format).length });
+      const exports = yield* Exports;
+      expect(yield* exports.list()).toEqual([exported.artifact]);
+      const saved = yield* exports.read(exported.artifact.uri);
+      expect(Buffer.from(saved.blob, 'base64')).toEqual(mindmapFixture.bytes(format));
+      expect((yield* service.report(yield* parseReport('account_status', {}))).authenticated).toBe(true);
+    }).pipe(Effect.provide(fixtureLayer()))));
+    expect((await sdk.headers('test', fixtureURL)).Cookie).toContain('mindmap_rotation=retained');
+  }
+}, 30000);
+
+test('a denied mind-map page fails without publishing an artifact or closing later reports', async () => {
+  mindmapFixture.use('denied');
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const service = yield* Semrush;
+    const failure = yield* service.report(yield* parseReport('keyword_list_export_mindmap', { basket_id: 456, owner_id: 123 })).pipe(Effect.flip);
+    expect(failure.message).toContain('completed structured strategy');
+    expect(yield* (yield* Exports).list()).toEqual([]);
+    expect((yield* service.report(yield* parseReport('account_status', {}))).authenticated).toBe(true);
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+test('cancelling a native image download closes its stream and releases the report slot', async () => {
+  mindmapFixture.use('slow');
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const service = yield* Semrush;
+    const fiber = yield* Effect.forkChild(service.report(yield* parseReport('keyword_list_export_mindmap', { basket_id: 456, owner_id: 123 })));
+    yield* Effect.promise(() => mindmapFixture.ready()).pipe(Effect.timeout('5 seconds'));
+    yield* Fiber.interrupt(fiber).pipe(Effect.timeout('5 seconds'));
+    yield* Effect.promise(() => mindmapFixture.disconnected()).pipe(Effect.timeout('5 seconds'));
+    expect(yield* (yield* Exports).list()).toEqual([]);
+    expect((yield* service.report(yield* parseReport('account_status', {}))).authenticated).toBe(true);
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
 test('All reports packages every available native file and explicit availability omissions', async () => {
   for (const scenario of ['complete', 'single', 'single-js'] as const) {
     auditArchiveFixture.use(scenario);

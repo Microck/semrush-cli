@@ -15232,5 +15232,46 @@
         "campaign_id"
       ]
     }
+  },
+  "keyword_list_export_mindmap": {
+    "method": "/analytics/keywordmanager/list",
+    "description": "Download a structured strategy's native mind-map image as PNG or JPG.",
+    "transport": "kwm_ui",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "basket_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "BasketID from keyword-lists."
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Owner.ID from keyword-lists, including shared lists."
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "png",
+            "jpg"
+          ],
+          "default": "jpg"
+        }
+      },
+      "required": [
+        "basket_id",
+        "owner_id"
+      ]
+    },
+    "response_type": "download"
   }
 }
