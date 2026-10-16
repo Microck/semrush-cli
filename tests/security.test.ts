@@ -22,6 +22,9 @@ test('account identity comes from user metadata without inferring an SEO plan', 
 test('redacts nested secret fields and echoed credential strings', () => {
   expect(redact({ api_key: 'secret', rows: [{ authorization: 'Bearer abc', url: 'https://example.com/secret', title: 'ok' }], error: 'Bearer abc' }, ['secret', 'Bearer abc', 'abc'])).toEqual({ rows: [{ url: 'https://example.com/[redacted]', title: 'ok' }], error: '[redacted]' });
 });
+test('protected-site credentials and bot signatures never appear in report JSON', () => {
+  expect(redact({ authUsername: 'private-user', authPassword: 'private-password', nested: { password: 'private-password', webBotAuthSignature: 'signature', authEnabled: true }, message: 'private-password' }, ['private-password'])).toEqual({ nested: { authEnabled: true }, message: '[redacted]' });
+});
 test('rejects prototype-polluting provider responses', () => {
   expect(() => parseWire('{"__proto__":{"admin":true}}')).toThrow();
 });

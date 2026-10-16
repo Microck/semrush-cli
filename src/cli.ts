@@ -8,6 +8,9 @@ import { sessionsLive } from './session-layer.js';
 import { initializeDaemon, startDaemon, stopDaemon, installBrowser } from './daemon.js';
 import { Exports } from './exports.js';
 import { UsageError } from './errors.js';
+import { readFile } from 'node:fs/promises';
+import { text as readText } from 'node:stream/consumers';
+import { addAbortSignal } from 'node:stream';
 
 const interruption = new AbortController();
 const cli = new Command().name('semrush').description('Semrush research through your signed-in account. CLI + MCP, powered by Effect and Galleton.').version(version).exitOverride().showHelpAfterError().option('--json', 'Emit compact JSON').option('--no-input', 'Never prompt for terminal input').option('--no-color', 'Disable terminal colors');
@@ -28,13 +31,20 @@ cli.command('reports').description('List research reports and project operations
   output(Object.entries(reports).map(([name, report]) => ({ command: name.replaceAll('_', '-'), tool: name, description: report.description, read_only: !report.mutation, destructive: report.destructive, schema: report.schema })), command);
 });
 
-interface Property { type?: string; default?: unknown; description?: string; anyOf?: { type?: string }[]; }
+interface Property { type?: string; default?: unknown; description?: string; anyOf?: { type?: string }[]; writeOnly?: boolean; contentMediaType?: string; }
 /** Convert CLI text at one boundary; schema validation still owns defaults and constraints. */
-function parseCliInput(properties: Record<string, Property>, options: Record<string, string | boolean | undefined>): Query {
+async function parseCliInput(properties: Record<string, Property>, options: Record<string, string | boolean | undefined>): Promise<Query> {
   const input: Query = {};
   for (const [key, property] of Object.entries(properties)) {
-    const value = options[key.replace(/_([a-z])/g, (_match, char: string) => char.toUpperCase())];
+    const fileInput = property.writeOnly === true || Boolean(property.contentMediaType);
+    const optionName = key.replace(/_([a-z])/g, (_match, char: string) => char.toUpperCase());
+    let value = options[optionName + (fileInput ? 'File' : '')];
     if (value === undefined) continue;
+    if (fileInput) {
+      try { value = value === '-' ? await readText(addAbortSignal(interruption.signal, process.stdin)) : await readFile(String(value), { encoding: 'utf8', signal: interruption.signal }); }
+      catch { throw new InvalidArgumentError('--' + key.replaceAll('_', '-') + '-file could not be read. Check the path, or use - to read stdin.'); }
+      if (property.writeOnly) value = value.replace(/\r?\n$/, '');
+    }
     const type = property.type ?? property.anyOf?.find(candidate => candidate.type !== 'null')?.type;
     if (value === 'null' && property.anyOf?.some(candidate => candidate.type === 'null')) { input[key] = null; continue; }
     if (type === 'boolean') {
@@ -63,18 +73,19 @@ for (const [name, definition] of Object.entries(reports)) {
     const flag = key.replaceAll('_', '-');
     const description = (property.description ?? key.replaceAll('_', ' ')) + (property.default === undefined ? '' : ` (default: ${JSON.stringify(property.default)})`);
     const type = property.type ?? property.anyOf?.find(candidate => candidate.type !== 'null')?.type;
-    const option = new CliOption(type === 'boolean' ? `--${flag} [boolean]` : `--${flag} <${type === 'array' || type === 'object' ? 'json' : 'value'}>`, description);
+    const fileInput = property.writeOnly === true || Boolean(property.contentMediaType);
+    const option = new CliOption(fileInput ? `--${flag}-file <path>` : type === 'boolean' ? `--${flag} [boolean]` : `--${flag} <${type === 'array' || type === 'object' ? 'json' : 'value'}>`, description);
     if (schema.required?.includes(key)) option.makeOptionMandatory();
     report.addOption(option);
   }
   report.action(async (_options, command: Command) => {
     const { parseReport } = await import('./validation.js');
     // Commander normalizes null parser returns to empty strings. Parse raw values once here.
-    const parsed = await Effect.runPromise(Effect.try({
+    const parsed = await Effect.runPromise(Effect.tryPromise({
       try: () => parseCliInput(schema.properties, command.opts<Record<string, string | boolean | undefined>>()),
       catch: error => new UsageError({ message: error instanceof InvalidArgumentError ? error.message : 'Invalid command option value.' }),
     }).pipe(Effect.flatMap(input => parseReport(name, input)),
-      Effect.match({ onSuccess: value => ({ ok: true as const, value }), onFailure: error => ({ ok: false as const, error }) })));
+      Effect.match({ onSuccess: value => ({ ok: true as const, value }), onFailure: error => ({ ok: false as const, error }) })), { signal: interruption.signal });
     if (!parsed.ok) { process.stderr.write(`semrush: ${parsed.error.message}\n`); process.exitCode = 2; return; }
     const preview = previewMutation(parsed.value.name, parsed.value.definition, parsed.value.query);
     if (preview) { output(preview, command); return; }

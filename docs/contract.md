@@ -85,13 +85,14 @@ read or ordinary list-create command starts generation implicitly.
 
 Enable SEO with `project-enable-seo --folder-id <folder-id> --confirm`. Use the
 returned numeric SEO project `id` as `--campaign-id`; it is not the folder ID.
-`audit-create --campaign-id <id> --name <name> --domain <domain> --confirm`
+`audit-create --campaign-id <id> --domain <domain> --confirm`
 saves settings for a fresh audit and refuses an existing one. It does not start
 a crawl. Before creation, `audit-info` returns HTTP 404.
 
-`audit-configure` replaces an existing public-site configuration. Include every
+`audit-configure` replaces an existing site configuration. Include every
 setting you want to retain; omitted settings take their schema defaults. It
-refuses protected-site authentication or Google Analytics connections.
+requires an explicit `auth_enabled` choice for a protected audit. Google
+Analytics and Web Bot Auth connections remain protected from replacement.
 `audit-start --campaign-id <id> --confirm` launches with the saved settings and
 consumes crawl allowance. Defaults are manual scheduling and email disabled.
 Explicit recurring schedules create future runs; `--notify` enables emails.
@@ -335,6 +336,40 @@ Semrush subscription. A native report export returned HTTP 403 with error code
 no alternate transport or subscription purchase was used.
 The subscription page confirms both "Guru, Subscribed" and "Trial active".
 Neither trial status nor overview billing flags establish a different SEO plan.
+
+## Protected Site Audit and URL lists
+
+`audit-create` and `audit-configure` accept `auth_enabled`, `auth_username`
+and `auth_password`. A new protected audit requires both credentials.
+The project owns its name; use `project-update` to rename it. Audit settings
+do not expose a separate name that the provider ignores.
+Credential updates require both fields and `auth_enabled:true`. A protected
+audit edit requires an explicit `auth_enabled` choice; true with omitted
+credentials sends the native empty-field keep-existing request, while false
+explicitly disables authentication. Existing Google Analytics and Web Bot Auth
+connections remain protected from settings replacement.
+
+The CLI reads `auth_password` through `--auth-password-file <path>`; `-` reads
+stdin. It removes one final line ending and preserves other whitespace. MCP
+accepts the string directly with JSON Schema `writeOnly:true`. Passwords are
+redacted in dry runs, provider errors and successful responses; protected-site
+credential fields are never returned by report reads.
+
+`audit-urls-upload` sends a text or CSV URL list through native multipart POST
+`/siteaudit/api/campaigns/{campaign_id}/settings/urls/upload?key=<runtime-key>`.
+The file field is `file-urls`. CLI input is `--contents-file <path>` or `-` for
+stdin; MCP input is `contents`. `filename` defaults to
+`semrush-crawl-urls.txt`. Upload requires consent and returns the native
+filename and count. It does not configure or start a crawl. The upload belongs
+to the campaign; its filename is display metadata, not a sitemap URL. Set
+`crawl_source_type:3` in an explicit audit settings save, leave
+`crawl_source_url` empty, then start the crawl separately.
+
+Primary reference: the current Site Audit wizard chunk
+`6543.8fd07665f4ecb251ca39.js`, its settings serializer, and its native
+`file-urls` XMLHttpRequest upload. The public
+[configuration manual](https://www.semrush.com/kb/539-configuring-site-audit)
+describes protected-site credentials and all four crawl sources.
 
 ## Position Tracking distribution and target comparison
 

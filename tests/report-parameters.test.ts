@@ -84,7 +84,7 @@ for (const sample of auditCases) test(`matches Site Audit web contract: ${sample
   expect(webRequest(parsed.definition, parsed.query)).toEqual({ method: sample.name === 'audit_start' ? 'POST' : 'GET', path: sample.path, body: sample.body });
 });
 test('Site Audit configuration uses manual, notification-free defaults and normalized paths', async () => {
-  const parsed = await Effect.runPromise(parseReport('audit_configure', { campaign_id: 789, name: 'Fixture', domain: 'example.com', page_limit: 10, allow: ['blog'], dry_run: true }));
+  const parsed = await Effect.runPromise(parseReport('audit_configure', { campaign_id: 789, domain: 'example.com', page_limit: 10, allow: ['blog'], dry_run: true }));
   const planned = webRequest(parsed.definition, parsed.query);
   expect(planned).toMatchObject({ method: 'POST', path: '/siteaudit/api/campaigns/789/save', body: { scheduleDay: 0, notify: false, pageLimit: 10, allow: ['/blog'], withSubfolder: true, domain: 'example.com', rootDomain: 'example.com' } });
   expect(planned.body).not.toHaveProperty('campaign_id');
@@ -92,7 +92,7 @@ test('Site Audit configuration uses manual, notification-free defaults and norma
 });
 
 test('Site Audit creation and replacement share the source save contract', async () => {
-  const input = { campaign_id: 789, name: 'Fixture', domain: 'example.com', page_limit: 10, dry_run: true };
+  const input = { campaign_id: 789, domain: 'example.com', page_limit: 10, dry_run: true };
   const created = await Effect.runPromise(parseReport('audit_create', input));
   const configured = await Effect.runPromise(parseReport('audit_configure', input));
   expect(webRequest(created.definition, created.query)).toEqual(webRequest(configured.definition, configured.query));

@@ -208,12 +208,17 @@ function projectParameters(definition: Report, q: Query): Query {
   return Object.fromEntries(Object.entries(q).filter(([key]) => key !== 'confirm' && key !== 'dry_run'));
 }
 
-export interface WebRequest { method: string; path: string; body: Schema.Json; encoding?: 'form'; }
+export interface WebRequest { method: string; path: string; body: Schema.Json; encoding?: 'form' | 'multipart'; file?: { field: string; filename: string; contents: string }; }
 
 /** Fixed public request plans. RPC credentials enter only inside the browser layer. */
 export function webRequest(definition: Report, query: Query): WebRequest {
   if (definition.transport === 'kwm' || definition.transport === 'ksb') return { method: 'POST', path: definition.transport === 'ksb' ? '/ksb/rpc' : '/kwm/rpc', body: rpcBody(definition.method, reportParameters(definition, query)) };
   const parameters = reportParameters(definition, query);
+  const path = definition.method.replace(/\{([a-z_]+)\}/g, (_match, key: string) => encodeURIComponent(String(query[key])));
+  if ('request_encoding' in definition && definition.request_encoding === 'multipart') return {
+    method: definition.http_method, path, body: null, encoding: 'multipart',
+    file: { field: 'file-urls', filename: String(query.filename), contents: String(query.contents) },
+  };
   if ('request_encoding' in definition && definition.request_encoding === 'form') return {
     method: definition.http_method, path: definition.method, body: parameters, encoding: 'form',
   };
@@ -224,16 +229,19 @@ export function webRequest(definition: Report, query: Query): WebRequest {
   }
   return {
     method: definition.http_method,
-    path: definition.method.replace(/\{([a-z_]+)\}/g, (_match, key: string) => encodeURIComponent(String(query[key]))),
+    path,
     body: definition.method.endsWith('/campaign_set_competitors') ? parameters.competitors ?? []
       : definition.http_method === 'POST' && Object.keys(parameters).length === 0 ? null : parameters,
   };
 }
 
 export function previewMutation(name: string, definition: Report, query: Query) {
-  return definition.mutation && query.dry_run === true
-    ? { dry_run: true, report: name, request: webRequest(definition, query) }
-    : undefined;
+  if (!definition.mutation || query.dry_run !== true) return undefined;
+  const visible = { ...query };
+  for (const [key, property] of Object.entries(definition.schema.properties)) {
+    if ('writeOnly' in property && property.writeOnly === true && key in visible) visible[key] = '[redacted]';
+  }
+  return { dry_run: true, report: name, request: webRequest(definition, visible) };
 }
 
 
@@ -330,7 +338,7 @@ function auditParameters(definition: Report, q: Query): Query {
   }
   const paths = (value: Schema.Json | undefined) => Array.isArray(value) ? [...new Set(value.map(path => String(path).startsWith('/') ? String(path) : '/' + String(path)))] : [];
   return {
-    name: q.name ?? null, domain: q.domain ?? null, rootDomain: q.domain ?? null,
+    domain: q.domain ?? null, rootDomain: q.domain ?? null,
     pageLimit: q.page_limit ?? null, scheduleDay: q.schedule_day ?? 0, notify: q.notify ?? false,
     userAgentType: q.user_agent_type ?? 8, crawlSubdomains: q.crawl_subdomains ?? false,
     crawlSourceType: q.crawl_source_type ?? 0, crawlSourceUrl: q.crawl_source_url ?? '',
@@ -338,7 +346,7 @@ function auditParameters(definition: Report, q: Query): Query {
     jsRendering: q.js_rendering ?? 'DISABLED', scheme: q.scheme ?? 'https', startCrawlUrl: null,
     allow: paths(q.allow), disallow: paths(q.disallow), withSubfolder: Array.isArray(q.allow) && q.allow.length === 1,
     removedParameters: q.removed_parameters ?? [], excludedChecks: q.excluded_checks ?? [],
-    authEnabled: false, authUsername: '', authPassword: '', gaSettings: {}, gaStatus: '',
+    authEnabled: q.auth_enabled ?? false, authUsername: q.auth_username ?? '', authPassword: q.auth_password ?? '', gaSettings: {}, gaStatus: '',
     webBotAuthEnabled: false, webBotAuthSignatureAgent: '', webBotAuthSignatureInput: '', webBotAuthSignature: '',
   };
 }

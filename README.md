@@ -79,7 +79,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 
 ## command surface
 
-209 operations, available as cli commands and mcp tools. 142 reads and 67 writes that need explicit confirmation.
+210 operations, available as cli commands and mcp tools. 142 reads and 68 writes that need explicit confirmation.
 
 | command | what it does |
 | --- | --- |
@@ -116,6 +116,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 | `domain-strategy-existing-keywords`, `domain-strategy-recommended-keywords` | read ranking keywords and recommendations for a page |
 | `domain-strategy-keywords-delete`, `domain-strategy-export` | remove selected generated keywords or export a filtered strategy |
 | `audit-create`, `audit-configure`, `audit-start` | configure and launch a site audit |
+| `audit-urls-upload` | upload a text or csv url list for an audit |
 | `position-create`, `position-targets`, `position-info` | create targets and read tracking settings |
 | `position-configure` | edit tracking address, business name, brands or volume settings |
 | `position-keywords` | read the complete tracked keyword and tag list, even before rankings arrive |
@@ -510,14 +511,37 @@ semrush project-enable-seo --folder-id 123 --confirm
 use the returned seo project `id` as the campaign id:
 
 ```bash
-semrush audit-create --campaign-id 456 --name 'my audit' \
-  --domain example.com --page-limit 100 --confirm
+semrush audit-create --campaign-id 456 --domain example.com --page-limit 100 --confirm
 semrush audit-start --campaign-id 456 --confirm
 semrush audit-status --campaign-id 456
 semrush audit-snapshots --campaign-id 456
 ```
 
 creating an audit saves its settings. starting it is a separate command. defaults are manual scheduling and email off.
+
+names belong to projects. rename one with `project-update --folder-id 123 --name 'my audit' --confirm`.
+
+upload a text or csv url list, then select it as the crawl source:
+
+```bash
+semrush audit-urls-upload --campaign-id 456 --contents-file urls.txt --confirm
+semrush audit-configure --campaign-id 456 --domain example.com --page-limit 100 \
+  --crawl-source-type 3 --confirm
+semrush audit-start --campaign-id 456 --confirm
+```
+
+uploading does not configure or start a crawl. the file belongs to the campaign; leave `--crawl-source-url` empty for source type `3`. the filename is display metadata and defaults to `semrush-crawl-urls.txt`. use `--contents-file -` to read stdin. mcp accepts a `contents` string.
+
+for a site behind http basic authentication, read the password from a file:
+
+```bash
+semrush audit-configure --campaign-id 456 --domain example.com --page-limit 100 \
+  --auth-enabled true --auth-username USER --auth-password-file password.txt --confirm
+```
+
+`audit-create` accepts the same auth flags. use `--auth-password-file -` to read stdin. passwords are redacted in previews. when editing a protected audit, pass `--auth-enabled true` without credentials to keep them, or `--auth-enabled false` to disable authentication. changing credentials requires both username and password.
+
+`audit-configure` replaces settings; include everything you want to retain. google analytics and web bot auth connections still block settings replacement. see the [site audit guide](https://semrush.micr.dev/docs/site-audit) for the full settings.
 
 inspect pages and issues after the crawl, then download a report:
 

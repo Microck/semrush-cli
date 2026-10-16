@@ -17,18 +17,18 @@ configuration: `audit-info` returns HTTP 404 until you create one.
 
 ## Create before starting
 
-`audit-create` creates public-site settings and refuses an existing audit.
+`audit-create` creates audit settings and refuses an existing audit.
 It does not launch a crawl. To replace an existing configuration, use
 `audit-configure` with every option you want to retain. Omitted options use
 the documented defaults. Its domain must match the project's `projectDomain`.
 
 ```sh
 semrush audit-create \
-  --campaign-id 456 --name 'Example audit' --domain example.com \
+  --campaign-id 456 --domain example.com \
   --page-limit 100 --dry-run
 
 semrush audit-create \
-  --campaign-id 456 --name 'Example audit' --domain example.com \
+  --campaign-id 456 --domain example.com \
   --page-limit 100 --confirm
 ```
 
@@ -44,8 +44,48 @@ allowances. JavaScript rendering can require a higher plan.
 `schedule_day`: 0 manual, 1-7 Monday-Sunday, 8 daily. Selecting a recurring schedule
 creates future crawl runs. `--notify` explicitly enables completion emails.
 
-Protected-site authentication and Google Analytics connections require the web
-UI. The CLI refuses to replace settings when those connections already exist.
+The project owns the audit name. Use `project-update --folder-id 123 --name
+'Example project' --confirm` to rename it.
+
+## Crawl a URL list
+
+Upload a text or CSV file before selecting file discovery. This replaces the
+campaign's stored URL list and requires confirmation.
+
+```sh
+semrush audit-urls-upload --campaign-id 456 --contents-file urls.txt --dry-run
+semrush audit-urls-upload --campaign-id 456 --contents-file urls.txt --confirm
+semrush audit-configure --campaign-id 456 --domain example.com \
+  --page-limit 100 --crawl-source-type 3 --confirm
+```
+
+The returned filename is display metadata. Do not pass it as
+`--crawl-source-url`. File discovery uses the list stored for that campaign.
+Discovery modes are 0 website, 1 robots.txt sitemap, 2 custom sitemap URL and
+3 uploaded URL list. Only custom sitemap discovery takes a sitemap URL.
+Use `audit-create` instead of `audit-configure` for a fresh audit.
+
+## Audit a site with HTTP Basic authentication
+
+Create a password file with restricted permissions. The CLI reads its contents
+and removes one final line ending. Use `-` to read the password from stdin.
+
+```sh
+semrush audit-create --campaign-id 456 --domain example.com \
+  --page-limit 100 --auth-enabled true --auth-username crawler \
+  --auth-password-file password.txt --confirm
+```
+
+Supply both username and password when creating or replacing credentials.
+When editing an existing protected audit, include `--auth-enabled true` to
+keep its current credentials, or supply both credentials to replace them.
+Use `--auth-enabled false` to disable authentication. These settings edits
+replace other options with their defaults unless you supply them again.
+Passwords never appear in previews or returned credential fields. MCP accepts
+`auth_password` directly as a write-only string.
+
+Google Analytics and Web Bot Auth connections still require the web UI.
+The CLI refuses settings replacement while either connection exists.
 
 ## Start and inspect
 
@@ -111,7 +151,7 @@ Semrush's native CSV/XLSX downloads. See [MCP](./mcp) for retrieving downloads
 from an agent. Crawled-links exports remain unsupported because the endpoint
 listed in the frontend returns HTTP 404.
 
-Use the web UI for protected-site authentication and connected integrations.
+Use the web UI for connected integrations.
 Deleting a project also deletes its attached audit.
 
 ## Request evidence
@@ -124,3 +164,8 @@ A disposable account project verified configuration, launch, status and snapshot
 reads with manual scheduling, email disabled and a 10-page cap. Live checks also
 verified page/issue details, page recrawling, abort, finalize, the saved finalized
 snapshot and native CSV/XLSX exports.
+
+The protected-audit pass uploaded a one-URL list through both the native UI and
+the CLI/MCP request. A ten-page cap finished at six pages, including HTTP 200
+for the protected HTML page. Credential creation, replacement, retention and
+explicit disabling passed readbacks. The owned projects were deleted afterward.

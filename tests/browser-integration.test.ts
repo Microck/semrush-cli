@@ -20,6 +20,7 @@ import { makeTransferFixture } from './basket-transfer-fixture.js';
 import { makeSeedFixture } from './seed-strategy-fixture.js';
 import { makeDomainFixture } from './domain-strategy-fixture.js';
 import { makeSavedFixture, savedPath } from './saved-keywords-fixture.js';
+import { text as readText } from 'node:stream/consumers';
 
 const exec = promisify(execFile);
 const binary = resolve(`dist/daemon/galleton-${process.platform}-${process.arch}${process.platform === 'win32' ? '.exe' : ''}`);
@@ -35,6 +36,10 @@ let failReport = false;
 let auditConfigured = false;
 let auditStarted = false;
 let auditProtected = false;
+let auditUsername = '';
+let auditPassword = '';
+let auditRejectPassword = false;
+let auditOtherConnection: 'ga' | 'bot' | null = null;
 let delayedExportStarted = () => {};
 let delayedExportClosed = () => {};
 const observed: string[] = [];
@@ -277,7 +282,7 @@ test('real browser and Galleton manage keyword lists, import, tags, deletion and
 test('Site Audit settings save without launching; business status and authenticated GET query survive', async () => {
   await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
     const semrush = yield* Semrush;
-    const settings = { campaign_id: 789, name: 'Fixture audit', domain: 'example.com', page_limit: 10, confirm: true };
+    const settings = { campaign_id: 789, domain: 'example.com', page_limit: 10, confirm: true };
     const savesBefore = observed.filter(entry => entry.endsWith('/save')).length;
     auditProtected = true;
     const protectedFailure = yield* semrush.report(yield* parseReport('audit_configure', settings)).pipe(Effect.flip);
@@ -286,8 +291,8 @@ test('Site Audit settings save without launching; business status and authentica
     const domainFailure = yield* semrush.report(yield* parseReport('audit_configure', { ...settings, domain: 'other.example.com' })).pipe(Effect.flip);
     expect(domainFailure.message).toContain('must match');
     expect(observed.filter(entry => entry.endsWith('/save'))).toHaveLength(savesBefore);
-    const configured = yield* semrush.report(yield* parseReport('audit_create', { campaign_id: 789, name: 'Fixture audit', domain: 'example.com', page_limit: 10, confirm: true }));
-    expect(configured.data).toMatchObject({ status: 'FINISHED' });
+    const configured = yield* semrush.report(yield* parseReport('audit_create', { campaign_id: 789, domain: 'example.com', page_limit: 10, confirm: true }));
+    expect(configured.data).toMatchObject({ status: 'FINISHED', authEnabled: false });
     expect(auditStarted).toBe(false);
     const duplicate = yield* semrush.report(yield* parseReport('audit_create', settings)).pipe(Effect.flip);
     expect(duplicate.message).toContain('already has a Site Audit');
@@ -302,10 +307,22 @@ test('Site Audit settings save without launching; business status and authentica
 async function serveAuditFixture(request: IncomingMessage, response: ServerResponse, url: URL) {
     expect(url.searchParams.get('key')).toBe('fixture-secret');
     observed.push(`${request.method} ${url.pathname}`);
-    if (request.method === 'POST') expect(request.headers['content-type']).toBe('application/json');
-    let encoded = '';
-    for await (const chunk of request) encoded += chunk;
+    const encoded = await readText(request);
     response.setHeader('Content-Type', 'application/json');
+    if (url.pathname.endsWith('/settings/urls/upload')) {
+      expect(request.method).toBe('POST');
+      const contentType = request.headers['content-type'] ?? '';
+      expect(contentType).toMatch(/^multipart\/form-data; boundary=/);
+      const form = await new Request(fixtureURL + url.pathname, { method: 'POST', headers: { 'Content-Type': contentType }, body: encoded }).formData();
+      const file = form.get('file-urls');
+      if (!(file instanceof File)) throw new Error('Expected native file-urls part');
+      expect([...form.keys()]).toEqual(['file-urls']); expect(file.name).toBe('semrush-crawl-urls.txt');
+      const contents = await file.text();
+      if (contents === '/reject\n') { response.end(JSON.stringify({ status: { code: 5, message: 'Invalid URLs' } })); return; }
+      expect(contents).toBe('/café\n/second\n');
+      response.end(JSON.stringify({ filename: file.name, status: { code: 0 }, data: { count: 2 } })); return;
+    }
+    if (request.method === 'POST') expect(request.headers['content-type']).toBe('application/json');
     if (url.pathname === '/siteaudit/private/polling') {
       expect(url.searchParams.get('campaignIds')).toBe('789');
       response.end(JSON.stringify([{ id: 789, status: auditStarted ? 'RUNNING' : 'FINISHED', is_allowed_stopping: auditStarted, run_pages_crawled: auditStarted ? 3 : 0 }])); return;
@@ -317,8 +334,13 @@ async function serveAuditFixture(request: IncomingMessage, response: ServerRespo
     if (url.pathname.endsWith('/save')) {
       const settings = JSON.parse(encoded);
       expect(settings.pageLimit).toBe(10); expect(settings.scheduleDay).toBe(0); expect(settings.notify).toBe(false);
-      expect(settings.authEnabled).toBe(false); expect(settings).not.toHaveProperty('confirm');
+      expect(settings).not.toHaveProperty('confirm');
+      if (auditRejectPassword) { response.end(JSON.stringify({ error: { message: 'Auth rejected ' + settings.authPassword } })); return; }
+      auditProtected = settings.authEnabled;
+      if (!auditProtected) { auditUsername = ''; auditPassword = ''; }
+      else if (settings.authUsername && settings.authPassword) { auditUsername = settings.authUsername; auditPassword = settings.authPassword; }
       auditConfigured = true;
+      response.end(JSON.stringify({ id: 789, status: 'FINISHED', authEnabled: auditProtected, authUsername: auditUsername, authPassword: auditPassword, echo: settings.authPassword })); return;
     } else if (url.pathname.endsWith('/launch')) {
       expect(auditConfigured).toBe(true); expect(encoded).toBe(''); auditStarted = true;
     } else if (url.pathname.endsWith('/abort') || url.pathname.endsWith('/stop')) {
@@ -327,8 +349,50 @@ async function serveAuditFixture(request: IncomingMessage, response: ServerRespo
     } else if (url.pathname.endsWith('/snapshot')) {
       expect(url.searchParams.get('snapshot_id')).toBe('12');
     }
-    response.end(JSON.stringify({ id: 789, status: auditStarted ? 'RUNNING' : 'FINISHED', projectDomain: 'example.com', authEnabled: auditProtected, gaSettings: {}, webBotAuthEnabled: false })); return;
+    response.end(JSON.stringify({ id: 789, status: auditStarted ? 'RUNNING' : 'FINISHED', projectDomain: 'example.com', authEnabled: auditProtected, authUsername: auditUsername, authPassword: auditPassword, gaSettings: auditOtherConnection === 'ga' ? { connected: true } : {}, webBotAuthEnabled: auditOtherConnection === 'bot' })); return;
 }
+
+test('real multipart uploads and protected audit edits preserve credentials and keep failures private', async () => {
+  const previous = { configured: auditConfigured, started: auditStarted, protected: auditProtected };
+  auditConfigured = true; auditStarted = false; auditProtected = false;
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const semrush = yield* Semrush;
+      const settings = { campaign_id: 789, domain: 'example.com', page_limit: 10, confirm: true };
+      const upload = yield* semrush.report(yield* parseReport('audit_urls_upload', { campaign_id: 789, contents: '/café\n/second\n', confirm: true }));
+      expect(upload.data).toMatchObject({ filename: 'semrush-crawl-urls.txt', data: { count: 2 } });
+      expect(auditStarted).toBe(false);
+      const uploadFailure = yield* semrush.report(yield* parseReport('audit_urls_upload', { campaign_id: 789, contents: '/reject\n', confirm: true })).pipe(Effect.flip);
+      expect(uploadFailure.message).toContain('Invalid URLs');
+      const missingCredentials = yield* semrush.report(yield* parseReport('audit_configure', { ...settings, auth_enabled: true })).pipe(Effect.flip);
+      expect(missingCredentials.message).toContain('both auth_username and auth_password');
+      const protectedSettings = { ...settings, auth_enabled: true, auth_username: 'private-user', auth_password: 'private-password' };
+      const saved = yield* semrush.report(yield* parseReport('audit_configure', protectedSettings));
+      expect(saved.data).toMatchObject({ authEnabled: true, echo: '[redacted]' });
+      expect(JSON.stringify(saved.data)).not.toContain('private-password');
+      expect(saved.data).not.toHaveProperty('authPassword'); expect(saved.data).not.toHaveProperty('authUsername');
+      expect([auditUsername, auditPassword]).toEqual(['private-user', 'private-password']);
+      yield* semrush.report(yield* parseReport('audit_configure', { ...settings, auth_enabled: true }));
+      expect([auditUsername, auditPassword]).toEqual(['private-user', 'private-password']);
+      const info = yield* semrush.report(yield* parseReport('audit_info', { campaign_id: 789 }));
+      expect(JSON.stringify(info.data)).not.toContain('private-password');
+      for (const connection of ['ga', 'bot'] satisfies ('ga' | 'bot')[]) {
+        auditOtherConnection = connection;
+        const failure = yield* semrush.report(yield* parseReport('audit_configure', { ...settings, auth_enabled: false })).pipe(Effect.flip);
+        expect(failure.message).toContain('web UI'); expect(auditProtected).toBe(true);
+      }
+      auditOtherConnection = null; auditRejectPassword = true;
+      const failure = yield* semrush.report(yield* parseReport('audit_configure', protectedSettings)).pipe(Effect.flip);
+      expect(failure.message).toContain('[redacted]'); expect(failure.message).not.toContain('private-password');
+      auditRejectPassword = false;
+      yield* semrush.report(yield* parseReport('audit_configure', { ...settings, auth_enabled: false }));
+      expect([auditProtected, auditUsername, auditPassword]).toEqual([false, '', '']);
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally {
+    auditConfigured = previous.configured; auditStarted = previous.started; auditProtected = previous.protected;
+    auditUsername = ''; auditPassword = ''; auditRejectPassword = false; auditOtherConnection = null;
+  }
+}, 30000);
 
 // The real HTTP fixture exercises cookie-only writes, legacy key queries and array payloads.
 test('Position Tracking restores auth and completes incremental target updates', async () => {

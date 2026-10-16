@@ -3774,7 +3774,7 @@
   },
   "audit_configure": {
     "method": "/siteaudit/api/campaigns/{campaign_id}/save",
-    "description": "Replace public-site audit settings without starting a crawl. Defaults to manual scheduling and no email. Protected-site and Google Analytics settings require the web UI.",
+    "description": "Replace Site Audit settings without starting a crawl. Defaults to manual scheduling and no email. HTTP basic auth is supported; existing Web Bot Auth and Google Analytics connections require the web UI.",
     "transport": "audit_web",
     "total_method": "",
     "web_report": "",
@@ -3790,12 +3790,6 @@
           "minimum": 1,
           "maximum": 9007199254740991,
           "description": "SEO project/campaign ID from project-enable-seo, not the folder ID."
-        },
-        "name": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 255,
-          "pattern": "\\S"
         },
         "domain": {
           "type": "string",
@@ -3851,14 +3845,16 @@
           "enum": [
             0,
             1,
-            2
+            2,
+            3
           ],
           "default": 0,
-          "description": "0 website, 1 sitemap, 2 custom sitemap URL."
+          "description": "0 website, 1 robots sitemap, 2 custom sitemap URL, 3 uploaded URL list."
         },
         "crawl_source_url": {
           "type": "string",
-          "default": ""
+          "default": "",
+          "description": "Custom sitemap URL for source type 2. Leave empty for an uploaded URL list; uploads belong to the campaign."
         },
         "crawl_delay": {
           "type": "integer",
@@ -3934,13 +3930,84 @@
           "type": "boolean",
           "default": false,
           "description": "Print the request without sending it."
+        },
+        "auth_enabled": {
+          "type": "boolean",
+          "description": "Enable HTTP basic authentication. Explicitly choose true to retain existing credentials or false to disable it on a protected audit."
+        },
+        "auth_username": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^\\r\\n]+$",
+          "description": "HTTP basic-auth username. Supply both credential fields when changing them."
+        },
+        "auth_password": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^\\r\\n]+$",
+          "writeOnly": true,
+          "description": "HTTP basic-auth password. CLI reads --auth-password-file PATH, or - for stdin; never a command argument value."
         }
       },
       "required": [
         "campaign_id",
-        "name",
         "domain",
         "page_limit"
+      ],
+      "dependencies": {
+        "auth_username": [
+          "auth_password"
+        ],
+        "auth_password": [
+          "auth_username"
+        ]
+      },
+      "allOf": [
+        {
+          "if": {
+            "anyOf": [
+              {
+                "required": [
+                  "auth_username"
+                ]
+              },
+              {
+                "required": [
+                  "auth_password"
+                ]
+              }
+            ]
+          },
+          "then": {
+            "required": [
+              "auth_enabled"
+            ],
+            "properties": {
+              "auth_enabled": {
+                "const": true
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "crawl_source_type"
+            ],
+            "properties": {
+              "crawl_source_type": {
+                "const": 3
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "crawl_source_url": {
+                "const": ""
+              }
+            }
+          }
+        }
       ]
     }
   },
@@ -3963,12 +4030,6 @@
           "maximum": 9007199254740991,
           "description": "SEO project/campaign ID from project-enable-seo, not the folder ID."
         },
-        "name": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 255,
-          "pattern": "\\S"
-        },
         "domain": {
           "type": "string",
           "minLength": 1,
@@ -4023,14 +4084,16 @@
           "enum": [
             0,
             1,
-            2
+            2,
+            3
           ],
           "default": 0,
-          "description": "0 website, 1 sitemap, 2 custom sitemap URL."
+          "description": "0 website, 1 robots sitemap, 2 custom sitemap URL, 3 uploaded URL list."
         },
         "crawl_source_url": {
           "type": "string",
-          "default": ""
+          "default": "",
+          "description": "Custom sitemap URL for source type 2. Leave empty for an uploaded URL list; uploads belong to the campaign."
         },
         "crawl_delay": {
           "type": "integer",
@@ -4106,13 +4169,102 @@
           "type": "boolean",
           "default": false,
           "description": "Print the request without sending it."
+        },
+        "auth_enabled": {
+          "type": "boolean",
+          "description": "Enable HTTP basic authentication. Explicitly choose true to retain existing credentials or false to disable it on a protected audit."
+        },
+        "auth_username": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^\\r\\n]+$",
+          "description": "HTTP basic-auth username. Supply both credential fields when changing them."
+        },
+        "auth_password": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^\\r\\n]+$",
+          "writeOnly": true,
+          "description": "HTTP basic-auth password. CLI reads --auth-password-file PATH, or - for stdin; never a command argument value."
         }
       },
       "required": [
         "campaign_id",
-        "name",
         "domain",
         "page_limit"
+      ],
+      "dependencies": {
+        "auth_username": [
+          "auth_password"
+        ],
+        "auth_password": [
+          "auth_username"
+        ]
+      },
+      "allOf": [
+        {
+          "if": {
+            "anyOf": [
+              {
+                "required": [
+                  "auth_username"
+                ]
+              },
+              {
+                "required": [
+                  "auth_password"
+                ]
+              }
+            ]
+          },
+          "then": {
+            "required": [
+              "auth_enabled"
+            ],
+            "properties": {
+              "auth_enabled": {
+                "const": true
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "auth_enabled"
+            ],
+            "properties": {
+              "auth_enabled": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "auth_username",
+              "auth_password"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "crawl_source_type"
+            ],
+            "properties": {
+              "crawl_source_type": {
+                "const": 3
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "crawl_source_url": {
+                "const": ""
+              }
+            }
+          }
+        }
       ]
     }
   },
@@ -11206,5 +11358,57 @@
         }
       ]
     }
+  },
+  "audit_urls_upload": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/settings/urls/upload",
+    "description": "Upload a text or CSV crawl URL list to an SEO project. Returns a filename and count; does not configure or start an audit.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "SEO project/campaign ID from project-enable-seo, not the folder ID."
+        },
+        "contents": {
+          "type": "string",
+          "minLength": 1,
+          "contentMediaType": "text/plain",
+          "description": "Text or CSV URL list, one absolute or relative URL per line. CLI reads --contents-file PATH, or - for stdin."
+        },
+        "filename": {
+          "type": "string",
+          "default": "semrush-crawl-urls.txt",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[^/\\\\\\r\\n\\u0000]+\\.(txt|csv)$",
+          "description": "Upload filename, ending in .txt or .csv."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "campaign_id",
+        "contents"
+      ],
+      "title": "AuditURLsUpload",
+      "type": "object"
+    },
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "request_encoding": "multipart"
   }
 }

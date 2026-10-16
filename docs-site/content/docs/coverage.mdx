@@ -3,7 +3,7 @@ title: Web UI coverage
 description: Supported web workflows, evidence and remaining gaps.
 ---
 
-The CLI has 209 fixed operations: 142 reads and 67 confirmed writes.
+The CLI has 210 fixed operations: 142 reads and 68 confirmed writes.
 It uses your web session and the current web UI's request contracts. Account
 permissions and quotas apply to both interfaces. This is not full Semrush suite
 parity. The table distinguishes implemented workflows from remaining gaps.
@@ -21,8 +21,8 @@ parity. The table distinguishes implemented workflows from remaining gaps.
 | AI visibility | Domain visibility, mentions, countries, citation sources and account access | Prompt tracking and full AI Toolkit configuration |
 | Projects | Create, inspect, rename, add first domain, delete, leave, tags and pinning | Sharing invitations and account administration |
 | Project dashboard | Toolkit status, metric values and detail URLs | Third-party integration setup |
-| SEO setup | Create an SEO project and explicitly start automatic Site Audit/Position Tracking setup | Protected-site audit setup |
-| Site Audit | Discovery, limits, public-site settings, schedules, launch, page and issue tables, page recrawl, execution status, abort/finalize, structure, performance, linking, history, snapshots, CSV/XLSX exports | Protected-site authentication, Google Analytics connections and crawled-links export |
+| SEO setup | Create an SEO project and explicitly start automatic Site Audit/Position Tracking setup | Connected-service audit setup |
+| Site Audit | Discovery, limits, settings, HTTP Basic authentication, uploaded URL lists, schedules, launch, page and issue tables, page recrawl, execution status, abort/finalize, structure, performance, linking, history, snapshots, CSV/XLSX exports | Google Analytics and Web Bot Auth connections; crawled-links export |
 | Position Tracking | Target creation, destructive replacement/deletion, complete tracked keyword/tag reads, locations, limits, keyword add/delete/tags, competitor replacement, partial address/business/brand/volume settings edits, campaign settings reads, alert listing/counts, rule lifecycle, rankings, pages, ranking distribution, competitor discovery, target comparison, visibility/distribution/cannibalization trends | Tier 3 crawl schedules, brand-list clearing, alert-event changes and paid-only UI exports |
 | Keyword Strategy Builder | Domain strategy lifecycle, presets, filtered page opportunities, page URLs/SERPs, existing/recommended keywords, keyword deletion and CSV/XLSX exports; seed-based basket lifecycle, topics/pages, paginated clusters, favorites, selected-cluster deletion and metric refresh, keyword import, tags, deletion/undo, clustering, four native export selections and owner-aware selected keyword/cluster copy/move; send selected phrases to tracking | Mind-map image exports and content generation |
 | Saved Keywords | Create, rename, delete/undo collections; keyword import, filters, metrics, tags, workflow labels, copy/move, deletion/undo, metadata and CSV/semicolon CSV/XLSX exports; send selected phrases to tracking | Content generation |
@@ -35,10 +35,10 @@ for Magic, Gap, Saved Keywords and the builder.
 
 ## Verification
 
-The source suite has 148 tests, including real Chromium, a private Galleton
+The source suite has 157 tests, including real Chromium, a private Galleton
 daemon and stateful HTTP fixtures. All 48 original research mappings also have
 differential tests against the Python reference. Across versioned live passes,
-all 142 reads and 66 of 67 writes have execution evidence. Shared-project leave
+all 142 reads and 67 of 68 writes have execution evidence. Shared-project leave
 has request-contract coverage but no shared-account fixture.
 
 Live checks covered project lifecycle, bounded Site Audit crawls and stop
@@ -59,6 +59,13 @@ fields. Explicit project-scope and nonempty-link clearing, hide/show and categor
 replacement/restoration passed readbacks. MCP reconstructed the 2,781,804-byte
 CSV in three chunks. CLI saving produced identical bytes and refused an existing
 destination.
+
+The protected-audit pass verified native multipart URL uploads, HTTP Basic
+credential creation and replacement, retention across settings edits and
+explicit disabling. A crawl capped at ten pages finished at six and returned
+HTTP 200 for the protected HTML page from the uploaded list. Smaller two- and
+five-page caps were consumed by discovery checks before reaching that page.
+The upload filename is display metadata, not a sitemap URL.
 
 Each completed pass deleted its owned fixtures and checked their absence.
 Existing account resources were preserved. Credentials and detailed responses

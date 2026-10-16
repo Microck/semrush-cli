@@ -19,9 +19,10 @@ for (const [name, definition] of Object.entries(catalog)) {
   lines.push('| Flag | Type | Default | Required |', '| --- | --- | --- | --- |');
   for (const [key, property] of properties) {
     const type = property.type ?? property.anyOf?.map(candidate => candidate.type).join(' / ') ?? '';
+    const fileInput = property.writeOnly === true || Boolean(property.contentMediaType);
     const defaultValue = property.default === undefined ? '' : '`' + JSON.stringify(property.default).replaceAll('|', '\\|') + '`';
     const required = definition.schema.required?.includes(key) ? 'yes' : '';
-    lines.push(`| \`--${key.replaceAll('_', '-')}\` | ${type} | ${defaultValue} | ${required} |`);
+    lines.push(`| \`--${key.replaceAll('_', '-')}${fileInput ? '-file' : ''}\` | ${fileInput ? 'file path or - for stdin' : type} | ${defaultValue} | ${required} |`);
   }
   lines.push('');
 }

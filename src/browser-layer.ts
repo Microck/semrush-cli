@@ -6,7 +6,7 @@ import { Semrush } from './browser-service.js';
 import { Sessions } from './session-service.js';
 import { origin } from './session-layer.js';
 import { ReportError, SessionError } from './errors.js';
-import { reportParameters, webRequest, rpcBody, type Query } from './report-parameters.js';
+import { reportParameters, webRequest, rpcBody, type Query, type WebRequest } from './report-parameters.js';
 import type { ReportRequest } from './validation.js';
 import { Exports } from './exports.js';
 
@@ -24,7 +24,7 @@ export function parseWire(text: string): Schema.Json { return Schema.decodeUnkno
 /** Remove credential fields and echoed secrets, including nested provider errors. */
 export function redact(value: Schema.Json, secrets: string[]): Schema.Json {
   if (Array.isArray(value)) return value.map(item => redact(item, secrets));
-  if (objectValue(value)) return Object.fromEntries(Object.entries(value).filter(([key]) => !/^(api_?key|key|user_?id|access_token|refresh_token|authorization|cookie|set-cookie|hashes|display_hash|rnd)$/i.test(key)).map(([key, item]) => [key, redact(item, secrets)]));
+  if (objectValue(value)) return Object.fromEntries(Object.entries(value).filter(([key]) => !/^(api_?key|key|user_?id|access_token|refresh_token|authorization|cookie|set-cookie|hashes|display_hash|rnd|password|auth_?password|auth_?username|webBotAuthSignature)$/i.test(key)).map(([key, item]) => [key, redact(item, secrets)]));
   if (Predicate.isString(value)) return secrets.filter(secret => secret.length > 0).reduce((text, secret) => text.replaceAll(secret, '[redacted]'), value);
   return value;
 }
@@ -67,20 +67,24 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
   const { email, ...auth } = yield* Effect.try({ try: () => readBootstrap(bootstrap.text), catch: () => new SessionError({ message: 'Semrush sign-in metadata unavailable. Run semrush auth login or import a signed-in browser.' }) });
   const semaphore = yield* Semaphore.make(1);
   let spectrumToken = '';
-  const request = Effect.fn('Semrush.request')(function* (path: string, payload: Schema.Json, method = 'POST', extraHeaders: Record<string, string> = {}, responseType: 'json' | 'empty' = 'json') {
-    const secrets = [auth.apiKey, spectrumToken, spectrumToken.replace(/^Bearer /, ''), objectValue(payload) && Predicate.isString(payload.display_hash) ? payload.display_hash : ''];
-    const wire = yield* browserCall(() => page.evaluate(async ({ path, encodedPayload, method, extraHeaders }) => {
+  const request = Effect.fn('Semrush.request')(function* (path: string, payload: Schema.Json, method = 'POST', extraHeaders: Record<string, string> = {}, responseType: 'json' | 'empty' = 'json', file?: WebRequest['file']) {
+    const secrets = [auth.apiKey, spectrumToken, spectrumToken.replace(/^Bearer /, ''), objectValue(payload) && Predicate.isString(payload.display_hash) ? payload.display_hash : '', objectValue(payload) && Predicate.isString(payload.authPassword) ? payload.authPassword : ''];
+    const wire = yield* browserCall(() => page.evaluate(async ({ path, encodedPayload, method, extraHeaders, file }) => {
       const payload: Schema.Json = JSON.parse(encodedPayload);
       const query = new URLSearchParams();
       const queryOnly = method === 'GET' || method === 'DELETE';
       if (queryOnly) for (const [key, value] of Object.entries(payload ?? {})) for (const item of Array.isArray(value) ? value : [value]) query.append(key, String(item));
       const options: RequestInit = { method, credentials: 'include', headers: extraHeaders, signal: AbortSignal.timeout(45000) };
       // The web clients send JSON content type even for bodyless POST/PUT/PATCH actions.
-      if (['POST', 'PUT', 'PATCH'].includes(method)) options.headers = { 'Content-Type': 'application/json', ...extraHeaders };
-      if (!queryOnly && payload !== null) options.body = JSON.stringify(payload);
+      if (!file && ['POST', 'PUT', 'PATCH'].includes(method)) options.headers = { 'Content-Type': 'application/json', ...extraHeaders };
+      if (file) {
+        const form = new FormData();
+        form.append(file.field, new Blob([file.contents], { type: 'text/plain' }), file.filename);
+        options.body = form;
+      } else if (!queryOnly && payload !== null) options.body = JSON.stringify(payload);
       const response = await fetch(queryOnly && query.size > 0 ? path + (path.includes('?') ? '&' : '?') + query : path, options);
       return { status: response.status, text: await response.text() };
-    }, { path, encodedPayload: JSON.stringify(payload), method, extraHeaders }));
+    }, { path, encodedPayload: JSON.stringify(payload), method, extraHeaders, file }));
     if (wire.status < 200 || wire.status >= 300) {
       const detail = yield* Effect.try({ try: () => JSON.stringify(redact(parseWire(wire.text), secrets)).slice(0, 500), catch: safeBrowserError }).pipe(Effect.option);
       return yield* Effect.fail(new ReportError({ message: `Semrush request returned HTTP ${wire.status}.${Option.isSome(detail) ? ' ' + detail.value : ' Check your session and account permissions.'}` }));
@@ -91,6 +95,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       return null;
     }
     const body = yield* Effect.try({ try: () => parseWire(wire.text), catch: () => new ReportError({ message: 'Semrush returned a page or challenge instead of JSON. Sign in again or retry later.' }) });
+    if (file && (!objectValue(body) || !objectValue(body.status) || body.status.code !== 0)) return yield* Effect.fail(new ReportError({ message: `Semrush rejected the crawl URL upload: ${JSON.stringify(redact(body, secrets)).slice(0, 500)}` }));
     if (path === '/tracking/alerts/' && objectValue(body) && body.error_code !== 0) return yield* Effect.fail(new ReportError({ message: `Semrush tracking alert request failed: ${JSON.stringify(redact(body.error_message ?? body, [auth.apiKey])).slice(0, 500)}` }));
     if (objectValue(body) && ('error' in body || (!path.startsWith('/siteaudit/') && 'status' in body && !(body.status === null || body.status === 'SUCCESS' || body.status === 'success' || body.status === 'ok')))) return yield* Effect.fail(new ReportError({ message: `Semrush report failed: ${JSON.stringify(redact(body.error ?? body.error_message ?? body.status ?? null, secrets)).slice(0, 500)}` }));
     return body;
@@ -118,7 +123,9 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     if (name === 'audit_configure') {
       const current = yield* request(`/siteaudit/api/campaigns/${query.campaign_id}/info?key=${encodeURIComponent(auth.apiKey)}`, {}, 'GET');
       if (objectValue(current) && Predicate.isString(current.projectDomain) && current.projectDomain !== query.domain) return yield* Effect.fail(new ReportError({ message: 'The audit domain must match the SEO project website. Inspect audit-info for projectDomain before configuring it.' }));
-      if (objectValue(current) && (Boolean(current.authEnabled) || Boolean(current.webBotAuthEnabled) || (objectValue(current.gaSettings) && Object.keys(current.gaSettings).length > 0))) return yield* Effect.fail(new ReportError({ message: 'This audit uses protected-site authentication or Google Analytics. Edit its settings in the Semrush web UI to preserve those connections.' }));
+      if (objectValue(current) && (Boolean(current.webBotAuthEnabled) || (objectValue(current.gaSettings) && Object.keys(current.gaSettings).length > 0))) return yield* Effect.fail(new ReportError({ message: 'This audit uses Web Bot Auth or Google Analytics. Edit its settings in the Semrush web UI to preserve those connections.' }));
+      if (objectValue(current) && current.authEnabled && query.auth_enabled === undefined) return yield* Effect.fail(new ReportError({ message: 'This audit uses protected-site authentication. Set --auth-enabled true to keep it, or false to explicitly disable it.' }));
+      if (objectValue(current) && !current.authEnabled && query.auth_enabled === true && !query.auth_password) return yield* Effect.fail(new ReportError({ message: 'Enabling HTTP authentication requires both auth_username and auth_password. Supply the password through --auth-password-file.' }));
     }
   });
   const downloadExport = Effect.fn('Semrush.downloadExport')(function* (request: ReturnType<typeof webRequest>, format: Schema.Json | undefined) {
@@ -318,7 +325,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
         return { authenticated: true as const, report: name, data: null, artifact };
       }
       const responseType = 'response_type' in definition && definition.response_type === 'empty' ? 'empty' : 'json';
-      reportData = yield* request(prepared.path, prepared.body, prepared.method, prepared.headers, responseType);
+      reportData = yield* request(prepared.path, prepared.body, prepared.method, prepared.headers, responseType, prepared.file);
     } else if (['keyword', 'domain', 'direct', 'magic', 'kwm', 'ksb'].includes(family)) {
       reportData = yield* rpc(definition.method, params, family, definition.web_report);
       if ('response_type' in definition && ['download_url', 'export_id'].includes(definition.response_type)) {
@@ -361,7 +368,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     }
     if (Predicate.isNumber(query.limit) && Array.isArray(reportData)) reportData = reportData.slice(0, query.limit);
     yield* captureCookies(context, sessions.capture, browserOrigin);
-    return { authenticated: true as const, report: name, data: redact(reportData ?? null, [auth.apiKey, spectrumToken, spectrumToken.replace(/^Bearer /, ''), requestSecret]) };
+    return { authenticated: true as const, report: name, data: redact(reportData ?? null, [auth.apiKey, spectrumToken, spectrumToken.replace(/^Bearer /, ''), requestSecret, Predicate.isString(query.auth_password) ? query.auth_password : '']) };
   });
   return Semrush.of({ account: { email: email ?? null }, report: request => semaphore.withPermits(1)(report(request)) });
 }));

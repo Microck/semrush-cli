@@ -1,9 +1,37 @@
 # Verification
 
-Version 0.14.0 verification: 2026-10-16. Its source suite passed 148 tests
-locally, including real Chromium, Galleton and stateful HTTP fixtures. Live responses and credentials remain
-outside the repository. Evidence below distinguishes local fixtures, native CI
-and real account execution.
+Version 0.15.0 source verification: 2026-10-16. The source suite passed 157
+tests locally, including real Chromium, Galleton and stateful HTTP fixtures.
+Live responses and credentials remain outside the repository. Evidence below
+distinguishes local fixtures, native CI and real account execution.
+
+## Version 0.15.0 protected audits and URL lists
+
+The current Site Audit wizard and a native UI upload established the multipart
+`file-urls` contract. CLI/MCP uploading returned a successful native status and
+a positive URL count. The wizard's enum confirms 0 website, 1 robots.txt
+sitemap, 2 custom sitemap URL and 3 uploaded list. Its file component updates
+only campaign-bound list metadata; the returned filename is not a sitemap URL.
+
+HTTP Basic credential creation and replacement passed native settings reads.
+An edit with omitted credentials retained authentication. A crawl capped at ten
+pages finished at six and returned HTTP 200 for the protected HTML page in the
+uploaded list. Earlier two- and five-page caps reached their limits during
+root/robots/llms discovery checks and did not verify that page. Authentication
+explicitly disabled passed a readback. All owned verification projects were
+deleted and their project and audit IDs checked absent afterward.
+
+The provider ignores a separate audit name, so the commands no longer accept
+it. Project naming remains `project-update`. Protected audit edits require an
+explicit authentication choice. Google Analytics and Web Bot Auth settings
+still require the web UI and cannot be overwritten by these commands.
+
+The suite checks secret files, stdin, interruption, native multipart bodies,
+HTTP-200 business failures and secret redaction. Three independent
+simplification reviewers found no worthwhile changes. This source evidence
+does not yet establish a published 0.15.0 artifact. A repeat full run during
+host swap exhaustion timed out in browser tests. Its timeouts remain unchanged;
+the final release must pass CI. The concurrent local docs build was stopped.
 
 ## Version 0.14.1 account diagnostics verification
 

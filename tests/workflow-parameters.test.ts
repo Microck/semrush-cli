@@ -2,7 +2,7 @@ import { Effect } from 'effect';
 import { expect, test } from 'vitest';
 import { parseReport } from '../src/validation.js';
 import type { Query } from '../src/report-parameters.js';
-import { webRequest } from '../src/report-parameters.js';
+import { webRequest, previewMutation } from '../src/report-parameters.js';
 
 // Request contracts from the current Site Audit components and Position Tracking wizard.
 // See docs/contract.md; the live probe uses the same bounded public-domain fixture.
@@ -10,6 +10,26 @@ const preview = async (name: string, input: Query) => {
   const parsed = await Effect.runPromise(parseReport(name, input));
   return webRequest(parsed.definition, parsed.query);
 };
+
+test('protected audit credentials match the native settings payload and disappear from previews', async () => {
+  const input = { campaign_id: 123, domain: 'example.com', page_limit: 1, auth_enabled: true, auth_username: 'private-user', auth_password: ' private-password ', dry_run: true };
+  const parsed = await Effect.runPromise(parseReport('audit_create', input));
+  expect(webRequest(parsed.definition, parsed.query).body).toMatchObject({ authEnabled: true, authUsername: 'private-user', authPassword: ' private-password ' });
+  expect(previewMutation(parsed.name, parsed.definition, parsed.query)?.request.body).toMatchObject({ authPassword: '[redacted]' });
+  const base = { campaign_id: 123, domain: 'example.com', page_limit: 1, dry_run: true };
+  const invalidInputs: Query[] = [{ auth_enabled: true }, { auth_enabled: true, auth_username: 'user' }, { auth_enabled: false, auth_username: 'user', auth_password: 'password' }, { auth_username: 'user', auth_password: 'password' }];
+  for (const invalid of invalidInputs) await expect(preview('audit_create', { ...base, ...invalid })).rejects.toThrow();
+  expect((await preview('audit_configure', { ...base, auth_enabled: true })).body).toMatchObject({ authEnabled: true, authUsername: '', authPassword: '' });
+});
+
+test('crawl URL uploads use the native multipart file field without configuring or starting an audit', async () => {
+  const request = await preview('audit_urls_upload', { campaign_id: 123, contents: '/one\nhttps://example.com/two\n', dry_run: true });
+  expect(request).toEqual({ method: 'POST', path: '/siteaudit/api/campaigns/123/settings/urls/upload', body: null, encoding: 'multipart', file: { field: 'file-urls', filename: 'semrush-crawl-urls.txt', contents: '/one\nhttps://example.com/two\n' } });
+  await expect(preview('audit_urls_upload', { campaign_id: 123, contents: '/one' })).rejects.toThrow('--confirm');
+  await expect(preview('audit_urls_upload', { campaign_id: 123, contents: '/one', filename: '../one.txt', dry_run: true })).rejects.toThrow('pattern');
+  expect((await preview('audit_create', { campaign_id: 123, domain: 'example.com', page_limit: 1, crawl_source_type: 3, dry_run: true })).body).toMatchObject({ crawlSourceType: 3, crawlSourceUrl: '' });
+  await expect(preview('audit_create', { campaign_id: 123, domain: 'example.com', page_limit: 1, crawl_source_type: 3, crawl_source_url: 'semrush-crawl-urls.txt', dry_run: true })).rejects.toThrow('constant');
+});
 
 test('Position Tracking creation matches the web wizard without billing or emails', async () => {
   expect(await preview('position_create', { project_id: 123, domain: 'example.com', keywords: ['example domain'], location_id: 2840, dry_run: true })).toEqual({

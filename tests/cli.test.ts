@@ -1,11 +1,59 @@
-import { execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
 import packageInfo from '../package.json' with { type: 'json' };
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { expect, test } from 'vitest';
+import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { once } from 'node:events';
+import { text as readText } from 'node:stream/consumers';
 const exec = promisify(execFile);
 const cli = (args: string[]) => exec(process.execPath, ['dist/cli.js', ...args], { env: { ...process.env, SEMRUSH_GALLETON_TOKEN_FILE: '/nonexistent-semrushtest-token' } });
+
+test('file inputs preserve crawl text and keep passwords out of public dry runs', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'semrush-file-inputs-'));
+  try {
+    const urls = join(directory, 'urls.txt'); const password = join(directory, 'password.txt');
+    await writeFile(urls, '/café\n/second\n'); await writeFile(password, 'private-password\r\n');
+    const upload = JSON.parse((await cli(['audit-urls-upload', '--campaign-id', '123', '--contents-file', urls, '--dry-run', '--json'])).stdout);
+    expect(upload.request.file).toEqual({ field: 'file-urls', filename: 'semrush-crawl-urls.txt', contents: '/café\n/second\n' });
+    const result = await cli(['audit-create', '--campaign-id', '123', '--domain', 'example.com', '--page-limit', '1', '--auth-enabled', '--auth-username', 'user', '--auth-password-file', password, '--dry-run', '--json']);
+    expect(JSON.parse(result.stdout).request.body.authPassword).toBe('[redacted]');
+    expect(result.stdout + result.stderr).not.toContain('private-password');
+    await expect(cli(['audit-urls-upload', '--campaign-id', '123', '--contents-file', join(directory, 'missing'), '--dry-run'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('could not be read') });
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test('password input supports stdin and rejects an empty value before authentication', async () => {
+  const args = ['dist/cli.js', 'audit-create', '--campaign-id', '123', '--domain', 'example.com', '--page-limit', '1', '--auth-enabled', '--auth-username', 'user', '--auth-password-file', '-', '--dry-run', '--json'];
+  const result = await new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
+    const child = execFile(process.execPath, args, { env: { ...process.env, SEMRUSH_GALLETON_TOKEN_FILE: '/nonexistent-semrushtest-token' } }, (error, stdout, stderr) => error ? reject(error) : resolve({ stdout, stderr }));
+    child.stdin?.end('private-stdin-password\r\n');
+  });
+  expect(JSON.parse(result.stdout).request.body.authPassword).toBe('[redacted]');
+  expect(result.stdout + result.stderr).not.toContain('private-stdin-password');
+  const empty = await new Promise<{ code: number | string; stdout: string; stderr: string }>((resolve, reject) => {
+    const child = execFile(process.execPath, args, { env: { ...process.env, SEMRUSH_GALLETON_TOKEN_FILE: '/nonexistent-semrushtest-token' } }, (error, stdout, stderr) => error?.code ? resolve({ code: error.code, stdout, stderr }) : reject(new Error('Empty password unexpectedly succeeded')));
+    child.stdin?.end('\n');
+  });
+  expect(empty).toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('must NOT have fewer') });
+});
+
+test('interrupting an active stdin read exits without exposing the partial password', async () => {
+  const child = spawn(process.execPath, ['dist/cli.js', 'audit-create', '--campaign-id', '123', '--domain', 'example.com', '--page-limit', '1', '--auth-enabled', '--auth-username', 'user', '--auth-password-file', '-', '--dry-run'], { stdio: 'pipe' });
+  const exited = once(child, 'exit');
+  const stdout = readText(child.stdout); const stderr = readText(child.stderr);
+  try {
+    // Pipe backpressure clears only once the CLI starts consuming stdin.
+    expect(child.stdin.write('partial-password'.repeat(100000))).toBe(false);
+    await once(child.stdin, 'drain');
+    child.kill('SIGINT');
+    expect(await exited).toEqual([130, null]);
+    expect(await stdout).toBe(''); expect(await stderr).toBe('');
+  } finally { child.stdin.destroy(); if (child.exitCode === null && child.signalCode === null) child.kill(); }
+});
 
 test('built CLI runs help and version without credentials', async () => {
   expect((await cli(['--version'])).stdout.trim()).toBe(packageInfo.version);
@@ -16,8 +64,8 @@ test('built CLI runs help and version without credentials', async () => {
 test('built catalog distinguishes read reports and project writes', async () => {
   const { stdout, stderr } = await cli(['reports', '--json']);
   const listed = JSON.parse(stdout);
-  expect(listed).toHaveLength(209);
-  expect(listed.filter((entry: { read_only: boolean }) => !entry.read_only)).toHaveLength(67);
+  expect(listed).toHaveLength(210);
+  expect(listed.filter((entry: { read_only: boolean }) => !entry.read_only)).toHaveLength(68);
   expect(stderr).toBe('');
 });
 test('invalid usage fails before attempting authentication', async () => {
@@ -44,7 +92,7 @@ test('MCP advertises write safety and previews without an authenticated runtime'
     expect((await client.listResourceTemplates()).resourceTemplates[0]?.uriTemplate).toBe('semrush-export://{export_id}{?offset,limit}');
     await expect(client.readResource({ uri: 'semrush-export://unknown' })).rejects.toThrow('Download an export first');
     const listed = await client.listTools();
-    expect(listed.tools).toHaveLength(209);
+    expect(listed.tools).toHaveLength(210);
     expect(listed.tools.find(tool => tool.name === 'project_delete')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
     expect(listed.tools.find(tool => tool.name === 'project_create')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false });
     const preview = await client.callTool({ name: 'project_create', arguments: { name: 'example', dry_run: true } });
