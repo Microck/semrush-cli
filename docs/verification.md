@@ -1,11 +1,11 @@
 # Verification
 
-Version 0.16.0 source verification: 2026-10-16. The source suite passed 166
+Version 0.17.0 source verification: 2026-10-16. The source suite passed 175
 tests in CI, including real Chromium, Galleton and stateful HTTP fixtures.
 Live responses and credentials remain outside the repository. Evidence below
 distinguishes local fixtures, native CI and real account execution.
 
-## Unreleased Guru Backlink Audit extensions
+## Version 0.17.0 Guru Backlink Audit extensions
 
 The source catalog contains 261 operations, 177 reads and 84 confirmed writes.
 This batch adds six reads and six writes: target-page tables/counts, labels and
@@ -37,7 +37,8 @@ scheduling and disabled notifications. A following source MCP call encountered
 `isLocked:true` while status remained 1 and settings were unlocked; Semrush
 rejected the write with HTTP 409. The rerun preflight now checks the separate
 audit lock, and its fixture verifies refusal without sending the write.
-Release checks are pending.
+The updated source MCP server then refused the separate audit lock before
+sending another write.
 
 TypeScript, Oxlint, generated-reference checks and all 29 workflow-parameter
 tests passed locally. A broader local integration run passed 57 of 59 tests;
@@ -52,6 +53,34 @@ field, which was removed, and no reuse issues. The efficiency reviewer noted
 that the shared export pipeline buffers GET responses as browser Blobs. A native
 download alternative was not applied because preserving response validation,
 header authentication and job polling requires a separately verified redesign.
+
+[CI run 38888496388](https://github.com/Microck/semrush-cli/actions/runs/38888496388)
+passed all 175 tests, TypeScript, lint, generated reference, Fumadocs and
+package setup on Linux, macOS and Windows. The tested archive is 14,466,572
+bytes with SHA-256
+`5c102a7bac0a0b00677ea175882bdcf67ad1bcb2d98f82b2b9d9ce2d4abf8819`.
+The visible [GitHub release](https://github.com/Microck/semrush-cli/releases/tag/v0.17.0)
+has a matching archive digest. The public npm archive matches the tested CI
+archive byte-for-byte. Publication initially entered asynchronous processing;
+a cached tarball 404 expired after its advertised 300-second lifetime.
+
+Installing the tested CI archive returned version 0.17.0 and passed live
+`doctor`. Its MCP server advertised 261 tools, 177 reads and 84 writes.
+Authenticated account, limits, campaign, keyword, target-page, label, comment
+and CSV calls passed. Installed CLI saving and MCP reconstruction produced
+identical 677-byte CSVs for the same selected backlink; saving to an existing
+destination failed and left its bytes unchanged. An initial verification probe
+sent an empty comment-ID selection, which the public schema correctly refused;
+the corrected probe used a previously deleted owned comment ID. A fresh public
+registry installation returned 0.17.0 and passed authenticated `doctor`.
+
+The production guide and coverage page passed real Chromium at 390px with
+HTTP 200, no page errors and no horizontal overflow. Existing font, purple
+theme, supplied logo and README GIFs were preserved. The owned extended test
+project was deleted; folder HTTP 404 and Backlink Audit discovery confirmed
+absence. No existing account resource was changed, outreach sent or connection
+added. A separate bounded native Backlink Analytics CSV request returned HTTP
+403 with the Guru session, so its coverage remains distinct from Audit CSV.
 
 ## Version 0.16.0 Backlink Audit
 

@@ -16,7 +16,7 @@ parity. The table distinguishes implemented workflows from remaining gaps.
 | Historical and mobile research | Database and snapshot selection, subject to account access | UI comparisons not represented by available report filters |
 | Paid research | Paid keyword and competitor overview samples | Full advertising research workflows |
 | Keyword Gap | Paginated results, overlap and opportunity totals for 2-5 domains; save selected phrases through list import | UI visualization |
-| Backlink Analytics | Links, domains, anchors, pages, outbound links, history, country/category and authority metrics | UI exports not yet verified with Guru |
+| Backlink Analytics | Links, domains, anchors, pages, outbound links, history, country/category and authority metrics | Native CSV export returned HTTP 403 with the Guru session |
 | Backlink Audit | Scope discovery, campaign creation, partial settings, overview/history/distributions, filtered tables and counts, domain/link/network list moves, disavow list management, explicit source clearing, native TXT import/export, native filtered CSV, target-page tables, comments, labels and rerun control | Scope replacement, PDF reports, backlink imports and connected services |
 | Backlink Gap | Paginated prospects, filters, sorting and profile comparisons | Link Building outreach |
 | AI visibility | Domain visibility, mentions, countries, citation sources and account access | Prompt tracking and full AI Toolkit configuration |
@@ -101,8 +101,8 @@ exports remain unsupported. The native crawl-scheduling form requires SEO Tier
 The Backlink Analytics export menu displays "Export is limited" and offers
 "Upgrade to Guru" for this session. Its native client also checks trial status.
 [Semrush documents CSV and Excel exports](https://www.semrush.com/kb/501-backlinks-report-manual),
-but no Backlink Analytics export was executed with this account. These exports
-remain unsupported.
+and a bounded native CSV request returned HTTP 403 with the same Guru session.
+These exports remain unsupported.
 
 The Backlink Audit CSV button opens a trial-related subscription dialog, but
 its native job API and download endpoint both accepted this Guru session. The
