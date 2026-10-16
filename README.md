@@ -444,7 +444,7 @@ use `BasketID` and `Owner.ID` from `keyword-lists`. jpg is the default and has a
 
 this command downloads the image from semrush's web renderer without changing its bytes. it does not start clustering or strategy generation. `--output` is required and refuses an existing file. mcp exposes `keyword_list_export_mindmap` and returns an artifact resource with `data: null`.
 
-live source cli and mcp checks on raft matched native jpg and png bytes exactly, including image dimensions, file sizes and mcp resource reads. the authenticated connection check passed too.
+live checks on raft verified both the source and a fresh npm install of v0.25.0. cli and mcp downloads matched native jpg and png bytes exactly, including image dimensions, file sizes and resource reads. the authenticated connection check passed too.
 
 ### domain strategies
 

@@ -16,8 +16,21 @@ CLI and MCP downloads matched those files byte for byte: JPG 145,656 bytes,
 PNG 326,796 bytes, both 4336 x 2228. JPG has a white background; PNG preserves
 transparency. MCP filename, MIME, size and chunked resource reads passed. The
 CLI default JPG and saved-file receipts passed. Authenticated doctor passed.
-The strategy remains temporarily available for fresh public-package verification;
-existing user projects and lists were untouched. No articles or SEO briefs were generated.
+A fresh public npm installation matched the exact CI and GitHub release archive.
+Its CLI and MCP repeated both native-image comparisons and authenticated doctor
+successfully. The owned strategy was deleted; its detail read failed and it no
+longer appeared in the list. The original selected project folder remained
+available. The remote session was forgotten, its vault removed and the runner's
+short-lived ContentShake token deleted.
+
+Separate content-workflow inspection opened the native Article and SEO brief
+sidebars without submitting generation. Article submission explicitly offers a
+7-day Content Toolkit trial at $60/month, so it was not submitted. Opening that
+sidebar itself created an empty workspace linked to the selected project.
+Creation timestamps identified it as this probe's resource. It was deleted;
+workspace listing and by-folder HTTP 404 confirmed removal. The existing
+project folder was not deleted. SEO brief generation and export remain
+unverified. No trial was activated and no articles or SEO briefs were generated.
 
 ## Version 0.24.0 alert event commands
 
