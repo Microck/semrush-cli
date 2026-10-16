@@ -1,9 +1,36 @@
 # Verification
 
-Version 0.17.0 source verification: 2026-10-16. The source suite passed 175
-tests in CI, including real Chromium, Galleton and stateful HTTP fixtures.
+Version 0.18.0 source verification: 2026-10-16. The source suite passed 178
+tests in a private ARM64 Raft runner, including real Chromium, Galleton and
+stateful HTTP fixtures. Release CI and public package verification are pending.
 Live responses and credentials remain outside the repository. Evidence below
 distinguishes local fixtures, native CI and real account execution.
+
+## Version 0.18.0 backlink CSV import
+
+The source catalog contains 262 operations, 177 reads and 85 confirmed writes.
+`backlink-audit-import` stages the supplied CSV unchanged, validates its native
+file descriptor and commits only a positive source-URL count. It requires a
+ready, unlocked audit, confirmation and the campaign-specific upload endpoint.
+Staging and finish calls are never retried.
+
+Native staging accepted a one-column CSV containing one quoted source page URL.
+The upload's success flag was `error:false`; successful native responses used
+both `code:0` and `code:200`. A native Audit CSV export instead staged zero URLs
+and was not committed. `backlinks.FinishUpload` returned `true`, followed by
+`statusId:1` with `isLocked:true`. The temporary audit subsequently unlocked.
+
+The actual source MCP operation passed in Raft with the same Guru session,
+returned one staged URL and `result:true`, and preserved manual recurring
+settings. The real CLI read the CSV through `--contents-file`, committed one URL
+and retained `recrawl:"never"`. File-input preview and an authenticated remote
+doctor also passed. Only the authorized Semrush session was transferred to the
+private runner for those checks; its copy is removed after verification.
+Fixture coverage checks exact BOM/CRLF bytes, endpoint query preservation,
+write ordering, one commit, lock refusal, foreign-endpoint refusal, zero URLs
+and malformed staging. Project-wide TypeScript, Oxlint, generated-reference
+checks, all five bundled daemon builds and all 178 tests passed remotely after
+matching the native response contract.
 
 ## Version 0.17.0 Guru Backlink Audit extensions
 

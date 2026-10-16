@@ -14593,5 +14593,58 @@
       ]
     },
     "response_type": "download_job"
+  },
+  "backlink_audit_import": {
+    "method": "/backlink_audit/files/backlinks/upload/{audit_id}",
+    "description": "Import a CSV of source URLs and start native backlink crawling. Requires a ready, unlocked audit; an import cannot be stopped after commit.",
+    "transport": "bla_file",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "request_encoding": "multipart",
+    "file_field": "backlinks",
+    "response_type": "json",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "contents": {
+          "type": "string",
+          "minLength": 1,
+          "contentMediaType": "text/csv",
+          "description": "Native CSV containing source URLs in its first column. Sent unchanged; files with no importable URLs are refused before commit."
+        },
+        "filename": {
+          "type": "string",
+          "default": "semrush-backlinks.csv",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[^/\\\\\\r\\n\\u0000]+\\.csv$",
+          "description": "CSV upload filename ending in .csv."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        },
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        }
+      },
+      "required": [
+        "audit_id",
+        "contents"
+      ]
+    }
   }
 }

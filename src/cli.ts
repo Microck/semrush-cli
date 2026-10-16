@@ -2,7 +2,7 @@
 import { Command, Option as CliOption, InvalidArgumentError, CommanderError } from 'commander';
 import { Effect } from 'effect';
 import type { Scope } from 'effect';
-import { reports, version, previewMutation, type Query } from './report-parameters.js';
+import { reportResponseType, reports, version, previewMutation, type Query } from './report-parameters.js';
 import { Sessions } from './session-service.js';
 import { sessionsLive } from './session-layer.js';
 import { initializeDaemon, startDaemon, stopDaemon, installBrowser } from './daemon.js';
@@ -67,7 +67,7 @@ async function parseCliInput(properties: Record<string, Property>, options: Reco
 
 for (const [name, definition] of Object.entries(reports)) {
   const report = cli.command(name.replaceAll('_', '-')).description(definition.description);
-  if ('response_type' in definition && ['download', 'download_url', 'export_id', 'download_job'].includes(definition.response_type)) report.requiredOption('--output <path>', 'Save the export file; refuses an existing destination');
+  if (['download', 'download_url', 'export_id', 'download_job'].includes(reportResponseType(definition) ?? '')) report.requiredOption('--output <path>', 'Save the export file; refuses an existing destination');
   const schema: { properties: Record<string, Property>; required?: string[] } = definition.schema;
   for (const [key, property] of Object.entries(schema.properties)) {
     const flag = key.replaceAll('_', '-');

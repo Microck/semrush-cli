@@ -79,7 +79,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 
 ## command surface
 
-261 operations, available as cli commands and mcp tools. 177 reads and 84 writes that need explicit confirmation.
+262 operations, available as cli commands and mcp tools. 177 reads and 85 writes that need explicit confirmation.
 
 | command | what it does |
 | --- | --- |
@@ -98,6 +98,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 | `backlink-audit-target-tag-add`, `backlink-audit-target-tag-remove`, `backlink-audit-tag-delete` | label a target page, remove one association or delete a label |
 | `backlink-audit-comments`, `backlink-audit-comment-save`, `backlink-audit-comment-delete` | read, write or delete referring-domain comments |
 | `backlink-audit-export` | download filtered audit rows as native csv |
+| `backlink-audit-import` | import source page urls from csv and start analysis |
 | `backlink-audit-move-domains`, `backlink-audit-move-links`, `backlink-audit-move-networks` | move selections between review, whitelist, remove and disavow lists |
 | `backlink-audit-disavow`, `backlink-audit-disavow-count`, `backlink-audit-disavow-counters` | inspect disavow entries and workflow totals |
 | `backlink-audit-disavow-import`, `backlink-audit-disavow-export` | import or export native disavow txt files |
@@ -216,6 +217,16 @@ semrush backlink-audit-configure --audit-id 789 --brands '["Example"]' --confirm
 ```
 
 settings updates change only supplied fields. omitted settings and integrations remain intact. tables group by referring domain by default; use `--by-domain false` for individual links.
+
+import backlinks from a one-column csv with source page urls in the first column:
+
+```bash
+semrush backlink-audit-import --audit-id 789 --contents-file backlinks.csv --dry-run
+semrush backlink-audit-import --audit-id 789 --contents-file backlinks.csv --confirm
+semrush backlink-audit-status --audit-id 789
+```
+
+use the pages that contain the backlinks, not their destination urls. do not use a native audit export as the import template. the audit must be ready with `statusId: 1`, `isLocked: false` and `isLockedSettings: false`. import checks that semrush staged at least one url before starting analysis. a successful response acknowledges the asynchronous crawl; check status again for completion. recurring analysis stays unchanged, including `never` for manual runs.
 
 move selected rows with `backlink-audit-move-domains` or `backlink-audit-move-links`, using their native `id` values in `--ids`, not `urlHash`. `backlink-audit-move-networks` takes numeric `linkNetworkId` values. choose `--list for-review`, `whitelist`, `to-remove` or `disavow`, then add `--confirm`. move back to the original list to reverse a move.
 

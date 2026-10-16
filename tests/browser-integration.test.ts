@@ -1045,3 +1045,42 @@ test('Backlink Audit CSV jobs use header auth, poll pending files and preserve n
     expect(backlinkAuditFixture.state.csvJobs).toBe(2); expect(backlinkAuditFixture.state.csvPolls).toBe(3);
   }).pipe(Effect.provide(fixtureLayer()))));
 }, 30000);
+
+
+test('Backlink Audit CSV import stages native bytes before committing one bounded file', async () => {
+  backlinkAuditFixture.reset();
+  const contents = '\ufeff"https://example.net/link"\r\n';
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const semrush = yield* Semrush;
+    const run = (name: string, query: Query) => parseReport(name, query).pipe(Effect.flatMap(request => semrush.report(request)));
+    yield* run('backlink_audit_create', { project_id: 789, confirm: true });
+    const imported = yield* run('backlink_audit_import', { audit_id: 456, contents, confirm: true });
+    expect(imported.data).toMatchObject({ file: { name: 'semrush-backlinks.csv', urls: 1 }, result: true });
+    expect(backlinkAuditFixture.state.csvImportedContents).toBe(contents);
+    expect(backlinkAuditFixture.state.csvImportStarts).toBe(1);
+    expect(backlinkAuditFixture.state.csvImportFinishes).toBe(1);
+    expect(backlinkAuditFixture.calls.filter(call => call.method.startsWith('backlinks.') && call.method.endsWith('Upload')).map(call => call.method)).toEqual(['backlinks.StartUpload', 'backlinks.FinishUpload']);
+    expect((yield* run('backlink_audit_status', { audit_id: 456 })).data).toMatchObject({ domain: { statusId: 2, params: { recrawl: 'never' } } });
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+test('Backlink Audit CSV import refuses locked audits, foreign endpoints and invalid or empty staging before commit', async () => {
+  backlinkAuditFixture.reset();
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const semrush = yield* Semrush;
+    const run = (name: string, query: Query) => parseReport(name, query).pipe(Effect.flatMap(request => semrush.report(request)));
+    const upload = () => run('backlink_audit_import', { audit_id: 456, contents: 'https://example.net/link\n', confirm: true });
+    yield* run('backlink_audit_create', { project_id: 789, confirm: true });
+    backlinkAuditFixture.state.lockedAudit = true;
+    expect((yield* upload().pipe(Effect.flip)).message).toContain('isLocked:false');
+    backlinkAuditFixture.state.lockedAudit = false; backlinkAuditFixture.state.foreignEndpoint = true;
+    expect((yield* upload().pipe(Effect.flip)).message).toContain('unexpected CSV upload endpoint');
+    expect(backlinkAuditFixture.state.csvImportStarts).toBe(0);
+    backlinkAuditFixture.state.foreignEndpoint = false; backlinkAuditFixture.state.csvImportURLs = 0;
+    expect((yield* upload().pipe(Effect.flip)).message).toContain('no importable source URLs');
+    backlinkAuditFixture.state.csvImportURLs = 1; backlinkAuditFixture.state.invalidImportResponse = true;
+    expect((yield* upload().pipe(Effect.flip)).message).toContain('invalid CSV staging response');
+    expect(backlinkAuditFixture.state.csvImportStarts).toBe(2);
+    expect(backlinkAuditFixture.state.csvImportFinishes).toBe(0);
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);

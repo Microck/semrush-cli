@@ -6,7 +6,7 @@ import { Semrush } from './browser-service.js';
 import { Sessions } from './session-service.js';
 import { origin } from './session-layer.js';
 import { ReportError, SessionError } from './errors.js';
-import { reportParameters, webRequest, rpcBody, type Query, type WebRequest } from './report-parameters.js';
+import { reportResponseType, reportParameters, webRequest, rpcBody, type Query, type WebRequest } from './report-parameters.js';
 import type { ReportRequest } from './validation.js';
 import { Exports } from './exports.js';
 
@@ -100,9 +100,9 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       return null;
     }
     const body = yield* Effect.try({ try: () => parseWire(wire.text), catch: () => new ReportError({ message: 'Semrush returned a page or challenge instead of JSON. Sign in again or retry later.' }) });
-    if (file && (!objectValue(body) || !objectValue(body.status) || body.status.code !== 0)) return yield* Effect.fail(new ReportError({ message: `Semrush rejected the crawl URL upload: ${JSON.stringify(redact(body, secrets)).slice(0, 500)}` }));
+    if (file && path.startsWith('/siteaudit/') && (!objectValue(body) || !objectValue(body.status) || body.status.code !== 0)) return yield* Effect.fail(new ReportError({ message: `Semrush rejected the crawl URL upload: ${JSON.stringify(redact(body, secrets)).slice(0, 500)}` }));
     if (path === '/tracking/alerts/' && objectValue(body) && body.error_code !== 0) return yield* Effect.fail(new ReportError({ message: `Semrush tracking alert request failed: ${JSON.stringify(redact(body.error_message ?? body, [auth.apiKey])).slice(0, 500)}` }));
-    if (objectValue(body) && ('error' in body || (!path.startsWith('/siteaudit/') && 'status' in body && !(body.status === null || body.status === 'SUCCESS' || body.status === 'success' || body.status === 'ok')))) return yield* Effect.fail(new ReportError({ message: `Semrush report failed: ${JSON.stringify(redact(body.error ?? body.error_message ?? body.status ?? null, secrets)).slice(0, 500)}` }));
+    if (objectValue(body) && ('error' in body && body.error !== false || (!path.startsWith('/siteaudit/') && 'status' in body && !(body.status === null || body.status === 'SUCCESS' || body.status === 'success' || body.status === 'ok')))) return yield* Effect.fail(new ReportError({ message: `Semrush report failed: ${JSON.stringify(redact(body.error ?? body.error_message ?? body.status ?? null, secrets)).slice(0, 500)}` }));
     return body;
   });
   const rpc = Effect.fn('Semrush.rpc')(function* (method: string, params: Query, transport = 'keyword', webReport = 'domain.overview') {
@@ -151,6 +151,35 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     if (address.origin !== browserOrigin || address.pathname !== planned.path) return yield* Effect.fail(new ReportError({ message: 'Backlink Audit returned an unexpected file endpoint.' }));
     const body: Query = { apiKey: auth.apiKey };
     return { ...planned, path: address.href, headers: {}, body };
+  });
+  /** The native importer stages one file before committing its source URLs to the audit. */
+  const importBacklinks = Effect.fn('Semrush.importBacklinks')(function* (query: Query, planned: WebRequest) {
+    const current = yield* Schema.decodeUnknownEffect(Schema.Struct({ domain: Schema.Struct({
+      statusId: Schema.Number, isLocked: Schema.Boolean, isLockedSettings: Schema.Boolean,
+    }) }))(yield* rpc('domains.GetStatus', { userDomainId: query.audit_id ?? null, background: false }, 'bla'))
+      .pipe(Effect.mapError(() => new ReportError({ message: 'Backlink Audit state is unavailable. No CSV import was started.' })));
+    if (current.domain.statusId !== 1 || current.domain.isLocked || current.domain.isLockedSettings) return yield* Effect.fail(new ReportError({ message: 'Backlink Audit is not ready for CSV import. Read backlink-audit-status; require statusId:1, isLocked:false and isLockedSettings:false.' }));
+    const endpoints = yield* Schema.decodeUnknownEffect(Schema.Struct({ backlinksUpload: Schema.String, backlinksUploadFormField: Schema.String }))(
+      yield* rpc('domains.GetEndpoints', { userDomainId: query.audit_id ?? null }, 'bla'),
+    ).pipe(Effect.mapError(() => new ReportError({ message: 'Backlink Audit upload metadata is unavailable. No CSV import was started.' })));
+    const file = planned.file;
+    if (!file || file.field !== endpoints.backlinksUploadFormField) return yield* Effect.fail(new ReportError({ message: 'Backlink Audit returned an unexpected CSV upload field. No import was started.' }));
+    const address = yield* Effect.try({ try: () => new URL('/backlink_audit' + endpoints.backlinksUpload, browserOrigin), catch: () => new ReportError({ message: 'Backlink Audit returned an invalid CSV upload endpoint.' }) });
+    if (address.origin !== browserOrigin || address.pathname !== planned.path) return yield* Effect.fail(new ReportError({ message: 'Backlink Audit returned an unexpected CSV upload endpoint. No import was started.' }));
+    const hash = yield* Schema.decodeUnknownEffect(Schema.String.check(Schema.isPattern(/^[a-zA-Z0-9_-]+$/)))(
+      yield* rpc('backlinks.StartUpload', {}, 'bla'),
+    ).pipe(Effect.mapError(() => new ReportError({ message: 'Backlink Audit did not return a valid CSV staging handle. No file was committed.' })));
+    address.pathname += '/' + encodeURIComponent(hash);
+    const uploaded = yield* Schema.decodeUnknownEffect(Schema.Struct({ error: Schema.Literal(false), file: Schema.Struct({
+      name: Schema.String, size: Schema.Int, id: Schema.String, urls: Schema.Int,
+    }) }))(yield* request(address.href, { apiKey: auth.apiKey }, 'POST', {}, 'json', file))
+      .pipe(Effect.mapError(() => new ReportError({ message: 'Backlink Audit returned an invalid CSV staging response. No file was committed.' })));
+    if (uploaded.file.urls < 1) return yield* Effect.fail(new ReportError({ message: 'Semrush found no importable source URLs in the CSV. Put source URLs in the first column. No file was committed.' }));
+    // Finish is a write, never retried. A following status read observes asynchronous crawling.
+    const result = yield* Schema.decodeUnknownEffect(Schema.Literal(true))(
+      yield* rpc('backlinks.FinishUpload', { userDomainId: query.audit_id ?? null, hash }, 'bla'),
+    ).pipe(Effect.mapError(() => new ReportError({ message: 'Backlink Audit did not acknowledge the CSV import. Read backlink-audit-status before retrying; the finish request was not retried.' })));
+    return { file: uploaded.file, result };
   });
   const checkAuditSettings = Effect.fn('Semrush.checkAuditSettings')(function* (name: string, query: Query) {
     if (name === 'audit_abort' || name === 'audit_finalize') {
@@ -349,6 +378,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     if (session.path === '/multilogin/') return yield* Effect.fail(new SessionError({ code: 'session_confirmation_required', message: 'Semrush requires session confirmation at /multilogin/. Open Semrush in your signed-in browser, resolve the prompt, then reimport that browser with semrush auth import --cdp-url <url>. No report was sent.' }));
     if (!session.ok || session.path !== '/home/') return yield* Effect.fail(new SessionError({ message: 'Semrush session expired. Run semrush auth login or import a signed-in browser.' }));
     const family = definition.transport;
+    const responseType = reportResponseType(definition);
     const planned = ['project_web', 'audit_web', 'tracking_web', 'saved_web', 'notes_web', 'bla_file'].includes(family) ? webRequest(definition, query) : undefined;
     const params = planned ? {} : reportParameters(definition, query);
     if (name === 'backlink_audit_export') {
@@ -359,21 +389,23 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     }
     let reportData: Schema.Json | undefined;
     let requestSecret = "";
-    if (planned) {
+    if (name === 'backlink_audit_import' && planned) {
+      reportData = yield* importBacklinks(query, planned);
+    } else if (planned) {
       const prepared = yield* prepareWebRequest({ name, definition, query }, planned);
       if (objectValue(prepared.body) && 'display_hash' in prepared.body && Predicate.isString(prepared.body.display_hash)) requestSecret = prepared.body.display_hash;
-      if ('response_type' in definition && definition.response_type === 'download') {
+      if (responseType === 'download') {
         const artifact = yield* Effect.scoped(downloadExport({ kind: 'file', request: prepared, headers: prepared.headers }, query.format));
         yield* captureCookies(context, sessions.capture, browserOrigin);
         return { authenticated: true as const, report: name, data: null, artifact };
       }
-      const responseType = 'response_type' in definition && definition.response_type === 'empty' ? 'empty' : 'json';
-      reportData = yield* request(prepared.path, prepared.body, prepared.method, prepared.headers, responseType, prepared.file);
+      const wireResponseType = responseType === 'empty' ? 'empty' : 'json';
+      reportData = yield* request(prepared.path, prepared.body, prepared.method, prepared.headers, wireResponseType, prepared.file);
     } else if (['keyword', 'domain', 'direct', 'magic', 'kwm', 'ksb', 'bla'].includes(family)) {
       if (name === 'backlink_audit_rerun') yield* checkBacklinkAuditControl(query);
       reportData = yield* rpc(definition.method, name === 'backlink_audit_create' ? yield* createBacklinkAudit(params) : params, family, definition.web_report);
-      if ('response_type' in definition && ['download_url', 'export_id'].includes(definition.response_type)) {
-        const href = yield* nativeExportURL(definition.response_type, reportData, browserOrigin, auth);
+      if (responseType === 'download_url' || responseType === 'export_id') {
+        const href = yield* nativeExportURL(responseType, reportData, browserOrigin, auth);
         const artifact = yield* Effect.scoped(downloadExport({ kind: 'file', request: { method: 'GET', path: href, body: {} }, headers: {} }, query.format));
         yield* captureCookies(context, sessions.capture, browserOrigin);
         return { authenticated: true as const, report: name, data: null, artifact };
@@ -396,7 +428,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       } else if (path.startsWith('/siteaudit/')) params.key = auth.apiKey;
       reportData = yield* request(path, params, ['post', 'gap', 'projects'].includes(family) ? 'POST' : 'GET', extra);
     }
-    if ('response_type' in definition && definition.response_type === 'boolean' && reportData !== true) return yield* Effect.fail(new ReportError({ message: 'Semrush did not apply the label change. Read labels and target pages before retrying.' }));
+    if (responseType === 'boolean' && reportData !== true) return yield* Effect.fail(new ReportError({ message: 'Semrush did not apply the label change. Read labels and target pages before retrying.' }));
     if (definition.total_method) {
       const totalParams = name === 'domain_position_changes' ? Object.fromEntries(Object.entries(params).filter(([key]) => key !== 'display')) : params;
       const total = yield* rpc(definition.total_method, totalParams, 'domain', definition.web_report);

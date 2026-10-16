@@ -15,6 +15,10 @@ export const version = packageInfo.version;
 export const reports = catalog;
 export type ReportName = keyof typeof reports;
 export type Report = (typeof reports)[ReportName];
+/** Optional response metadata is shared by the CLI, MCP annotations and adapter. */
+export function reportResponseType(definition: Report): string | undefined {
+  return 'response_type' in definition ? definition.response_type : undefined;
+}
 /** Validated catalog queries and fixed JSON request payloads; optional keys are omitted on wire. */
 export interface Query { [key: string]: Schema.Json; }
 

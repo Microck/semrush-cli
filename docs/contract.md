@@ -616,3 +616,44 @@ left one. Deleting the label removed it. All three writes returned boolean true.
 CSV job generation is read-only with respect to campaign settings, but a tool
 call creates a new job. MCP therefore advertises this export as non-idempotent.
 Only pending downloads repeat automatically; job creation does not.
+
+### Backlink CSV import
+
+`backlink-audit-import` accepts a CSV file through `--contents-file` and requires
+confirmation. MCP accepts the same bytes in `contents`. The audit must be ready
+and unlocked before the importer creates a staging handle.
+The native import saga in `bla_app.5d2833627b8d6106dd60.js` calls
+`backlinks.StartUpload` with no campaign parameters. Its result is a string
+staging handle. `domains.GetEndpoints` supplies `backlinksUpload` and
+`backlinksUploadFormField`. Append the encoded handle to the endpoint's pathname,
+preserving its existing query. The native multipart fields are runtime `apiKey`
+and the file under the returned form-field name.
+
+The native HTTP 200 staging response is a JSON object with `error:false`,
+`message:null` and a `file` descriptor containing `name`, `size`, `id`
+and `urls`. Its `code` has returned both 0 and 200 on successful uploads;
+success follows `error:false` and the file descriptor, not a fixed code.
+The URL count is `file.urls`, not a top-level `urls`. A zero count
+is not a successful import: the native reducer disables finishing that file.
+The own Audit CSV export staged with zero URLs, while a one-column CSV containing
+one quoted source URL staged with exactly one. The subsequent one-URL native
+commit was acknowledged and the audit unlocked after processing. Preserve supplied CSV bytes; do not
+silently convert between native export and import formats.
+
+The native commit call is `backlinks.FinishUpload` with `{userDomainId, hash}`.
+The live one-URL commit returned `true`; a following status read retained
+`statusId:1` and set `isLocked:true` during asynchronous processing. Submission
+success requires that acknowledgement, not completion of the crawl. A
+high-level import must validate the endpoint before creating a staging handle,
+validate the file descriptor before committing, and never retry either write
+automatically. Cancellation before commit must not send a delayed finish call.
+
+[Semrush's import guide](https://www.semrush.com/kb/580-auditing-your-backlinks)
+says imported links are crawled asynchronously, an import cannot be stopped from
+the interface once started, and JavaScript-wrapped links or sources without HTTP
+200 are not added. These are provider limits, not empty-success conditions.
+
+The existing HTTP adapter's multipart success check belongs to Site Audit URL
+uploads (`status.code:0`). Backlink CSV staging instead uses the `error:false`
+and nested-file contract above. Its JSON success must not be rejected merely
+because an `error` property is present, nor treated as a crawl URL upload.

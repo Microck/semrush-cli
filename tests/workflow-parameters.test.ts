@@ -344,3 +344,15 @@ test('Backlink Audit CSV uses the current filtered search without table paginati
   expect(request.body).toMatchObject({ method: 'backlinks.StartBacklinksCSVExport', params: { userDomainId: 456, search: { query: 'example.net', queryMode: 'url', collapse: null } } });
   expect(request.body).not.toHaveProperty('params.page'); expect(request.body).not.toHaveProperty('params.pageSize');
 });
+
+
+test('Backlink Audit CSV import previews file bytes without staging or exposing runtime credentials', async () => {
+  const contents = '"https://example.net/link"\r\n';
+  await expect(preview('backlink_audit_import', { audit_id: 456, contents })).rejects.toThrow('--confirm');
+  expect(await preview('backlink_audit_import', { audit_id: 456, contents, dry_run: true })).toEqual({
+    method: 'POST', path: '/backlink_audit/files/backlinks/upload/456', encoding: 'multipart', body: null,
+    file: { field: 'backlinks', filename: 'semrush-backlinks.csv', contents },
+  });
+  await expect(preview('backlink_audit_import', { audit_id: 456, contents: '', dry_run: true })).rejects.toThrow();
+  await expect(preview('backlink_audit_import', { audit_id: 456, contents, filename: '../bad.csv', dry_run: true })).rejects.toThrow();
+});

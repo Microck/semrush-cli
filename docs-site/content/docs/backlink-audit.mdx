@@ -185,6 +185,39 @@ resets scheduling to every two weeks with notifications enabled. Creating anothe
 audit does not preserve the existing audit's history. The CLI does not perform
 that reset followed by a separate settings write.
 
+## Import backlinks from CSV
+
+Put each source page URL in the first column of a CSV file. A one-column file
+with quoted URLs works:
+
+```csv
+"https://example.net/page-linking-to-your-site"
+```
+
+Replace that URL with a page linking to your audited site, then submit the file:
+
+```sh
+semrush backlink-audit-import --audit-id 789 --contents-file backlinks.csv --dry-run
+semrush backlink-audit-import --audit-id 789 --contents-file backlinks.csv --confirm
+semrush backlink-audit-status --audit-id 789
+```
+
+The audit must have `statusId:1`, `isLocked:false` and `isLockedSettings:false`.
+The command preserves your CSV bytes, stages the file and checks that Semrush
+found at least one source URL before committing. An Audit CSV export is not an
+import template; the tested export staged with zero source URLs.
+
+The response's `file.urls` is the staged URL count. `result:true` acknowledges
+submission, not completion. Semrush crawls imported links asynchronously and
+may keep `statusId:1` while `isLocked:true`. Read status until it unlocks, then
+inspect the backlink table. Recurring settings remain unchanged.
+
+[Semrush's import guide](https://www.semrush.com/kb/580-auditing-your-backlinks)
+says this process cannot be stopped in the interface once started. Sources
+without HTTP 200 and JavaScript-wrapped links are not added. The CLI does not
+retry staging or commit calls; inspect status after an uncertain result before
+submitting the file again.
+
 ## Import an existing disavow file
 
 ```sh

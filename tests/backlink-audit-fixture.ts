@@ -14,8 +14,8 @@ export function makeBacklinkAuditFixture() {
   const labels = new Map<string, Set<string>>();
   const networkId = 19387720322;
   const backlink = { id: '00000000-0000-0000-0000-000000000001', urlHash: '9007199254740993', source: 'example.net', sourceUrl: 'https://example.net/link', linkType: 'a', linkNetworks: [{ linkNetworkId: networkId, type: 'path', value: '/links', count: 1, orderNumber: 1 }], list: 'for-review' };
-  const state = { csvJobs: 0, csvPolls: 0, csvDenied: false, reruns: 0, incImportAvailable: true, lockedSettings: false, lockedAudit: false, rejectTagChanges: false, processing: false, foreignEndpoint: false, omitDisposition: false, exports: 0 };
-  const reset = () => { state.csvJobs = 0; state.csvPolls = 0; state.csvDenied = false; comments.clear(); labels.clear(); nextCommentId = 321; state.reruns = 0; state.incImportAvailable = true; state.lockedSettings = false; state.lockedAudit = false; state.rejectTagChanges = false; backlink.list = 'for-review'; settings = undefined; disavow = []; state.processing = false; state.foreignEndpoint = false; state.omitDisposition = false; state.exports = 0; calls.length = 0; };
+  const state = { csvImportStarts: 0, csvImportFinishes: 0, csvImportURLs: 1, invalidImportResponse: false, csvImportedContents: '', csvJobs: 0, csvPolls: 0, csvDenied: false, reruns: 0, incImportAvailable: true, lockedSettings: false, lockedAudit: false, rejectTagChanges: false, processing: false, foreignEndpoint: false, omitDisposition: false, exports: 0 };
+  const reset = () => { state.csvImportStarts = 0; state.csvImportFinishes = 0; state.csvImportURLs = 1; state.invalidImportResponse = false; state.csvImportedContents = ''; state.csvJobs = 0; state.csvPolls = 0; state.csvDenied = false; comments.clear(); labels.clear(); nextCommentId = 321; state.reruns = 0; state.incImportAvailable = true; state.lockedSettings = false; state.lockedAudit = false; state.rejectTagChanges = false; backlink.list = 'for-review'; settings = undefined; disavow = []; state.processing = false; state.foreignEndpoint = false; state.omitDisposition = false; state.exports = 0; calls.length = 0; };
   const metadata = () => {
     const stored = settings ? { ...settings } : null;
     // Native info omits false recurring flags; creation echoes the supplied settings.
@@ -95,6 +95,18 @@ export function makeBacklinkAuditFixture() {
     return urls.slice(page * pageSize, (page + 1) * pageSize).map(url => ({ urls: [url], active: [params.collapse === 'd' ? 2 : 3], new: [0], broken: [0], lost: [0] }));
   };
   const serveFile = async (request: IncomingMessage, response: ServerResponse, url: URL): Promise<boolean> => {
+      if (url.pathname === '/backlink_audit/files/backlinks/upload/456/fixture-import-hash') {
+        expect(request.method).toBe('POST');
+        expect(url.searchParams.get('user_id')).toBe('123'); expect(url.searchParams.get('paid_type')).toBe('2');
+        const contentType = request.headers['content-type'] ?? '';
+        expect(contentType).toMatch(/^multipart\/form-data; boundary=/);
+        const form = await new Request('http://fixture.test' + url.pathname, { method: 'POST', headers: { 'Content-Type': contentType }, body: await readText(request) }).formData();
+        expect([...form.keys()]).toEqual(['apiKey', 'backlinks']); expect(form.get('apiKey')).toBe('fixture-secret');
+        const file = form.get('backlinks'); if (!(file instanceof File)) throw new Error('Missing native backlink CSV file');
+        state.csvImportedContents = Buffer.from(await file.arrayBuffer()).toString('utf8');
+        response.setHeader('Content-Type', 'application/json');
+        response.end(JSON.stringify({ error: false, code: 200, message: null, file: { name: file.name, id: file.name, size: file.size, urls: state.invalidImportResponse ? '1' : state.csvImportURLs } })); return true;
+      }
       if (url.pathname === '/backlink_audit/files/backlinks/download/456') {
         expect(request.method).toBe('GET'); expect(request.headers.authorization).toBe('fixture-secret');
         expect(url.searchParams.get('user_id')).toBe('123'); expect(url.searchParams.get('paid_type')).toBe('2');
@@ -176,6 +188,11 @@ export function makeBacklinkAuditFixture() {
           if (rpc.params.params.brands?.includes('reject')) { fail('Provider rejected fixture-secret'); return; }
           Object.assign(settings, rpc.params.params);
           reply({ settingsResult: { type: 'brands' } }); return;
+        case 'backlinks.StartUpload':
+          expect(rpc.params).toEqual({}); state.csvImportStarts++; reply('fixture-import-hash'); return;
+        case 'backlinks.FinishUpload':
+          expect(rpc.params).toEqual({ userDomainId: 456, hash: 'fixture-import-hash' });
+          expect(state.csvImportURLs).toBeGreaterThan(0); state.csvImportFinishes++; state.processing = true; reply(true); return;
         case 'backlinks.StartBacklinksCSVExport':
           expect(rpc.params.userDomainId).toBe(456); expect(rpc.params.search).toHaveProperty('collapse');
           expect(rpc.params).not.toHaveProperty('page'); expect(rpc.params).not.toHaveProperty('pageSize');
@@ -199,7 +216,7 @@ export function makeBacklinkAuditFixture() {
         case 'backlinks.GetCategoryList': reply([{ id: 6, count: 2 }]); return;
         case 'domains.GetEndpoints':
           expect(rpc.params).toEqual({ userDomainId: 456 });
-          reply({ backlinksDownload: state.foreignEndpoint ? '//outside.invalid/download' : '/files/backlinks/download/456?user_id=123&paid_type=2', disavowDownload: state.foreignEndpoint ? '//outside.invalid/download' : '/files/disavow/download/456?user_id=123&paid_type=2', disavowUpload: '/files/disavow/upload/456?user_id=123&paid_type=2', disavowUploadFormField: 'disavow' }); return;
+          reply({ backlinksUpload: state.foreignEndpoint ? '//outside.invalid/upload' : '/files/backlinks/upload/456?user_id=123&paid_type=2', backlinksUploadFormField: 'backlinks', backlinksDownload: state.foreignEndpoint ? '//outside.invalid/download' : '/files/backlinks/download/456?user_id=123&paid_type=2', disavowDownload: state.foreignEndpoint ? '//outside.invalid/download' : '/files/disavow/download/456?user_id=123&paid_type=2', disavowUpload: '/files/disavow/upload/456?user_id=123&paid_type=2', disavowUploadFormField: 'disavow' }); return;
         case 'domains.GetStatus':
           expect(rpc.params).toEqual({ userDomainId: 456, background: false });
           reply({ domain: metadata(), isExportLimited: false, incImportAvailable: state.incImportAvailable }); return;
