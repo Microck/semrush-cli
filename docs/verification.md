@@ -29,13 +29,32 @@ scope both with nonwww. Empty brands, categories and countries remained empty;
 manual scheduling and disabled recurring notifications remained intact in the
 immediate selected-audit readback. A preceding settings edit temporarily locked
 the audit; the first replacement command refused before writing. After readiness
-returned, one replacement succeeded. Its analysis-completion check is pending.
+returned, one replacement succeeded. It completed and unlocked with 573 checked
+links while retaining the empty selections and disabled recurring settings.
 A separate native root-to-both replacement already completed while retaining
 nondefault settings, and its former root audit returned native 404.
 
 These checks transfer only the authorized Semrush session to private Galleton
 storage on Raft. The remote session and vault were removed after each live pass.
-Publication and public-artifact verification for this source batch are pending.
+CI run `38937499626` passed all five jobs, including Linux, macOS and Windows
+package setup. The public npm and GitHub archives match its 14,471,164-byte
+artifact, SHA-256
+`d851ad6efac261b6662a148d074e89572844b36d38bba85aa5b2b88437295f77`.
+The local command reports `0.19.0` and its scope preview passed without a browser.
+A fresh registry installation in Raft advertised all 263 tools, including the
+scope replacement safety metadata. Authenticated account, owned-project and
+audit-status reads, import and scope previews, and the public CLI doctor passed.
+The temporary session and remote vault were removed afterward.
+The task-owned verification folder and its attached audit were deleted and
+returned native 404. The tracking target disappeared from authenticated campaign
+discovery; its former detail endpoint returned access denied after deletion.
+Unrelated projects were not changed. The reusable runner was stopped.
+
+The GitHub npm publishing workflow passed its checks but its upload received
+HTTP 404. The existing authenticated npm account then published the exact CI
+archive with scripts disabled. npm accepted it for processing, after which
+registry metadata and tarball checks passed. GitHub OIDC publishing remains
+unverified; this release used the authenticated CLI publisher.
 
 Version 0.18.0 verification: 2026-10-16. The source suite passed 178 tests in
 CI and a private ARM64 Raft runner, including real Chromium, Galleton and
@@ -79,7 +98,7 @@ preview and the public CLI's doctor passed. The temporary session was forgotten,
 its Galleton vault was removed, and the runner was stopped. The installed local
 command reports `0.18.0`.
 
-The import fixture remains owned by this task for scope-replacement verification.
+The import fixture also served the scope-replacement verification described above.
 A subsequent root-to-both atomic creation completed while retaining the
 nondefault brands, category, country and manual schedule. Its prior audit ID
 returned native 404. The source scope-replacement workflow is covered above.
