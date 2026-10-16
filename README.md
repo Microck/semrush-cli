@@ -79,7 +79,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 
 ## command surface
 
-263 operations, available as cli commands and mcp tools. 177 reads and 86 writes that need explicit confirmation.
+265 operations, available as cli commands and mcp tools. 179 reads and 86 writes that need explicit confirmation.
 
 | command | what it does |
 | --- | --- |
@@ -147,6 +147,8 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 | `audit-pages`, `audit-page`, `audit-issue`, `audit-history` | inspect crawled pages, issues and crawl history |
 | `audit-recrawl`, `audit-abort`, `audit-finalize` | recrawl a page, cancel a crawl or process results early |
 | `audit-export-pages`, `audit-export-issues`, `audit-export-issue` | download native csv or xlsx reports |
+| `audit-export-page-issues` | download the latest crawl's page-by-issue matrix |
+| `audit-export-markup` | download a crawl's markup and structured data |
 | `notes`, `note`, `note-databases`, `note-hidden-categories` | list and read chart notes, database options and hidden categories |
 | `notes-export` | download all chart notes as native csv |
 | `note-create`, `note-update`, `note-delete` | create, edit or delete your own user notes |
@@ -672,9 +674,15 @@ semrush audit-issue --campaign-id 456 --snapshot-id '<snapshot_id>' --issue-id 2
 semrush audit-history --campaign-id 456
 semrush audit-export-pages --snapshot-id '<snapshot_id>' --output pages.csv
 semrush audit-export-issues --snapshot-id '<snapshot_id>' --format xlsx --output issues.xlsx
+semrush audit-export-page-issues --campaign-id 456 --output page-issues.csv
+semrush audit-export-markup --snapshot-id '<snapshot_id>' --format xlsx --output markup.xlsx
 ```
 
 copy page and snapshot ids from the results. exports require `--output` and refuse an existing file. they download semrush's native csv or xlsx files.
+
+`audit-export-page-issues` uses the campaign id and exports the latest crawl's page-by-issue matrix. `audit-export-markup` uses a snapshot id and exports that crawl's markup and structured data. both accept `--format csv` or `--format xlsx`, with csv as the default. downloads do not retry failed network requests automatically.
+
+live mcp checks for both exports matched native csv and xlsx bytes exactly. the cli markup xlsx matched all worksheet and content bytes; only semrush's creation timestamp in `docProps/core.xml` differed.
 
 `audit-recrawl` queues a page again. `audit-abort` cancels a running crawl; `audit-finalize` stops collecting pages and processes what it has. these writes need `--confirm`. see [site audit](https://semrush.micr.dev/docs/site-audit) for crawl settings, stop conditions and limits.
 
@@ -714,7 +722,7 @@ npm run check
 
 the cli uses the published [`galleton` 0.1.0 sdk](https://www.npmjs.com/package/galleton). the bundled galleton daemon is still required for sessions. building it from source requires go 1.23 or newer, `tar` and `patch`. published cli packages include the daemon for supported platforms, so npm users do not need go.
 
-the current source passed 182 tests on raft, including a lost-response fixture that verifies one replacement write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
+the current source passed 185 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
 
 ## documentation
 

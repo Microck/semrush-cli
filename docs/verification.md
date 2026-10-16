@@ -1,5 +1,53 @@
 # Verification
 
+## Version 0.20.0 native Site Audit exports
+
+The source catalog contains 265 operations, 179 reads and 86 confirmed writes.
+TypeScript, Oxlint, generated references, five daemon targets and all 185 tests
+passed on the private ARM64 Raft runner. Three independent simplification
+reviews found no changes needed. Compilation and browser verification ran
+remotely.
+
+`audit-export-page-issues` downloads the campaign's latest completed crawl as a
+page-by-issue matrix. `audit-export-markup` downloads a selected snapshot's
+structured-data fields. Both support native CSV and XLSX. The existing
+`audit-export-pages` remains the plain page-properties table.
+
+Authenticated source MCP calls matched native downloads byte for byte for both
+new reports in both formats. These read-only checks used an existing completed
+23-page audit without changing settings or starting a crawl. The actual CLI
+markup XLSX export matched every worksheet and other workbook entry. Only the
+provider's creation timestamp in `docProps/core.xml` differed across the two
+requests, five seconds apart. The original strict comparison failure and the
+subsequent entry-by-entry comparison remain in private verification evidence.
+
+Binary exports now use a separate scoped HTTP client with `maxRetries:0`.
+Cancellation disposes that client without interrupting later report requests.
+A stateful dropped-response fixture first proved that the old browser download
+path repeated a committed disavow export. The corrected path records one write,
+returns failure without an artifact and preserves later authenticated reads.
+Another real HTTP fixture verifies exact export fields, CSV bytes and cookie
+rotation between exports.
+
+Fresh native controls returned 404, `no endpoint for the requested path`, for
+both crawled-links formats. Plain pages, markup and page/issue matrix downloads
+from the same snapshot succeeded in both formats. Crawled-links, Compare Crawls
+and All reports batch downloads remain outside implemented coverage.
+
+## Position Tracking AI brand editor boundary
+
+A fresh authenticated owner-limit read on 2026-10-16 confirmed Guru, 1,500
+keywords, ten targets, zero prompts, `ai_seo_main:0`, SEO Tier 2 enabled and
+Tier 3 disabled. Only read-only requests ran against an existing owned project.
+No settings were changed and no subscription was purchased.
+
+The cached native tracking 1.280.2 Settings component renders Manage brand names
+only for the engine set `search-gpt`, `google-ai`, `gemini`. Google is excluded.
+The typed HTTP helper forwards the editor's JSON unchanged. Earlier editor-shaped
+writes against the Google fixture failed validation and preserved its settings;
+they do not prove the AI editor's request contract or a subscription denial.
+The AI editor remains unverified with this account's zero prompt allowance.
+
 ## Version 0.19.0 source scope replacement
 
 The source catalog contains 263 operations, 177 reads and 86 confirmed writes.

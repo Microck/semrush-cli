@@ -88,6 +88,19 @@ const fixture = createServer(async (request, response) => {
     }
     response.setHeader('Content-Type', 'text/csv; charset=utf-8');
     response.setHeader('Content-Disposition', 'attachment; filename=fixture.csv');
+    if (url.pathname === '/siteaudit/export/campaigns/789' || url.pathname === '/siteaudit/export/pagesStructuredData/opaque_snapshot') {
+      expect(request.method).toBe('GET');
+      expect(request.headers.cookie).toContain('session=authorized');
+      expect(url.searchParams.get('relative')).toBe('true'); expect(url.searchParams.get('sort')).toBe('url_desc'); expect(url.searchParams.get('filter')).toBe('café');
+      if (url.pathname.includes('/campaigns/')) {
+        response.setHeader('Set-Cookie', 'export_rotation=retained; Path=/; HttpOnly; SameSite=Lax');
+        response.end('Page URL,Broken internal links\n/café,1\n');
+      } else {
+        expect(request.headers.cookie).toContain('export_rotation=retained');
+        response.end('Page URL,Schema.org (JSON-LD)\n/café,Article\n');
+      }
+      return;
+    }
     response.end('url,title\nhttps://example.com/,café\n'); return;
   }
   if (url.pathname.startsWith('/backlink_audit/')) { await backlinkAuditFixture.serve(request, response, url); return; }
@@ -1145,5 +1158,37 @@ test('Backlink Audit scope replacement does not retry when the response is lost 
     expect(backlinkAuditFixture.state.replacements).toBe(1);
     expect(backlinkAuditFixture.calls.filter(call => call.method === 'domains.AddByProjectId')).toHaveLength(2);
     expect((yield* run('backlink_audit_info', { project_id: 789 })).data).toMatchObject({ userDomainId: 457, scope: 'both', params: { recrawl: 'never' } });
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+
+test('a committed disavow export is not repeated after its response is lost', async () => {
+  backlinkAuditFixture.reset();
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const service = yield* Semrush;
+    backlinkAuditFixture.state.dropExportResponse = true;
+    const failure = yield* service.report(yield* parseReport('backlink_audit_disavow_export', { audit_id: 456, confirm: true })).pipe(Effect.flip);
+    expect(failure.message).toBeTruthy();
+    expect(backlinkAuditFixture.state.exports).toBe(1);
+    expect(yield* (yield* Exports).list()).toEqual([]);
+    expect((yield* service.report(yield* parseReport('account_status', {}))).authenticated).toBe(true);
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+
+test('Site Audit issue matrices and markup exports preserve filters, bytes and cookie rotation', async () => {
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const service = yield* Semrush;
+    const files = yield* Exports;
+    for (const [name, selected, contents] of [
+      ['audit_export_page_issues', { campaign_id: 789 }, 'Page URL,Broken internal links\n/café,1\n'],
+      ['audit_export_markup', { snapshot_id: 'opaque_snapshot' }, 'Page URL,Schema.org (JSON-LD)\n/café,Article\n'],
+    ] as const) {
+      const report = yield* service.report(yield* parseReport(name, { ...selected, relative: true, sort: 'url_desc', filter: 'café' }));
+      if (!report.artifact) throw new Error('Expected a native CSV artifact');
+      expect(report.artifact.mime_type).toBe('text/csv');
+      expect(Buffer.from((yield* files.read(report.artifact.uri)).blob, 'base64').toString('utf8')).toBe(contents);
+    }
+    expect((yield* service.report(yield* parseReport('account_status', {}))).authenticated).toBe(true);
   }).pipe(Effect.provide(fixtureLayer()))));
 }, 30000);

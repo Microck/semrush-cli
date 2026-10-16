@@ -142,14 +142,33 @@ its `current_snapshot.snapshot_id` to inspect or export the saved results.
 
 ```sh
 semrush audit-export-pages --snapshot-id '<snapshot_id>' --output pages.csv
+semrush audit-export-page-issues --campaign-id 456 --output page-issues.csv
+semrush audit-export-markup --snapshot-id '<snapshot_id>' --format xlsx --output markup.xlsx
 semrush audit-export-issues --snapshot-id '<snapshot_id>' --format xlsx --output issues.xlsx
 semrush audit-export-issue --snapshot-id '<snapshot_id>' --issue-id 2 --output broken-pages.csv
 ```
 
-The CLI requires `--output` and refuses an existing file. The three exports use
-Semrush's native CSV/XLSX downloads. See [MCP](./mcp) for retrieving downloads
-from an agent. Crawled-links exports remain unsupported because the endpoint
-listed in the frontend returns HTTP 404.
+The CLI requires `--output` and refuses an existing file. Each export uses
+Semrush's native CSV/XLSX download. See [MCP](./mcp) for retrieving downloads
+from an agent.
+
+| Web report | Command | Selected crawl |
+| --- | --- | --- |
+| Crawled Pages | `audit-export-pages` | Explicit snapshot ID |
+| Crawled Pages with all Issues | `audit-export-page-issues` | Campaign's latest completed snapshot |
+| Crawled Pages with markup | `audit-export-markup` | Explicit snapshot ID |
+| Issues | `audit-export-issues` | Explicit snapshot ID |
+| Pages affected by one issue | `audit-export-issue` | Snapshot and issue IDs |
+
+Page, page/issue matrix and markup exports accept `--relative`, `--sort` and
+`--filter` with the native field values. The matrix has one column per issue;
+markup exports contain structured-data fields. Use a snapshot-based export when
+you need a specific historical crawl.
+
+Crawled-links exports remain unsupported. Both native formats returned HTTP 404,
+`no endpoint for the requested path`, while page exports from the same snapshot
+succeeded. This is an endpoint failure, not evidence of a Guru plan restriction.
+Compare Crawls and the All reports batch download are not yet exposed.
 
 Use the web UI for connected integrations.
 Deleting a project also deletes its attached audit.

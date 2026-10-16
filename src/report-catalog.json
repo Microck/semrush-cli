@@ -5289,6 +5289,98 @@
       ]
     }
   },
+  "audit_export_page_issues": {
+    "method": "/siteaudit/export/campaigns/{campaign_id}",
+    "description": "Download the latest campaign crawl as a page-by-issue matrix in CSV or XLSX.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "response_type": "download",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "SEO project/campaign ID from project-enable-seo, not the folder ID."
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "csv",
+            "xlsx"
+          ],
+          "default": "csv"
+        },
+        "relative": {
+          "type": "boolean",
+          "default": false
+        },
+        "sort": {
+          "type": "string",
+          "default": "url_asc"
+        },
+        "filter": {
+          "type": "string",
+          "default": ""
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    }
+  },
+  "audit_export_markup": {
+    "method": "/siteaudit/export/pagesStructuredData/{snapshot_id}",
+    "description": "Download crawled-page markup and structured-data columns as CSV or XLSX.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "response_type": "download",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "snapshot_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "csv",
+            "xlsx"
+          ],
+          "default": "csv"
+        },
+        "relative": {
+          "type": "boolean",
+          "default": false
+        },
+        "sort": {
+          "type": "string",
+          "default": "url_asc"
+        },
+        "filter": {
+          "type": "string",
+          "default": ""
+        }
+      },
+      "required": [
+        "snapshot_id"
+      ]
+    }
+  },
   "audit_export_issues": {
     "method": "/siteaudit/export/snapshot/{snapshot_id}",
     "description": "Download the snapshot issue summary as CSV or XLSX.",

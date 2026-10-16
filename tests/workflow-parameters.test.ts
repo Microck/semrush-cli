@@ -366,3 +366,13 @@ test('Backlink Audit scope replacement previews only explicit inputs before runt
   await expect(preview('backlink_audit_replace_scope', { project_id: 789, dry_run: true })).rejects.toThrow();
   await expect(preview('backlink_audit_replace_scope', { project_id: 789, scope: 'invalid', dry_run: true })).rejects.toThrow();
 });
+
+test('Site Audit export selections preserve native resource IDs and format fields', async () => {
+  const options = { format: 'xlsx', relative: true, sort: 'url_desc', filter: 'café' };
+  expect(await preview('audit_export_page_issues', { campaign_id: 789, ...options })).toMatchObject({
+    method: 'GET', path: '/siteaudit/export/campaigns/789', body: { export: 'xlsx', relative: true, sort: 'url_desc', filter: 'café' },
+  });
+  expect(await preview('audit_export_markup', { snapshot_id: 'opaque_snapshot', ...options })).toMatchObject({
+    method: 'GET', path: '/siteaudit/export/pagesStructuredData/opaque_snapshot', body: { export: 'xlsx', relative: true, sort: 'url_desc', filter: 'café' },
+  });
+});

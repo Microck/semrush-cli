@@ -42,7 +42,7 @@ export const exportsLive = Layer.effect(Exports, Effect.gen(function* () {
       const id = randomUUID();
       const path = join(directory, id);
       const size = yield* Effect.tryPromise({ try: async () => {
-        // Chromium streams the download to disk; tool responses contain metadata only.
+        // The writer stores provider bytes privately; tool responses contain metadata only.
         try {
           await write(path);
           await chmod(path, 0o600);

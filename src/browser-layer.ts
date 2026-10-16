@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
+import { writeFile } from 'node:fs/promises';
+import { basename } from 'node:path';
 import { Config, Effect, Layer, Option, Semaphore, Schema, Predicate, Schedule } from 'effect';
-import { chromium, type BrowserContext, type Download, type Page } from 'patchright';
+import { chromium, request as browserRequest, type BrowserContext, type Page } from 'patchright';
 import JSONbig from 'json-bigint';
 import { Semrush } from './browser-service.js';
 import { Sessions } from './session-service.js';
@@ -10,7 +12,6 @@ import { reportResponseType, reportParameters, webRequest, rpcBody, type Query, 
 import type { ReportRequest } from './validation.js';
 import { Exports } from './exports.js';
 
-interface ExportState { download?: Download; cancel: () => void; }
 type ExportDownload = { readonly request: WebRequest; readonly headers: Record<string, string> } & (
   { readonly kind: 'file' } | { readonly kind: 'job'; readonly filename: string }
 );
@@ -249,64 +250,52 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     if (request.method === 'GET') {
       for (const [key, value] of Object.entries(request.body ?? {})) address.searchParams.set(key, String(value));
     }
-    const state = yield* Effect.acquireRelease(Effect.sync(() => {
-      const state: ExportState = { cancel: () => {} };
-      return state;
-    }), state => Effect.gen(function* () {
-      state.cancel();
-      const download = state.download;
-      if (download) {
-        yield* browserCall(() => download.cancel()).pipe(Effect.ignore);
-        yield* browserCall(() => download.delete()).pipe(Effect.ignore);
+    // A separate scoped client can abort a file transfer without disposing the
+    // report client's cookie jar. Its derived cookies never persist outside Galleton.
+    const client = yield* Effect.acquireRelease(browserCall(async () => browserRequest.newContext({
+      storageState: { cookies: await context.cookies(), origins: [] },
+      userAgent: 'OpenAI File Downloader, XaiImageApiFetch/1.0',
+    })), client => browserCall(async () => {
+      try {
+        const state = await client.storageState();
+        await context.clearCookies();
+        await context.addCookies(state.cookies);
       }
-    }));
-    // The page owns the native Blob and aborts its fetch when the caller cancels.
-    const exportPage = yield* Effect.acquireRelease(browserCall(() => context.newPage()), page => browserCall(() => page.close()).pipe(Effect.ignore));
-    yield* browserCall(() => exportPage.goto(browserOrigin + '/robots.txt', { waitUntil: 'domcontentloaded', timeout: 45000 }));
-    const fetchFile = browserCall(() => exportPage.evaluate(async ({ address, method, body, extension, encoding, headers, filename }) => {
-      const options: RequestInit = { method, credentials: 'include', headers, signal: AbortSignal.timeout(45000) };
-      if (method !== 'GET') {
-        if (encoding === 'multipart') {
-          const form = new FormData();
-          for (const [key, value] of Object.entries(body ?? {})) form.append(key, String(value));
-          options.body = form;
-        } else {
-          options.headers = { 'Content-Type': encoding === 'form' ? 'application/x-www-form-urlencoded' : 'application/json', ...headers };
-          options.body = encoding === 'form' ? new URLSearchParams(Object.entries(body ?? {}).map(([key, value]) => [key, String(value)])) : JSON.stringify(body);
-        }
+      finally { await client.dispose(); }
+    }).pipe(Effect.ignore));
+    const fetchFile = browserCall(async () => {
+      const encoding = request.encoding ?? 'json';
+      const multipart = Object.fromEntries(Object.entries(request.body ?? {}).map(([key, value]) => [key, String(value)]));
+      const requestHeaders = { Origin: browserOrigin, Referer: page.url(), ...headers };
+      if (request.method !== 'GET' && encoding !== 'multipart') Object.assign(requestHeaders, {
+        'Content-Type': encoding === 'form' ? 'application/x-www-form-urlencoded' : 'application/json', ...headers,
+      });
+      const options: NonNullable<Parameters<typeof client.fetch>[1]> = {
+        method: request.method, headers: requestHeaders, timeout: 45000, maxRetries: 0,
+      };
+      if (request.method !== 'GET') {
+        if (encoding === 'multipart') options.multipart = multipart;
+        else options.data = encoding === 'form' ? new URLSearchParams(multipart).toString() : JSON.stringify(request.body);
       }
-      const response = await fetch(address, options);
-      if (response.status === 202) { await response.body?.cancel(); return { status: 202, url: '', filename: '' }; }
-      const contentType = response.headers.get('content-type') ?? '';
-      if (!response.ok || /text\/html|application\/(?:[^;]+\+)?json/i.test(contentType)) return { status: response.status, url: '', filename: '' };
-      const disposition = response.headers.get('content-disposition') ?? '';
-      const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
-      const nativeFilename = filename ?? (encoded ? decodeURIComponent(encoded) : (disposition.match(/filename="([^"]+)"|filename=([^;]+)/i)?.slice(1).find(Boolean)?.trim() ?? 'semrush-export.' + extension));
-      return { status: response.status, url: URL.createObjectURL(await response.blob()), filename: nativeFilename };
-    }, { address: address.href, method: request.method, body: request.body, extension, encoding: request.encoding ?? 'json', headers, filename: downloadRequest.kind === 'job' ? downloadRequest.filename : undefined }));
+      const response = await client.fetch(address.href, options);
+      try {
+        const status = response.status();
+        const contentType = response.headers()['content-type'] ?? '';
+        if (status === 202 || !response.ok() || /text\/html|application\/(?:[^;]+\+)?json/i.test(contentType)) return { status };
+        const disposition = response.headers()['content-disposition'] ?? '';
+        const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+        const nativeFilename = downloadRequest.kind === 'job' ? downloadRequest.filename
+          : encoded ? decodeURIComponent(encoded) : disposition.match(/filename="([^"]+)"|filename=([^;]+)/i)?.slice(1).find(Boolean)?.trim() ?? 'semrush-export.' + extension;
+        return { status, filename: basename(nativeFilename.replaceAll('\\', '/')).replaceAll(auth.apiKey, '[redacted]'), bytes: await response.body() };
+      } finally { await response.dispose(); }
+    });
     const file = yield* downloadRequest.kind === 'job' ? fetchFile.pipe(
       Effect.repeat({ schedule: Schedule.spaced('2 seconds'), until: response => response.status !== 202 }),
       Effect.timeoutOrElse({ duration: '5 minutes', orElse: () => Effect.fail(new ReportError({ message: 'Semrush CSV export did not finish within five minutes. Inspect the audit before starting another export.' })) }),
     ) : fetchFile;
-    if (!file.url) return yield* Effect.fail(new ReportError({ message: 'Semrush did not return an export file (HTTP ' + file.status + '). Check your session, export permissions and selected resource.' }));
-    const download = yield* Effect.tryPromise({ try: signal => new Promise<Download>((resolve, reject) => {
-      let triggerSettled = false;
-      const cleanup = () => { clearTimeout(timer); exportPage.off('download', onDownload); signal.removeEventListener('abort', cancel); };
-      const fail = (error: Error) => { cleanup(); reject(error); };
-      const cancel = () => fail(new Error('Export cancelled'));
-      const complete = () => { if (triggerSettled && state.download) { cleanup(); resolve(state.download); } };
-      const onDownload = (download: Download) => { state.download = download; complete(); };
-      const timer = setTimeout(() => fail(new Error('Export timed out')), 45000);
-      state.cancel = cancel;
-      signal.addEventListener('abort', cancel, { once: true });
-      exportPage.on('download', onDownload);
-      exportPage.evaluate(({ url, filename }) => {
-        const link = document.createElement('a'); link.href = url; link.download = filename;
-        document.body.appendChild(link); link.click(); link.remove();
-      }, file).then(() => { triggerSettled = true; complete(); }, fail);
-    }), catch: () => new ReportError({ message: 'Semrush did not produce an export download. Check your session and export permissions.' }) });
-    const filename = download.suggestedFilename().replaceAll(auth.apiKey, '[redacted]');
-    return yield* exports.create(filename, exportMimeTypes[extension], destination => download.saveAs(destination));
+    if (!file.bytes || !file.filename) return yield* Effect.fail(new ReportError({ message: 'Semrush did not return an export file (HTTP ' + file.status + '). Check your session, export permissions and selected resource.' }));
+    const bytes = file.bytes;
+    return yield* exports.create(file.filename, exportMimeTypes[extension], destination => writeFile(destination, bytes, { mode: 0o600 }));
   });
   /** Prepare native tracking bodies. Settings replace all fields and require current values plus fresh edit metadata. */
   const trackingBody = Effect.fn('Semrush.trackingBody')(function* (definition: ReportRequest['definition'], query: Query, changes: Schema.Json) {

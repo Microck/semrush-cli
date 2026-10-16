@@ -16,8 +16,8 @@ export function makeBacklinkAuditFixture() {
   const labels = new Map<string, Set<string>>();
   const networkId = 19387720322;
   const backlink = { id: '00000000-0000-0000-0000-000000000001', urlHash: '9007199254740993', source: 'example.net', sourceUrl: 'https://example.net/link', linkType: 'a', linkNetworks: [{ linkNetworkId: networkId, type: 'path', value: '/links', count: 1, orderNumber: 1 }], list: 'for-review' };
-  const state = { dropScopeResponse: false, replacements: 0, readOnly: false, csvImportStarts: 0, csvImportFinishes: 0, csvImportURLs: 1, invalidImportResponse: false, csvImportedContents: '', csvJobs: 0, csvPolls: 0, csvDenied: false, reruns: 0, incImportAvailable: true, lockedSettings: false, lockedAudit: false, rejectTagChanges: false, processing: false, foreignEndpoint: false, omitDisposition: false, exports: 0 };
-  const reset = () => { currentAuditId = 456; currentScope = 'root'; state.dropScopeResponse = false; state.replacements = 0; state.readOnly = false; state.csvImportStarts = 0; state.csvImportFinishes = 0; state.csvImportURLs = 1; state.invalidImportResponse = false; state.csvImportedContents = ''; state.csvJobs = 0; state.csvPolls = 0; state.csvDenied = false; comments.clear(); labels.clear(); nextCommentId = 321; state.reruns = 0; state.incImportAvailable = true; state.lockedSettings = false; state.lockedAudit = false; state.rejectTagChanges = false; backlink.list = 'for-review'; settings = undefined; disavow = []; state.processing = false; state.foreignEndpoint = false; state.omitDisposition = false; state.exports = 0; calls.length = 0; };
+  const state = { dropExportResponse: false, dropScopeResponse: false, replacements: 0, readOnly: false, csvImportStarts: 0, csvImportFinishes: 0, csvImportURLs: 1, invalidImportResponse: false, csvImportedContents: '', csvJobs: 0, csvPolls: 0, csvDenied: false, reruns: 0, incImportAvailable: true, lockedSettings: false, lockedAudit: false, rejectTagChanges: false, processing: false, foreignEndpoint: false, omitDisposition: false, exports: 0 };
+  const reset = () => { currentAuditId = 456; currentScope = 'root'; state.dropExportResponse = false; state.dropScopeResponse = false; state.replacements = 0; state.readOnly = false; state.csvImportStarts = 0; state.csvImportFinishes = 0; state.csvImportURLs = 1; state.invalidImportResponse = false; state.csvImportedContents = ''; state.csvJobs = 0; state.csvPolls = 0; state.csvDenied = false; comments.clear(); labels.clear(); nextCommentId = 321; state.reruns = 0; state.incImportAvailable = true; state.lockedSettings = false; state.lockedAudit = false; state.rejectTagChanges = false; backlink.list = 'for-review'; settings = undefined; disavow = []; state.processing = false; state.foreignEndpoint = false; state.omitDisposition = false; state.exports = 0; calls.length = 0; };
   const metadata = () => {
     const stored = settings ? { ...settings } : null;
     // Native info omits false recurring flags; creation echoes the supplied settings.
@@ -148,6 +148,7 @@ export function makeBacklinkAuditFixture() {
         }
         expect([...form.keys()]).toEqual(['apiKey']);
         state.exports++;
+        if (state.dropExportResponse) { response.destroy(); return true; }
         response.setHeader('Content-Type', 'text/plain; charset=utf-8');
         if (!state.omitDisposition) response.setHeader('Content-Disposition', 'attachment; filename=disavow.txt');
         response.end(disavow.map(entry => (entry.type === 'domain' ? 'domain:' : '') + entry.text).join('\n') + '\n'); return true;

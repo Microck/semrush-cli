@@ -327,7 +327,8 @@ mutation, account-wide schedules, purchases or outreach.
 Primary sources are the tracking 1.280.2 entry module's GlobalStore and Main
 modules and `lazy/components/firstTriggerModal.e1bff77a57ae04ec2e14.js`.
 The native crawl-scheduling form disables saving unless the account has SEO
-Tier 3; scheduling remains outside this batch pending account capability proof.
+Tier 3. A live owner-limit read confirmed Guru, `seo_toolkit_tier2:1` and
+`seo_toolkit_tier3:0`; scheduling remains account-gated.
 
 ## Position Tracking export access
 
@@ -678,3 +679,43 @@ The existing HTTP adapter's multipart success check belongs to Site Audit URL
 uploads (`status.code:0`). Backlink CSV staging instead uses the `error:false`
 and nested-file contract above. Its JSON success must not be rejected merely
 because an `error` property is present, nor treated as a crawl URL upload.
+
+## Position Tracking AI brand matching boundary
+
+The native tracking 1.280.2 Settings component shows Manage brand names only
+when the engine is `search-gpt`, `google-ai` or `gemini`. Its engine set excludes
+Google, Bing and Baidu. The editor submits its full main/competitor array through
+`campaign_set_competitors`; its HTTP helper does not transform that JSON body.
+Previous native-editor-shaped probes against a Google target returned validation
+errors and preserved its saved settings. Those failures do not establish the
+AI editor's clearing contract or a subscription denial.
+
+A fresh authenticated owner-limit read on 2026-10-16 confirmed `GURU`, 1,500
+keywords, ten targets, zero prompts and `ai_seo_main:0`. No AI target was created
+or add-on purchased. AI brand matching and clearing remain unverified. The
+existing general-settings endpoint retains old brands after an empty array,
+so the CLI continues to reject that unsupported write.
+
+## Site Audit export formats and transport
+
+`audit-export-pages --snapshot-id <id>` exports the snapshot's page-property
+columns. `audit-export-page-issues --campaign-id <id>` exports the campaign's
+latest page-by-issue matrix. `audit-export-markup --snapshot-id <id>` exports
+markup and structured-data columns. Each supports CSV and XLSX, relative URLs,
+the native sort string and filter string. They are reads and require an explicit
+CLI output path. Snapshot exports retain their selected crawl; the campaign
+matrix follows its latest snapshot.
+
+Native checks against one completed 23-page snapshot returned HTTP 200 for all
+six format/report combinations. XLSX files contained valid workbook XML and
+worksheets. The native bundle's crawled-links export constant instead returned
+HTTP 404, `no endpoint for the requested path`, for both formats while the
+control exports succeeded. It is not exposed as a working command or classified
+as a Guru subscription denial.
+
+Binary exports use one scoped HTTP client per download with retries disabled.
+It receives a transient copy of the browser cookies, returns cookie updates to
+the browser and is disposed on success, failure or interruption. Cancellation
+aborts only that export and leaves the serialized MCP runtime usable. The same
+JSON, form and multipart contracts, pending-job polling and artifact bytes remain
+unchanged. Galleton remains the sole durable credential store.
