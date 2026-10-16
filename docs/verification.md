@@ -1,8 +1,8 @@
 # Verification
 
-Version 0.18.0 source verification: 2026-10-16. The source suite passed 178
-tests in a private ARM64 Raft runner, including real Chromium, Galleton and
-stateful HTTP fixtures. Release CI and public package verification are pending.
+Version 0.18.0 verification: 2026-10-16. The source suite passed 178 tests in
+CI and a private ARM64 Raft runner, including real Chromium, Galleton and
+stateful HTTP fixtures. The public npm and GitHub archives match the CI artifact.
 Live responses and credentials remain outside the repository. Evidence below
 distinguishes local fixtures, native CI and real account execution.
 
@@ -25,12 +25,28 @@ returned one staged URL and `result:true`, and preserved manual recurring
 settings. The real CLI read the CSV through `--contents-file`, committed one URL
 and retained `recrawl:"never"`. File-input preview and an authenticated remote
 doctor also passed. Only the authorized Semrush session was transferred to the
-private runner for those checks; its copy is removed after verification.
+private runner for those checks; its copy was removed after verification.
 Fixture coverage checks exact BOM/CRLF bytes, endpoint query preservation,
 write ordering, one commit, lock refusal, foreign-endpoint refusal, zero URLs
 and malformed staging. Project-wide TypeScript, Oxlint, generated-reference
 checks, all five bundled daemon builds and all 178 tests passed remotely after
 matching the native response contract.
+
+CI run `38915454726` passed the source check, docs build and Linux, macOS and
+Windows package checks. The npm and GitHub downloads are identical to its
+14,468,097-byte package, SHA-256
+`7acf34e3e743d051e0cbd708988af53f9fae4d1609d2c7ba100dddca5a679ecf`.
+A fresh registry install in Raft advertised 262 tools, 177 reads and 85 writes.
+Authenticated account, owned-project and audit-status MCP reads, an import
+preview and the public CLI's doctor passed. The temporary session was forgotten,
+its Galleton vault was removed, and the runner was stopped. The installed local
+command reports `0.18.0`.
+
+The import fixture remains owned by this task for scope-replacement verification.
+A subsequent root-to-both atomic creation selected a fresh audit while retaining
+the nondefault brands, category, country and manual schedule in its immediate
+readback. Analysis is still processing; completed-state and prior-audit behavior
+remain under investigation. No scope-replacement operation is exposed yet.
 
 ## Version 0.17.0 Guru Backlink Audit extensions
 

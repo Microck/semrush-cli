@@ -76,7 +76,8 @@ file-source bulk clearing passed the native API. Partial settings edits preserve
 omitted values, nonempty category/country selection passed, and explicit clearing
 and restoration passed. See the [Backlink Audit guide](/docs/backlink-audit).
 
-Completed release passes deleted their owned fixtures and checked their absence.
+Earlier release passes deleted their owned fixtures and checked their absence.
+The current import fixture is retained for scope-replacement verification.
 Existing account resources were preserved. Credentials and detailed responses
 stay outside the repository. [Versioned verification evidence](https://github.com/Microck/semrush-cli/blob/main/docs/verification.md)
 records the tested releases and their public artifacts.
@@ -109,11 +110,11 @@ its native job API and download endpoint both accepted this Guru session. The
 CLI supports native CSV and disavow TXT exports. The live MCP resource matched
 the provider's CSV bytes exactly. UI trial flags alone do not establish access.
 
-Backlink Audit scope replacement remains unexposed. The native operation reset
-manual settings to a two-week schedule with notifications enabled. Atomic audit
-creation accepts explicit manual settings but starts a fresh audit instead of
-preserving the existing history. Neither observed flow meets a scope edit's
-settings-preservation requirements.
+Backlink Audit scope replacement remains unexposed. The native scope-change
+operation reset manual settings to a two-week schedule with notifications enabled.
+A root-to-both atomic replacement retained the selected settings in its immediate
+readback and started a fresh audit. Completed-state verification is still pending;
+the CLI does not promise an in-place edit that preserves analysis history.
 
 Position Tracking retained old brands after an empty brand-list write, so the
 CLI rejects that tracking request. Backlink Audit supports clearing its brands. Notes also have a native URL-validation quirk documented

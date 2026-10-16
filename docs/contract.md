@@ -581,10 +581,14 @@ campaign: native incremental import kept `statusId:1` while `isLocked:true`.
 
 Scope replacement is not exposed. A native `domains.ApplySettingsScope` call
 created a new audit ID and reset manual scheduling to `recrawl:"2weeks"` with
-`recrawlNotify:true`. `domains.AddByProjectId` accepts manual settings atomically,
-but starts a fresh audit even for an existing scope. Neither observed contract
-provides a scope edit that preserves the current audit and notification settings.
-Do not emulate it with an unsafe reset followed by a separate settings write.
+`recrawlNotify:true`. A subsequent owned root-to-both probe used
+`domains.AddByProjectId` with the current settings and explicit false notification
+and Majestic flags. Its acknowledgement and project readback retained nondefault
+brands, category, country and `recrawl:"never"` while selecting a fresh audit ID.
+The replacement starts analysis; completed-state and old-audit behavior still
+require verification. Treat this as a destructive replacement with fresh history,
+not an in-place history-preserving edit. Do not emulate it with a reset followed
+by a separate settings write.
 
 Primary sources are the native target-page saga and table columns in
 `bla_app.5d2833627b8d6106dd60.js`, comment handlers/editor in
