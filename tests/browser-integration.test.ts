@@ -13,6 +13,7 @@ import { Semrush } from '../src/browser-service.js';
 import { Exports, exportsLive } from '../src/exports.js';
 import { parseReport } from '../src/validation.js';
 import type { Query } from '../src/report-parameters.js';
+import { makeTrackingTargetsFixture } from './tracking-targets-fixture.js';
 import { makeNotesFixture } from './notes-fixture.js';
 import { makeTrackingAlertsFixture } from './tracking-alerts-fixture.js';
 import { makeTransferFixture } from './basket-transfer-fixture.js';
@@ -46,6 +47,7 @@ const serveDomainFixture = makeDomainFixture();
 const serveSeedFixture = makeSeedFixture();
 const serveTransferFixture = makeTransferFixture();
 const serveTrackingAlertsFixture = makeTrackingAlertsFixture();
+const trackingTargetsFixture = makeTrackingTargetsFixture();
 const serveNotesFixture = makeNotesFixture();
 const fixtureHandlers = new Map([[folderPath, serveProjectFixture], [savedPath, serveSavedFixture], ['/notes/api/', serveNotesFixture]]);
 const fixture = createServer(async (request, response) => {
@@ -333,6 +335,7 @@ let trackingSettingWrites = 0;
 let trackingSettingsState = { tracking_url: 'example.com', tracking_url_type: 'rootdomain', business_name: 'original business', brands: ['original brand'] };
 let trackingVolume = 'national';
 async function serveTrackingFixture(request: IncomingMessage, response: ServerResponse, url: URL) {
+  if (await trackingTargetsFixture.serve(request, response, url)) return;
   expect(request.headers.cookie).toContain('session=authorized');
   response.setHeader('Content-Type', 'application/json');
   if (url.pathname.startsWith('/tracking/web-api/reports/')) {
@@ -731,4 +734,30 @@ test('native notes preserve partial edits, personal visibility and ownership thr
     expect((yield* call('note_delete', { note_id: 'owned-note', confirm: true })).data).toBeNull();
     expect((yield* call('notes', list)).data).toMatchObject({ count: 2 });
   }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+
+test('native target replacement preserves complete keyword tags and deletion removes only the selected target', async () => {
+  const state = trackingTargetsFixture.state;
+  state.enabled = true; state.editable = true; state.malformed = false; state.deleted = false; state.writes = 0;
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const service = yield* Semrush;
+      const call = (name: string, input: Query = {}) => Effect.gen(function* () { return yield* service.report(yield* parseReport(name, { campaign_id: '789_42', ...input })); });
+      expect((yield* call('position_keywords')).data).toMatchObject({ data: state.keywords });
+      const replaced = yield* call('position_replace', { device: 'phone', location_id: 2826, language_code: 'es', confirm: true });
+      expect(replaced.data).toMatchObject({ status: 'SUCCESS', result: { id: '789_43' }, diagnostic: 'accepted [redacted]' });
+      expect(state).toMatchObject({ device: 'phone', location: 2826, language: 'es', engine: 'google', writes: 1 });
+      state.editable = false;
+      const refused = yield* call('position_delete', { confirm: true }).pipe(Effect.flip);
+      expect(refused.message).toContain('read-only'); expect(state.writes).toBe(1);
+      state.editable = true; state.malformed = true;
+      const missing = yield* call('position_replace', { engine: 'bing', confirm: true }).pipe(Effect.flip);
+      expect(missing.message).toContain('metadata'); expect(state.writes).toBe(1);
+      state.malformed = false;
+      const deleted = yield* call('position_delete', { confirm: true });
+      expect(deleted.data).toMatchObject({ status: 'SUCCESS', targets: ['789_99'], diagnostic: 'accepted [redacted]' });
+      expect(state.deleted).toBe(true); expect(state.writes).toBe(2);
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { state.enabled = false; }
 }, 30000);

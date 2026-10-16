@@ -68,20 +68,21 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
   const semaphore = yield* Semaphore.make(1);
   let spectrumToken = '';
   const request = Effect.fn('Semrush.request')(function* (path: string, payload: Schema.Json, method = 'POST', extraHeaders: Record<string, string> = {}, responseType: 'json' | 'empty' = 'json') {
+    const secrets = [auth.apiKey, spectrumToken, spectrumToken.replace(/^Bearer /, ''), objectValue(payload) && Predicate.isString(payload.display_hash) ? payload.display_hash : ''];
     const wire = yield* browserCall(() => page.evaluate(async ({ path, encodedPayload, method, extraHeaders }) => {
       const payload: Schema.Json = JSON.parse(encodedPayload);
       const query = new URLSearchParams();
-      const get = method === 'GET';
-      if (get) for (const [key, value] of Object.entries(payload ?? {})) for (const item of Array.isArray(value) ? value : [value]) query.append(key, String(item));
+      const queryOnly = method === 'GET' || method === 'DELETE';
+      if (queryOnly) for (const [key, value] of Object.entries(payload ?? {})) for (const item of Array.isArray(value) ? value : [value]) query.append(key, String(item));
       const options: RequestInit = { method, credentials: 'include', headers: extraHeaders, signal: AbortSignal.timeout(45000) };
       // The web clients send JSON content type even for bodyless POST/PUT/PATCH actions.
       if (['POST', 'PUT', 'PATCH'].includes(method)) options.headers = { 'Content-Type': 'application/json', ...extraHeaders };
-      if (!get && method !== 'DELETE' && payload !== null) options.body = JSON.stringify(payload);
-      const response = await fetch(get && query.size > 0 ? path + (path.includes('?') ? '&' : '?') + query : path, options);
+      if (!queryOnly && payload !== null) options.body = JSON.stringify(payload);
+      const response = await fetch(queryOnly && query.size > 0 ? path + (path.includes('?') ? '&' : '?') + query : path, options);
       return { status: response.status, text: await response.text() };
     }, { path, encodedPayload: JSON.stringify(payload), method, extraHeaders }));
     if (wire.status < 200 || wire.status >= 300) {
-      const detail = yield* Effect.try({ try: () => JSON.stringify(redact(parseWire(wire.text), [auth.apiKey, spectrumToken, spectrumToken.replace(/^Bearer /, '')])).slice(0, 500), catch: safeBrowserError }).pipe(Effect.option);
+      const detail = yield* Effect.try({ try: () => JSON.stringify(redact(parseWire(wire.text), secrets)).slice(0, 500), catch: safeBrowserError }).pipe(Effect.option);
       return yield* Effect.fail(new ReportError({ message: `Semrush request returned HTTP ${wire.status}.${Option.isSome(detail) ? ' ' + detail.value : ' Check your session and account permissions.'}` }));
     }
     if (wire.status === 204 && !wire.text) return null;
@@ -91,7 +92,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     }
     const body = yield* Effect.try({ try: () => parseWire(wire.text), catch: () => new ReportError({ message: 'Semrush returned a page or challenge instead of JSON. Sign in again or retry later.' }) });
     if (path === '/tracking/alerts/' && objectValue(body) && body.error_code !== 0) return yield* Effect.fail(new ReportError({ message: `Semrush tracking alert request failed: ${JSON.stringify(redact(body.error_message ?? body, [auth.apiKey])).slice(0, 500)}` }));
-    if (objectValue(body) && ('error' in body || (!path.startsWith('/siteaudit/') && 'status' in body && !(body.status === null || body.status === 'SUCCESS' || body.status === 'success' || body.status === 'ok')))) return yield* Effect.fail(new ReportError({ message: `Semrush report failed: ${JSON.stringify(redact(body.error ?? body.error_message ?? body.status ?? null, [auth.apiKey, spectrumToken, spectrumToken.replace(/^Bearer /, '')])).slice(0, 500)}` }));
+    if (objectValue(body) && ('error' in body || (!path.startsWith('/siteaudit/') && 'status' in body && !(body.status === null || body.status === 'SUCCESS' || body.status === 'success' || body.status === 'ok')))) return yield* Effect.fail(new ReportError({ message: `Semrush report failed: ${JSON.stringify(redact(body.error ?? body.error_message ?? body.status ?? null, secrets)).slice(0, 500)}` }));
     return body;
   });
   const rpc = Effect.fn('Semrush.rpc')(function* (method: string, params: Query, transport = 'keyword', webReport = 'domain.overview') {
@@ -228,6 +229,36 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       type: settings.tracking_url_type, businessName: settings.business_name ?? '', brands: settings.brands ?? [],
       volume_type: metadata.data.filters.volume_type, display_hash: edit.info.campaign_edit.hash, rnd: edit.info.campaign_edit.random }, changes);
   });
+  /** Target replacement clears history; retain the wizard's current settings and complete keyword/tag selection. */
+  const targetBody = Effect.fn('Semrush.targetBody')(function* (name: string, query: Query, changes: Schema.Json) {
+    if (name !== 'position_replace' && name !== 'position_delete') return changes;
+    const current = yield* request(`/tracking/web-api/management/campaign/${query.campaign_id}/info`, { api_key: auth.apiKey }, 'GET');
+    if (!objectValue(current) || !objectValue(current.data) || current.data.can_edit !== true) return yield* Effect.fail(new ReportError({ message: 'This tracking target is read-only or its settings are unavailable. Inspect position-info before changing it.' }));
+    const hashes = yield* request('/tracking/hashes', { id: query.campaign_id ?? null }, 'GET');
+    const hashName = name === 'position_delete' ? 'add_keywords' : 'campaign_create';
+    const nativeHash = objectValue(hashes) && objectValue(hashes.info) ? hashes.info[hashName] : null;
+    const capability = yield* Schema.decodeUnknownEffect(Schema.Struct({ hash: Schema.String, random: Schema.Number }))(nativeHash)
+      .pipe(Effect.mapError(() => new ReportError({ message: 'Tracking target request metadata is unavailable. Inspect the target before another write.' })));
+    const privateFields = { key: auth.apiKey, display_hash: capability.hash, rnd: capability.random };
+    if (name === 'position_delete') return privateFields;
+    const metadata = yield* Schema.decodeUnknownEffect(Schema.Struct({
+      campaign_settings: Schema.Struct({ title: Schema.String, tracking_url: Schema.String, tracking_url_type: Schema.String,
+        business_name: Schema.NullOr(Schema.String), brands: Schema.NullOr(Schema.Array(Schema.String)), weekly_notification: Schema.Boolean,
+        targeting: Schema.Struct({ engine: Schema.String, device: Schema.String, language: Schema.String }) }),
+      location: Schema.Struct({ id: Schema.Number }), filters: Schema.Struct({ volume_type: Schema.String }),
+    }))(current.data).pipe(Effect.mapError(() => new ReportError({ message: 'Tracking replacement settings are unavailable. No target was replaced.' })));
+    const allKeywords = yield* request(`/tracking/web-api/management/campaign/${query.campaign_id}/keywords`, {}, 'GET');
+    const selected = yield* Schema.decodeUnknownEffect(Schema.Struct({ data: Schema.Array(Schema.Struct({ keyword: Schema.String, tags: Schema.Array(Schema.String) })) }))(allKeywords)
+      .pipe(Effect.mapError(() => new ReportError({ message: 'The complete tracked keyword/tag selection is unavailable. No target was replaced.' })));
+    const settings = metadata.campaign_settings;
+    return Object.assign({ id: query.campaign_id ?? null, title: settings.title, engine: settings.targeting.engine,
+      device_group: settings.targeting.device, location_id: metadata.location.id, language_code: settings.targeting.language,
+      businessName: settings.business_name ?? '', brands: [...settings.brands ?? []], volume_type: metadata.filters.volume_type,
+      trackingUrl: settings.tracking_url, trackingUrlType: settings.tracking_url_type, weekly_notification: settings.weekly_notification,
+      keywords: selected.data.map(keyword => keyword.keyword),
+      tags: Object.fromEntries(selected.data.filter(keyword => keyword.tags.length > 0).map(keyword => [keyword.keyword, [...keyword.tags]])),
+    }, changes, privateFields);
+  });
   /** Notes updates replace native fields; read ownership and retain omitted selections first. */
   const noteBody = Effect.fn('Semrush.noteBody')(function* (name: string, path: string, changes: Schema.Json) {
     if (name !== 'note_update' && name !== 'note_delete') return changes;
@@ -262,7 +293,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     const formEncoded = 'encoding' in planned && planned.encoding === 'form';
     const headers: Record<string, string> = family === 'notes_web' && !formEncoded ? { authorization: 'Token ' + auth.apiKey } : {};
     if (formEncoded) return { ...planned, path, headers, body: { token: auth.apiKey } };
-    const body = family === 'tracking_web' ? yield* trackingBody(definition, query, planned.body)
+    const body = family === 'tracking_web' ? yield* targetBody(name, query, yield* trackingBody(definition, query, planned.body))
       : family === 'notes_web' ? yield* noteBody(name, path, planned.body) : planned.body;
     return { ...planned, path, headers, body };
   });
@@ -276,8 +307,10 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     const planned = ['project_web', 'audit_web', 'tracking_web', 'saved_web', 'notes_web'].includes(family) ? webRequest(definition, query) : undefined;
     const params = planned ? {} : reportParameters(definition, query);
     let reportData: Schema.Json | undefined;
+    let requestSecret = "";
     if (planned) {
       const prepared = yield* prepareWebRequest({ name, definition, query }, planned);
+      if (objectValue(prepared.body) && 'display_hash' in prepared.body && Predicate.isString(prepared.body.display_hash)) requestSecret = prepared.body.display_hash;
       if ('response_type' in definition && definition.response_type === 'download') {
         const artifact = yield* Effect.scoped(downloadExport(prepared, query.format));
         yield* captureCookies(context, sessions.capture, browserOrigin);
@@ -327,7 +360,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     }
     if (Predicate.isNumber(query.limit) && Array.isArray(reportData)) reportData = reportData.slice(0, query.limit);
     yield* captureCookies(context, sessions.capture, browserOrigin);
-    return { authenticated: true as const, report: name, data: redact(reportData ?? null, [auth.apiKey, spectrumToken, spectrumToken.replace(/^Bearer /, '')]) };
+    return { authenticated: true as const, report: name, data: redact(reportData ?? null, [auth.apiKey, spectrumToken, spectrumToken.replace(/^Bearer /, ''), requestSecret]) };
   });
   return Semrush.of({ report: request => semaphore.withPermits(1)(report(request)) });
 }));

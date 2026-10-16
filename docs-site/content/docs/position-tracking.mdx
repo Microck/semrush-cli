@@ -181,10 +181,43 @@ The campaign ID sets the reference target. Intersection modes are `all`,
 index in the supplied target array. Keyword rows identify each target with its
 native `id`, including both parts of the campaign ID.
 
-Engine, device, language and location replacement, crawl schedules, alert-event
-changes and tracking exports still require the web UI. [Chart notes](/docs/notes) have a separate guide. Current request contracts were checked against the
+Crawl schedules, alert-event changes and tracking exports still require the web UI. [Chart notes](/docs/notes) have a separate guide. Current request contracts were checked against the
 tracking dashboard and wizard, then verified on a disposable account target.
 
 The current native crawl-scheduling form disables saving below SEO Tier 3.
 The verification account has Guru access, so scheduling remains unverified and
 web-only. No plan upgrade was purchased.
+
+## Replace or delete one target
+
+Replacement permanently deletes the target's ranking history, as the native
+wizard warns. Create a separate target instead when you need to keep history.
+
+```sh
+semrush position-keywords --campaign-id 456_789
+semrush position-replace --campaign-id 456_789 --device phone --dry-run
+semrush position-replace --campaign-id 456_789 --device phone --confirm
+```
+
+Use the returned `data.result.id` for later commands. Replacement reads the
+complete keyword/tag list and current title, URL, business, brands, notification
+and volume settings. It changes only supplied targeting fields: engine, device,
+location ID and language code. At least one targeting field is required. Time
+zone defaults to UTC; use `--timezone` for another whole-hour offset. Account
+limits apply. A dry run cannot show current settings because it does not sign in.
+
+`position-keywords` reads all tracked keywords, including targets without collected
+ranks. It does not use the analytics keyword-suggestion endpoint.
+
+```sh
+semrush position-delete --campaign-id 456_789 --confirm
+```
+
+Deletion removes that target and its history. Other targets and the SEO project
+remain. Both destructive commands require an editable target and fresh native
+request metadata. Neither retries a write.
+
+Location IDs belong to a search engine. Use `position-locations --query
+"United Kingdom" --engine bing` to resolve Bing's IDs and language options.
+Do not reuse Google's numeric location IDs when switching engines. An unsupported
+location/language remains a provider error; no replacement is retried.

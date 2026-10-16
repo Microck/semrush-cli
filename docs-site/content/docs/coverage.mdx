@@ -3,7 +3,7 @@ title: Web UI coverage
 description: Supported web workflows, evidence and remaining gaps.
 ---
 
-The CLI has 206 fixed operations: 141 reads and 65 confirmed writes.
+The CLI has 209 fixed operations: 142 reads and 67 confirmed writes.
 It uses your web session and the current web UI's request contracts. Account
 permissions and quotas apply to both interfaces. This is not full Semrush suite
 parity. The table distinguishes implemented workflows from remaining gaps.
@@ -23,7 +23,7 @@ parity. The table distinguishes implemented workflows from remaining gaps.
 | Project dashboard | Toolkit status, metric values and detail URLs | Third-party integration setup |
 | SEO setup | Create an SEO project and explicitly start automatic Site Audit/Position Tracking setup | Protected-site audit setup |
 | Site Audit | Discovery, limits, public-site settings, schedules, launch, page and issue tables, page recrawl, execution status, abort/finalize, structure, performance, linking, history, snapshots, CSV/XLSX exports | Protected-site authentication, Google Analytics connections and crawled-links export |
-| Position Tracking | Target creation, locations, limits, keyword add/delete/tags, competitor replacement, partial address/business/brand/volume settings edits, campaign settings reads, alert listing/counts, rule lifecycle, rankings, pages, ranking distribution, competitor discovery, target comparison, visibility/distribution/cannibalization trends | Engine/device/language/location replacement, Tier 3 crawl schedules, brand-list clearing, alert-event changes and paid-only UI exports |
+| Position Tracking | Target creation, destructive replacement/deletion, complete tracked keyword/tag reads, locations, limits, keyword add/delete/tags, competitor replacement, partial address/business/brand/volume settings edits, campaign settings reads, alert listing/counts, rule lifecycle, rankings, pages, ranking distribution, competitor discovery, target comparison, visibility/distribution/cannibalization trends | Tier 3 crawl schedules, brand-list clearing, alert-event changes and paid-only UI exports |
 | Keyword Strategy Builder | Domain strategy lifecycle, presets, filtered page opportunities, page URLs/SERPs, existing/recommended keywords, keyword deletion and CSV/XLSX exports; seed-based basket lifecycle, topics/pages, paginated clusters, favorites, selected-cluster deletion and metric refresh, keyword import, tags, deletion/undo, clustering, four native export selections and owner-aware selected keyword/cluster copy/move | Mind-map image exports, content generation and connected tracking actions |
 | Saved Keywords | Create, rename, delete/undo collections; keyword import, filters, metrics, tags, workflow labels, copy/move, deletion/undo, metadata and CSV/semicolon CSV/XLSX exports | Content generation and connected tracking actions |
 | Chart notes | List, detail, database options, owned note lifecycle, hide/show and per-chart category preferences and all-notes CSV export | Native chart rendering |
@@ -31,10 +31,10 @@ parity. The table distinguishes implemented workflows from remaining gaps.
 
 ## Verification
 
-The source suite has 145 tests, including real Chromium, a private Galleton
+The source suite has 148 tests, including real Chromium, a private Galleton
 daemon and stateful HTTP fixtures. All 48 original research mappings also have
 differential tests against the Python reference. Across versioned live passes,
-all 141 reads and 64 of 65 writes have execution evidence. Shared-project leave
+all 142 reads and 66 of 67 writes have execution evidence. Shared-project leave
 has request-contract coverage but no shared-account fixture.
 
 Live checks covered project lifecycle, bounded Site Audit crawls and stop
@@ -43,6 +43,12 @@ seed-based strategies and domain strategies. Native CSV/XLSX exports passed
 file and resource checks. Tracking comparison returned positive desktop and
 mobile ranks for the same phrase; pagination, sorting and intersection selectors
 passed on owned targets.
+
+Tracking replacement changed owned targets to mobile/Spanish and Bing/UK/English
+while preserving keywords, tags and the checked settings. Single-target deletion
+left the sibling intact. Location lookup now accepts a search engine because
+Google and Bing use different numeric IDs. Replacement clears ranking history,
+as the native wizard warns.
 
 The notes pass verified all eleven operations. Partial edits preserved omitted
 fields. Explicit project-scope and nonempty-link clearing, hide/show and category

@@ -75,7 +75,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 
 ## command surface
 
-206 operations, available as cli commands and mcp tools. 141 reads and 65 writes that need explicit confirmation.
+209 operations, available as cli commands and mcp tools. 142 reads and 67 writes that need explicit confirmation.
 
 | command | what it does |
 | --- | --- |
@@ -114,6 +114,9 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 | `audit-create`, `audit-configure`, `audit-start` | configure and launch a site audit |
 | `position-create`, `position-targets`, `position-info` | create targets and read tracking settings |
 | `position-configure` | edit tracking address, business name, brands or volume settings |
+| `position-keywords` | read the complete tracked keyword and tag list, even before rankings arrive |
+| `position-replace` | change engine, device, location or language and clear the target's ranking history |
+| `position-delete` | permanently delete one target and its ranking history |
 | `position-keywords-add`, `position-keywords-delete`, `position-keyword-tags` | manage tracked keywords and tags |
 | `position-competitors-set` | replace the tracked competitor list |
 | `position-alerts`, `position-alert-counts`, `position-triggers`, `position-trigger-count` | read alerts, rules and counts |
@@ -359,6 +362,7 @@ keep the full returned campaign id, such as `456_789`:
 
 ```bash
 semrush position-info --campaign-id 456_789
+semrush position-keywords --campaign-id 456_789
 semrush position-keywords-add --campaign-id 456_789 \
   --keywords '["example website"]' --tags '["research"]' --confirm
 semrush position-competitors-set --campaign-id 456_789 \
@@ -376,7 +380,34 @@ semrush position-configure --campaign-id 456_789 --domain example.org --url-type
 
 `position-configure` reads the current target and preserves fields you omit. address changes require both `--domain` and `--url-type`. `--volume-type` accepts `national`, `regional` or `local`. an empty business name clears it. brands must contain at least one name; this command cannot clear the brand list because semrush ignores an empty array. engine, device and location changes remain outside this command.
 
-new targets need time to collect rankings. use the dates from `position-info` for ranking, page and trend reports. competitor writes replace the whole list. see [position tracking](https://semrush.micr.dev/docs/position-tracking) for locations, tags, keyword deletion and report inputs.
+new targets need time to collect rankings. `position-keywords` reads the complete keyword and tag list before ranking data arrives. use the dates from `position-info` for ranking, page and trend reports. competitor writes replace the whole list. see [position tracking](https://semrush.micr.dev/docs/position-tracking) for locations, tags, keyword deletion and report inputs.
+
+### replace or delete a tracking target
+
+`position-replace` changes the search engine, device, location or language. it permanently clears that target's ranking history. create a separate target if you need to keep history.
+
+```bash
+semrush position-replace --campaign-id 456_789 --device phone --dry-run
+semrush position-replace --campaign-id 456_789 --device phone --confirm
+```
+
+supply at least one of `--engine`, `--device`, `--location-id` or `--language-code`. replacement reads and preserves the current keywords, tags, title, url, business name, brands, weekly notification and volume settings. time zone defaults to utc; use `--timezone` for another whole-hour offset. use the returned `data.result.id` as the campaign id for later commands.
+
+location ids depend on the search engine. before switching engines, resolve the location and language options for the new engine:
+
+```bash
+semrush position-locations --query 'United Kingdom' --engine bing
+```
+
+do not reuse google's location ids for bing. pass the resolved id with `--location-id` when replacing the target.
+
+preview deleting one target:
+
+```bash
+semrush position-delete --campaign-id 456_789 --dry-run
+```
+
+use `--confirm` to delete it and its ranking history permanently. other targets and the seo project remain. both writes require an editable target and do not retry automatically. dry runs show supplied changes without reading current settings.
 
 ### tracking competitors and targets
 

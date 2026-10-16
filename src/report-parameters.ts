@@ -380,6 +380,11 @@ function trackingParameters(definition: Report, query: Query): Query {
     }
     return parameters;
   }
+  if (definition.method.startsWith('/positions/api/targets/')) return {};
+  if (definition.method === '/positions/api/replace_target') {
+    const names = new Map([['campaign_id', 'id'], ['device', 'device_group']]);
+    return Object.fromEntries(Object.entries(publicParameters(definition, query)).map(([key, value]) => [names.get(key) ?? key, value]));
+  }
   const phrases = Array.isArray(query.keywords) ? query.keywords : [];
   if (definition.method.endsWith('/campaign_edit_domain_settings')) {
     const names = new Map([['campaign_id', 'campaignId'], ['url_type', 'type'], ['business_name', 'businessName']]);
@@ -399,7 +404,7 @@ function trackingParameters(definition: Report, query: Query): Query {
     return { delete: phrases };
   }
   if (definition.method.endsWith('/campaign_set_competitors')) return { competitors: Array.isArray(query.competitors) ? query.competitors.map(domain => ({ domain, url: domain })) : [] };
-  if (definition.method.endsWith('/get_locations')) return { q: query.query ?? '' };
+  if (definition.method.endsWith('/get_locations')) return query.engine ? { q: query.query ?? '', filter_engine: query.engine } : { q: query.query ?? '' };
   if (definition.method.startsWith('/tracking/web-api/reports/')) return trackingReportParameters(definition, query);
   return publicParameters(definition, query);
 }

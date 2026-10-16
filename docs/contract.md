@@ -379,3 +379,27 @@ The all-notes CSV export uses a form POST to `/notes/api/notes/export/` with
 only the runtime bootstrap token. The token enters the browser-owned request,
 never a preview or tool result. The native export applies no list filters.
 Its form contract and a successful download were captured from the web UI.
+
+## Tracking target replacement and deletion
+
+`position-keywords --campaign-id <id>` reads the complete tracked keyword/tag list,
+including targets without collected ranks.
+`position-replace --campaign-id <id> --device phone --confirm` replaces the
+selected target through the native wizard endpoint and permanently clears its
+ranking history. Engine, device, location and language are optional changes; at
+least one must be supplied. Current title, URL, business, brands, keywords, tags,
+weekly notification and volume selection are read before execution. Time zone
+defaults to UTC, matching the creation command; select `--timezone` explicitly
+when needed. The result contains the replacement campaign ID. Use that ID for
+further operations. Provider plan restrictions remain errors.
+
+`position-delete --campaign-id <id> --confirm` permanently removes one target
+and its history. Other targets and its SEO project remain. Both destructive
+operations reject read-only targets and acquire fresh native request metadata.
+Dry runs show only supplied public changes, without private hashes or the
+runtime settings read. Neither operation retries a write.
+
+Location IDs belong to a search engine. Use `position-locations --query
+"United Kingdom" --engine bing` to resolve Bing's IDs and language options.
+Do not reuse Google's numeric location IDs when switching engines. An unsupported
+location/language remains a provider error; no replacement is retried.

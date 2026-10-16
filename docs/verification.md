@@ -1,9 +1,44 @@
 # Verification
 
-Current source verification: 2026-10-15. The notes source suite passed 145 tests
-in a private Raft container. Live responses and credentials remain
+Current source verification: 2026-10-16. The source suite passed 148 tests
+locally, including real Chromium, Galleton and stateful HTTP fixtures. Live responses and credentials remain
 outside the repository. Evidence below distinguishes local fixtures, native CI
 and real account execution.
+
+## Version 0.14.0 tracking targets verification
+
+Native replacements changed the owned Google target to mobile/Spanish, then to
+Bing/UK/English. Each returned a new composite target ID. Readbacks preserved
+the complete keyword/tag list, title, URL/type, business, brands and disabled
+weekly email. The native wizard explicitly warns that replacement deletes the
+original target's ranking history. Only disposable targets were replaced.
+
+A request using Google's UK location ID for Bing returned HTTP 400. A readback
+confirmed the target was unchanged. Bing's native location lookup returned its
+own UK ID, and the corrected request passed. `position-locations --engine`
+exposes engine-specific IDs and language options. No failed write was retried
+without inspecting state and correcting its inputs.
+
+`position-delete` removed only the selected target. Project target discovery
+confirmed its absence and the sibling target's continued presence. The complete
+tracked keyword/tag read works before rankings exist. The fixture suite verifies
+read-only refusal, missing native capabilities, current-setting preservation,
+bodyless DELETE query credentials and redaction of echoed private capabilities.
+Strict TypeScript, Oxlint, generated-reference checks and all 148 tests passed.
+Three independent simplification reviews found no changes needed.
+
+## Version 0.13.0 published artifacts
+
+The public npm archive matches the tested archive:
+SHA-256 `b92392658bf02777231ab5feb0ae60ed6b3d3e347cc39b36a1f628474ca43909`.
+The [CI run](https://github.com/Microck/semrush-cli/actions/runs/38825123655)
+passed all five source, docs and platform-installation jobs. Fresh packed and
+public-registry MCP processes advertised 206 tools and passed authenticated
+research, keyword-list, notes and CSV-resource checks. The global command
+reported 0.13.0. Its first doctor check failed with a browser-request error;
+a later check passed without package or session changes. The cause of the first
+failure remains unconfirmed. The notes and coverage pages passed production
+mobile checks with HTTP 200, no page errors and no horizontal overflow.
 
 ## Version 0.13.0 chart notes verification
 

@@ -4535,6 +4535,18 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 200
+        },
+        "engine": {
+          "type": "string",
+          "enum": [
+            "google",
+            "bing",
+            "baidu",
+            "search-gpt",
+            "google-ai",
+            "gemini"
+          ],
+          "description": "Search engine used to resolve native location and language options."
         }
       },
       "required": [
@@ -11041,6 +11053,158 @@
       "additionalProperties": false,
       "properties": {},
       "required": []
+    }
+  },
+  "position_keywords": {
+    "method": "/tracking/web-api/management/campaign/{campaign_id}/keywords",
+    "description": "Read all tracked keywords and tags, including targets without ranking data.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "auth_parameter": "api_key",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$"
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    }
+  },
+  "position_delete": {
+    "method": "/positions/api/targets/{campaign_id}",
+    "description": "Permanently delete one tracking target and its ranking history. Preserve other targets and the SEO project.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "DELETE",
+    "auth_parameter": "key",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$"
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    }
+  },
+  "position_replace": {
+    "method": "/positions/api/replace_target",
+    "description": "Replace tracking engine, device, location or language and permanently clear ranking history. Preserve current keywords, tags and other settings.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "POST",
+    "auth_parameter": "key",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$"
+        },
+        "engine": {
+          "type": "string",
+          "enum": [
+            "google",
+            "bing",
+            "baidu",
+            "search-gpt",
+            "google-ai",
+            "gemini"
+          ]
+        },
+        "device": {
+          "type": "string",
+          "enum": [
+            "desktop",
+            "phone",
+            "tablet"
+          ]
+        },
+        "location_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "language_code": {
+          "type": "string",
+          "pattern": "^[a-z]{2}(?:-[A-Za-z]{2,3})?$"
+        },
+        "volume_type": {
+          "type": "string",
+          "enum": [
+            "national",
+            "regional",
+            "local"
+          ]
+        },
+        "timezone": {
+          "type": "integer",
+          "minimum": -12,
+          "maximum": 14,
+          "default": 0
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "campaign_id"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "engine"
+          ]
+        },
+        {
+          "required": [
+            "device"
+          ]
+        },
+        {
+          "required": [
+            "location_id"
+          ]
+        },
+        {
+          "required": [
+            "language_code"
+          ]
+        }
+      ]
     }
   }
 }

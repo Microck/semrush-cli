@@ -212,3 +212,20 @@ test('notes plans retain native selections, nullable project scope and chart cat
   await expect(preview('note_create', { title: 'Owned', datetime: '2026-02-30T00:00:00Z', tools: ['POSITION_TRACKING'], dry_run: true })).rejects.toThrow('valid UTC');
   await expect(preview('notes', { datetime_from: '2026-10-16T00:00:00Z', datetime_to: '2026-10-15T00:00:00Z' })).rejects.toThrow('must not exceed');
 });
+
+
+test('target replacement and deletion require consent and expose no runtime capabilities in previews', async () => {
+  const selected = { campaign_id: '123_456' };
+  expect(await preview('position_replace', { ...selected, device: 'phone', dry_run: true })).toEqual({ method: 'POST', path: '/positions/api/replace_target', body: { id: '123_456', device_group: 'phone', timezone: 0 } });
+  expect(await preview('position_delete', { ...selected, dry_run: true })).toEqual({ method: 'DELETE', path: '/positions/api/targets/123_456', body: {} });
+  await expect(preview('position_replace', { ...selected, dry_run: true })).rejects.toThrow('required');
+  await expect(preview('position_replace', { ...selected, device: 'phone' })).rejects.toThrow('--confirm');
+  await expect(preview('position_delete', selected)).rejects.toThrow('--confirm');
+  await expect(preview('position_delete', { campaign_id: '../bad', dry_run: true })).rejects.toThrow('pattern');
+});
+
+
+test('tracking engine-specific location lookup matches native selectors', async () => {
+  const parsed = await Effect.runPromise(parseReport('position_locations', { query: 'United Kingdom', engine: 'bing' }));
+  expect(webRequest(parsed.definition, parsed.query).body).toEqual({ q: 'United Kingdom', filter_engine: 'bing' });
+});
