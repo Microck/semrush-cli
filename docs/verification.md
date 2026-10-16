@@ -29,6 +29,18 @@ returns failure without an artifact and preserves later authenticated reads.
 Another real HTTP fixture verifies exact export fields, CSV bytes and cookie
 rotation between exports.
 
+The source MCP also passed a native multipart disavow TXT export in a fresh
+owned Guru test project. Its initial audit reached 541 checked backlinks before
+unlocking. Importing two domain entries, reading them back, retrieving the native
+TXT artifact and later account reads succeeded. The owned folder and attached
+audit were deleted and each returned native 404. The authorized session copy and
+remote vault were removed. Verification resumed from its journal while the audit
+was scoring; no creation, import or export write was repeated.
+
+CI run `38947506463` passed all five jobs, including package setup on Linux,
+macOS and Windows. Its 14,470,521-byte package has SHA-256
+`4470b9701899ca5d14fae62c168de18da88d4d60be686a83b784b79be520a8a2`.
+
 Fresh native controls returned 404, `no endpoint for the requested path`, for
 both crawled-links formats. Plain pages, markup and page/issue matrix downloads
 from the same snapshot succeeded in both formats. Crawled-links, Compare Crawls
