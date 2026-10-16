@@ -107,9 +107,28 @@ Conditions are `enters_top`, `leaves_top`, `changes_more_than`, `gains_more_than
 and `loses_more_than`. Thresholds are integers from 1 to 100. Rules apply to all
 tracked keywords and the position metric. Semrush enforces rule limits.
 
-These commands do not enable weekly emails or schedule email exports. The native
-alert-detail action also marks an alert as read, so it is not exposed as a
-read-only command. Alert-event changes remain web-only.
+These commands do not enable weekly emails or schedule email exports.
+
+## Manage alert events
+
+Copy the exact string `alert_id` from `position-alerts`. Opening an alert marks
+it read, so even the detail command requires confirmation:
+
+```sh
+semrush position-alert-read --campaign-id 456_789 --alert-id opaque-event-id --dry-run
+semrush position-alert-read --campaign-id 456_789 --alert-id opaque-event-id --confirm
+semrush position-alert-mark-all-read --campaign-id 456_789 --confirm
+semrush position-alert-delete --campaign-id 456_789 --alert-id opaque-event-id --confirm
+```
+
+Mark-all applies to every event in that one target, including other list pages.
+Delete permanently removes only the selected event. All three commands support
+offline dry runs and preserve native response envelopes and timestamp units.
+They never retry a write. MCP exposes the same operations as confirmed writes;
+delete also has the destructive annotation. Listing events does not mark them
+read. Source CLI and MCP matched native mark-all on an empty owned target and
+error code 9 for missing-event read/delete requests. Positive state changes
+have stateful HTTP fixture coverage; positive live event checks are still pending.
 
 ## Read rankings
 
@@ -181,7 +200,7 @@ The campaign ID sets the reference target. Intersection modes are `all`,
 index in the supplied target array. Keyword rows identify each target with its
 native `id`, including both parts of the campaign ID.
 
-Crawl schedules, alert-event changes and tracking exports still require the web UI. [Chart notes](/docs/notes) have a separate guide. Current request contracts were checked against the
+Crawl schedules and tracking exports still require the web UI. [Chart notes](/docs/notes) have a separate guide. Current request contracts were checked against the
 tracking dashboard and wizard, then verified on a disposable account target.
 
 The current native crawl-scheduling form disables saving below SEO Tier 3.

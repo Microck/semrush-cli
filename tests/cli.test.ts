@@ -64,8 +64,8 @@ test('built CLI runs help and version without credentials', async () => {
 test('built catalog distinguishes read reports and project writes', async () => {
   const { stdout, stderr } = await cli(['reports', '--json']);
   const listed = JSON.parse(stdout);
-  expect(listed).toHaveLength(271);
-  expect(listed.filter((entry: { read_only: boolean }) => !entry.read_only)).toHaveLength(86);
+  expect(listed).toHaveLength(274);
+  expect(listed.filter((entry: { read_only: boolean }) => !entry.read_only)).toHaveLength(89);
   expect(stderr).toBe('');
 });
 test('invalid usage fails before attempting authentication', async () => {
@@ -92,13 +92,15 @@ test('MCP advertises write safety and previews without an authenticated runtime'
     expect((await client.listResourceTemplates()).resourceTemplates[0]?.uriTemplate).toBe('semrush-export://{export_id}{?offset,limit}');
     await expect(client.readResource({ uri: 'semrush-export://unknown' })).rejects.toThrow('Download an export first');
     const listed = await client.listTools();
-    expect(listed.tools).toHaveLength(271);
+    expect(listed.tools).toHaveLength(274);
     expect(listed.tools.find(tool => tool.name === 'project_delete')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
     expect(listed.tools.find(tool => tool.name === 'backlink_audit_disavow_import')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
     expect(listed.tools.find(tool => tool.name === 'backlink_audit_export')?.annotations).toMatchObject({ readOnlyHint: true, idempotentHint: false });
     expect(listed.tools.find(tool => tool.name === 'backlink_audit_replace_scope')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true, idempotentHint: false });
     for (const name of ['backlink_audit_comment_delete', 'backlink_audit_tag_delete']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
     expect(listed.tools.find(tool => tool.name === 'project_create')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false });
+    for (const name of ['position_alert_read', 'position_alert_mark_all_read']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false, idempotentHint: false });
+    expect(listed.tools.find(tool => tool.name === 'position_alert_delete')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true, idempotentHint: false });
     for (const name of ['audit_js_impact_guide', 'audit_js_impact_changed_pages', 'audit_js_impact_pages', 'audit_export_js_impact', 'audit_export_all']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: true, destructiveHint: false });
     const preview = await client.callTool({ name: 'project_create', arguments: { name: 'example', dry_run: true } });
     expect(preview.isError).not.toBe(true);
@@ -107,6 +109,18 @@ test('MCP advertises write safety and previews without an authenticated runtime'
     expect(denied.isError).toBe(true);
     expect(denied.content).toEqual([{ type: 'text', text: expect.stringContaining('confirm:true') }]);
   } finally { await client.close(); }
+});
+
+test('alert event commands preview offline and require confirmation before authentication', async () => {
+  for (const command of ['position-alert-read', 'position-alert-delete', 'position-alert-mark-all-read']) {
+    const selection = ['--campaign-id', '123_456'];
+    if (command !== 'position-alert-mark-all-read') selection.push('--alert-id', '900719925474099312345');
+    const preview = JSON.parse((await cli([command, ...selection, '--dry-run', '--json'])).stdout);
+    expect(preview.request.path).toBe('/tracking/alerts/');
+    expect(preview.request.body).not.toHaveProperty('key');
+    if (command !== 'position-alert-mark-all-read') expect(preview.request.body.alert_id).toBe('900719925474099312345');
+    await expect(cli([command, ...selection])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('--confirm') });
+  }
 });
 
 

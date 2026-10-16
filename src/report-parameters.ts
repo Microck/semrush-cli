@@ -483,6 +483,7 @@ function trackingParameters(definition: Report, query: Query): Query {
   if ('request_type' in definition) {
     const parameters: Query = { campaign_id: query.campaign_id ?? null, request_type: definition.request_type };
     if (definition.request_type === 'alert_list_read') return { ...parameters, page: query.page ?? 1, display_limit: query.limit ?? 50 };
+    if ('alert_id' in query) parameters.alert_id = query.alert_id ?? null;
     if ('trigger_id' in query) parameters.trigger_id = query.trigger_id ?? null;
     if ('condition' in query) {
       const rule: Query = {

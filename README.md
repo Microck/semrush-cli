@@ -79,7 +79,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 
 ## command surface
 
-271 operations, available as cli commands and mcp tools. 185 reads and 86 writes that need explicit confirmation.
+274 operations, available as cli commands and mcp tools. 185 reads and 89 writes that need explicit confirmation.
 
 | command | what it does |
 | --- | --- |
@@ -140,6 +140,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 | `position-keywords-add`, `position-keywords-delete`, `position-keyword-tags` | manage tracked keywords and tags |
 | `position-competitors-set` | replace the tracked competitor list |
 | `position-alerts`, `position-alert-counts`, `position-triggers`, `position-trigger-count` | read alerts, rules and counts |
+| `position-alert-read`, `position-alert-mark-all-read`, `position-alert-delete` | read and mark an alert, mark all alerts read or delete one alert |
 | `position-trigger-create`, `position-trigger-update`, `position-trigger-delete` | create, replace or delete an alert rule |
 | `position-overview`, `position-pages`, `position-overview-trend` | rankings, landing pages and trends |
 | `position-distribution`, `position-competitors`, `position-targets-compare` | ranking buckets, competitor discovery and device/location comparisons |
@@ -571,7 +572,19 @@ semrush position-triggers --campaign-id 456_789
 semrush position-trigger-count --campaign-id 456_789
 ```
 
-alert lists leave unread status unchanged. create a rule for a keyword entering the top 10, then use its returned trigger id to replace or delete it:
+alert lists leave unread status unchanged. use an exact `alert_id` string from `position-alerts` to read and mark one event, or preview deleting it:
+
+```bash
+semrush position-alert-read --campaign-id 456_789 --alert-id '<alert_id>' --confirm
+semrush position-alert-mark-all-read --campaign-id 456_789 --dry-run
+semrush position-alert-delete --campaign-id 456_789 --alert-id '<alert_id>' --dry-run
+```
+
+`position-alert-read` returns the alert detail and marks it read, so it requires confirmation. `position-alert-mark-all-read --confirm` marks every alert in that target read across all pages. `position-alert-delete --confirm` permanently deletes the selected event. these commands do not change alert rules, and they do not retry writes. mcp exposes the same operations with underscores and requires `confirm: true` or `dry_run: true`.
+
+stateful http fixtures verify event changes. live source cli and mcp checks matched native responses when marking an empty target read and native failures when reading or deleting a missing event. positive live event changes remain unverified because the owned target had no alert events.
+
+create a rule for a keyword entering the top 10, then use its returned trigger id to replace or delete it:
 
 ```bash
 semrush position-trigger-create --campaign-id 456_789 --domain example.com \
@@ -768,7 +781,7 @@ npm run check
 
 the cli uses the published [`galleton` 0.1.0 sdk](https://www.npmjs.com/package/galleton). the bundled galleton daemon is still required for sessions. building it from source requires go 1.23 or newer, `tar` and `patch`. published cli packages include the daemon for supported platforms, so npm users do not need go.
 
-the current source passed 200 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
+the current source passed 202 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
 
 ## documentation
 

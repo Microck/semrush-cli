@@ -1,6 +1,6 @@
 # Architecture
 
-The CLI and stdio MCP share a catalog of 271 operations, 185 reads and 86 writes,
+The CLI and stdio MCP share a catalog of 274 operations, 185 reads and 89 writes,
 and one Semrush Effect service. Input validation populates defaults before
 credential-bearing resources are acquired. The browser layer owns a transient
 Chromium context, reads page bootstrap metadata without evaluating page-owned

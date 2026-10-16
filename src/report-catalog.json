@@ -15122,5 +15122,115 @@
         "campaign_id"
       ]
     }
+  },
+  "position_alert_read": {
+    "method": "/tracking/alerts/",
+    "description": "Read one selected tracking alert and mark it as read. Requires confirmation.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "request_type": "alert_read",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$"
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false
+        },
+        "alert_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Exact opaque alert_id string from position-alerts."
+        }
+      },
+      "required": [
+        "campaign_id",
+        "alert_id"
+      ]
+    }
+  },
+  "position_alert_delete": {
+    "method": "/tracking/alerts/",
+    "description": "Permanently delete one selected tracking alert.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "POST",
+    "request_type": "alert_delete",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$"
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false
+        },
+        "alert_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Exact opaque alert_id string from position-alerts."
+        }
+      },
+      "required": [
+        "campaign_id",
+        "alert_id"
+      ]
+    }
+  },
+  "position_alert_mark_all_read": {
+    "method": "/tracking/alerts/",
+    "description": "Mark every alert in one selected tracking target as read, across all pages.",
+    "transport": "tracking_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "request_type": "alert_mark_as_read",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^[0-9]+_[0-9]+$"
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    }
   }
 }

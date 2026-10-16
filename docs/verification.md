@@ -1,5 +1,31 @@
 # Verification
 
+## Version 0.24.0 alert event commands
+
+The source catalog contains 274 operations, 185 reads and 89 confirmed writes.
+TypeScript, Oxlint, generated references and all 202 tests passed on Raft.
+Five daemon builds passed before the final test-only review edits. Independent
+simplification reviews prompted reuse of a fixture response helper and explicit
+request cases in the denial test. No production behavior changed during review.
+
+Three commands expose the current native alert requests. Opening one alert
+returns details and marks it read; mark-all applies across pages in one target;
+delete removes one selected event. Confirmation, offline previews, opaque IDs,
+MCP mutation annotations and native timestamp units are covered. A stateful
+authenticated HTTP fixture verifies unread-count changes, marking remaining
+events read, deleting one while preserving another, missing-event failures and
+HTTP-200 permission errors. These are positive fixture checks, not proof of
+positive live event transitions.
+
+Actual source CLI and MCP calls matched the native mark-all response on a new
+owned target with no events. Both clients also matched native error code 9 for
+missing-event detail and deletion requests. The authenticated doctor passed.
+Three rules on the fresh target did not produce events during the bounded poll;
+the prior owned fixture was already deleted. Positive live event transitions
+remain unverified. The new owned project was deleted, its project read returned
+404 and its tracking target became unavailable. The session was forgotten and
+remote vault removed. Existing account projects and alerts were untouched.
+
 ## Version 0.23.0 All reports
 
 The source catalog contains 271 operations, 185 reads and 86 confirmed writes.

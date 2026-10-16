@@ -320,9 +320,17 @@ ID in both the outer request and the body, as the native editor does. Trigger
 IDs remain strings. The native UI maps `campaign_url` directly from
 `position-info` data.campaign_settings.tracking_url. Rules do not enable weekly emails or schedule email exports.
 
-`alert_read` marks an alert as read in the native backend. It is deliberately
-excluded from read-only report tools. This batch does not expose alert event
-mutation, account-wide schedules, purchases or outreach.
+`position-alert-read --campaign-id <id> --alert-id <id> --confirm` sends native
+`alert_read`, returns the detail envelope and marks that event read.
+`position-alert-mark-all-read --campaign-id <id> --confirm` sends
+`alert_mark_as_read` for every event in that one target, including events on
+other list pages. `position-alert-delete --campaign-id <id> --alert-id <id>
+--confirm` sends `alert_delete` and permanently deletes only that event.
+Alert IDs are opaque strings copied from `position-alerts`, never converted to
+numbers. All three operations are writes requiring confirmation or an offline
+dry run. Delete is destructive. They preserve native timestamps, use the same
+nonzero-error-code handling and never retry a write. List/count reads do not
+change read state. No operation sends outreach or enables weekly notifications.
 
 Primary sources are the tracking 1.280.2 entry module's GlobalStore and Main
 modules and `lazy/components/firstTriggerModal.e1bff77a57ae04ec2e14.js`.

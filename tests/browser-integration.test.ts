@@ -789,12 +789,31 @@ test('tracking alert lists preserve unread state and confirmed rules complete a 
     yield* report('position_trigger_update', { ...selection, trigger_id: 'rule-1', condition: 'leaves_top', threshold: 20 });
     expect((yield* report('position_triggers', campaign)).data).toMatchObject({ trigger_ids: [{ trigger_body: { condition: 'leaves_top', threshold: 20 } }] });
     const alerts = yield* report('position_alerts', { ...campaign, page: 2, limit: 10 });
-    expect(alerts.data).toMatchObject({ alert_ids: [{ alert_body: { date: 1792094400, is_read: 0 } }] });
-    expect((yield* report('position_alert_counts', campaign)).data).toMatchObject({ unread_items_count: 1 });
+    expect(alerts.data).toMatchObject({ alert_ids: [
+      { alert_id: '900719925474099312345', alert_body: { date: 1792094400, is_read: 0 } },
+      { alert_id: 'alert-2', alert_body: { date: 1792094401, is_read: 0 } },
+    ] });
+    expect((yield* report('position_alert_counts', campaign)).data).toMatchObject({ unread_items_count: 2 });
+    const selected = { ...campaign, alert_id: '900719925474099312345', confirm: true };
+    expect((yield* report('position_alert_read', selected)).data).toMatchObject({ alert_body: { date: 1792094400, date_begin: 1792008000, date_end: 1792094400, is_read: 1 } });
+    expect((yield* report('position_alert_counts', campaign)).data).toMatchObject({ items_count: 2, unread_items_count: 1 });
+    yield* report('position_alert_mark_all_read', { ...campaign, confirm: true });
+    expect((yield* report('position_alert_counts', campaign)).data).toMatchObject({ items_count: 2, unread_items_count: 0 });
+    yield* report('position_alert_delete', selected);
+    expect((yield* report('position_alert_counts', campaign)).data).toMatchObject({ items_count: 1, unread_items_count: 0 });
+    expect((yield* report('position_alerts', { ...campaign, page: 2, limit: 10 })).data).toMatchObject({ alert_ids: [{ alert_id: 'alert-2' }] });
+    for (const name of ['position_alert_read', 'position_alert_delete']) {
+      expect((yield* report(name, selected).pipe(Effect.flip)).message).toContain('Alert not found');
+    }
     yield* report('position_trigger_delete', { ...campaign, trigger_id: 'rule-1', confirm: true });
     expect((yield* report('position_triggers', campaign)).data).toMatchObject({ trigger_ids: [] });
-    for (const name of ['position_alerts', 'position_trigger_create']) {
-      const failed = yield* report(name, name === 'position_alerts' ? { campaign_id: '789_99' } : { ...selection, campaign_id: '789_99' }).pipe(Effect.flip);
+    const deniedRequests: [string, Query][] = [
+      ['position_alerts', {}], ['position_trigger_create', selection],
+      ['position_alert_read', selected], ['position_alert_delete', selected],
+      ['position_alert_mark_all_read', { confirm: true }],
+    ];
+    for (const [name, query] of deniedRequests) {
+      const failed = yield* report(name, { ...query, campaign_id: '789_99' }).pipe(Effect.flip);
       expect(failed.message).toContain('target is read-only');
       expect(failed.message).not.toContain('fixture-secret');
     }

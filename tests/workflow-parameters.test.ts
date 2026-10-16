@@ -200,6 +200,20 @@ test('tracking alert request types are catalog-owned and rule writes require exp
 });
 
 
+test('alert event writes require confirmation and preserve opaque selected IDs in fixed native requests', async () => {
+  const campaign = { campaign_id: '123_456' };
+  const selected = { ...campaign, alert_id: '900719925474099312345', dry_run: true };
+  for (const [name, request_type] of [['position_alert_read', 'alert_read'], ['position_alert_delete', 'alert_delete']] as const) {
+    expect((await preview(name, selected)).body).toEqual({ ...campaign, alert_id: selected.alert_id, request_type });
+    await expect(preview(name, campaign)).rejects.toThrow();
+    await expect(preview(name, { ...selected, dry_run: false })).rejects.toThrow('--confirm');
+    await expect(preview(name, { ...selected, alert_id: '' })).rejects.toThrow('fewer');
+  }
+  expect((await preview('position_alert_mark_all_read', { ...campaign, dry_run: true })).body).toEqual({ ...campaign, request_type: 'alert_mark_as_read' });
+  await expect(preview('position_alert_mark_all_read', campaign)).rejects.toThrow('--confirm');
+  await expect(preview('position_alert_mark_all_read', { ...selected })).rejects.toThrow('additional');
+});
+
 test('tracking comparison keeps composite target IDs, native intersection codes and target sort keys', async () => {
   const dates = { campaign_id: '123_456', date_begin: '20261015', date_end: '20261015' };
   expect((await preview('position_distribution', { ...dates, competitors: ['*.example.com/*'] })).body).not.toHaveProperty('limit');
