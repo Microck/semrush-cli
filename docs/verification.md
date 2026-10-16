@@ -28,10 +28,21 @@ still require the web UI and cannot be overwritten by these commands.
 
 The suite checks secret files, stdin, interruption, native multipart bodies,
 HTTP-200 business failures and secret redaction. Three independent
-simplification reviewers found no worthwhile changes. This source evidence
-does not yet establish a published 0.15.0 artifact. A repeat full run during
+simplification reviewers found no worthwhile changes. A repeat full run during
 host swap exhaustion timed out in browser tests. Its timeouts remain unchanged;
-the final release must pass CI. The concurrent local docs build was stopped.
+[CI run 38849966964](https://github.com/Microck/semrush-cli/actions/runs/38849966964)
+passed all 157 tests, lint, TypeScript, the docs build and package installation
+on Linux, macOS and Windows. The concurrent local docs build was stopped.
+
+The public npm archive matches the CI package byte-for-byte. Its SHA-256 is
+`e5668b219a4138aa7805ce4111123ccb199ee29a5f93a30088094d30819f5fa9`.
+The visible [GitHub release](https://github.com/Microck/semrush-cli/releases/tag/v0.15.0)
+has the same archive and a verified checksum file. A fresh global registry
+installation returned version 0.15.0. Its live `doctor` authenticated and
+identified the account; MCP advertised 210 tools and passed account and keyword
+reads. Installed stdin/file previews preserved uploaded text and redacted the
+password. The production Site Audit and coverage pages passed mobile Chromium
+checks at 390px with HTTP 200, no page errors and no horizontal overflow.
 
 ## Version 0.14.1 account diagnostics verification
 
