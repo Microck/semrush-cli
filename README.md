@@ -54,6 +54,8 @@ semrush auth status --check --json
 semrush doctor
 ```
 
+`auth status --check` and `doctor` verify an authenticated account report and include `account.email` when semrush supplies it. use it to check which account the cli is using.
+
 already have a signed-in browser with a local debugging port? import its session instead:
 
 ```bash
@@ -64,6 +66,8 @@ semrush doctor
 the browser has to be running with debugging enabled. import doesn't start or stop it. see the [authentication guide](https://semrush.micr.dev/docs/authentication) for headless hosts and remote browsers.
 
 semrush can expire your session. sign in or import again when that happens. the cli saves rotated cookies after successful requests, but doesn't renew expired sessions in the background.
+
+if semrush redirects to `/multilogin/`, the cli reports that session confirmation is required before sending a report. resolve the prompt in your signed-in browser, then reimport its session.
 
 ```bash
 semrush auth logout

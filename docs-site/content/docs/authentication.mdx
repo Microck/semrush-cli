@@ -36,6 +36,21 @@ free. Keep the remote browser debugging port bound to loopback too.
 
 Import verifies the account before storing cookies. Repeating import replaces only the selected CLI profile, using Galleton's revision check.
 
+## Check the signed-in account
+
+`semrush doctor --json` and `semrush auth status --check --json` include
+`account.email` after an authenticated account report succeeds. A provider
+response without an email produces null. These commands never infer an SEO
+plan from generic billing flags. Check **Subscription info → SEO** in Semrush
+for the actual toolkit subscription; "Trial active" can coexist with
+"Guru, Subscribed".
+
+If Semrush redirects the session check to `/multilogin/`, the CLI reports that
+session confirmation is required and sends no report. Open your signed-in
+browser and resolve the native prompt, then import that browser again. The CLI
+never confirms a session takeover automatically. Other login redirects still
+produce the expired-session error.
+
 ## Storage and lifecycle
 
 Galleton owns the durable cookies. Every CLI process starts a transient browser context from the stored session. The MCP server reuses one context and serializes report requests. Successful reports save updated cookies back through the SDK. No plaintext cookie export or persistent Chromium profile is created by this tool.

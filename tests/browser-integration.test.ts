@@ -30,6 +30,7 @@ let sdk: Galleton;
 let daemonURL: string;
 let fixtureURL: string;
 let authenticated = true;
+let sessionConfirmationRequired = false;
 let failReport = false;
 let auditConfigured = false;
 let auditStarted = false;
@@ -50,16 +51,24 @@ const serveTrackingAlertsFixture = makeTrackingAlertsFixture();
 const trackingTargetsFixture = makeTrackingTargetsFixture();
 const serveNotesFixture = makeNotesFixture();
 const fixtureHandlers = new Map([[folderPath, serveProjectFixture], [savedPath, serveSavedFixture], ['/notes/api/', serveNotesFixture]]);
+/** Serve the native authentication checks separately from report fixtures. */
+function serveAuthenticationFixture(request: IncomingMessage, response: ServerResponse, url: URL): boolean {
+  if (url.pathname === '/robots.txt') { response.end('User-agent: *\nDisallow: /'); return true; }
+  if (url.pathname === '/analytics/overview/') {
+    response.end('<script>window.sm2.user={"api_key":"fixture-secret","id":123,"email":"fixture@example.com"}</script>'); return true;
+  }
+  if (url.pathname === '/multilogin/') { response.end('Confirm your session'); return true; }
+  if (url.pathname === '/home/') {
+    if (sessionConfirmationRequired) { response.writeHead(302, { Location: '/multilogin/?redirect_to=%2Fhome%2F' }); }
+    else if (!authenticated || !request.headers.cookie?.includes('session=authorized')) { response.writeHead(302, { Location: '/login/' }); }
+    response.end(); return true;
+  }
+  return false;
+}
+
 const fixture = createServer(async (request, response) => {
   const url = new URL(request.url ?? '/', fixtureURL);
-  if (url.pathname === '/robots.txt') { response.end('User-agent: *\nDisallow: /'); return; }
-  if (url.pathname === '/analytics/overview/') {
-    response.end('<script>window.sm2.user={"api_key":"fixture-secret","id":123}</script>'); return;
-  }
-  if (url.pathname === '/home/') {
-    if (!authenticated || !request.headers.cookie?.includes('session=authorized')) { response.writeHead(302, { Location: '/login/' }); }
-    response.end(); return;
-  }
+  if (serveAuthenticationFixture(request, response, url)) return;
   const handler = [...fixtureHandlers].find(([prefix]) => url.pathname.startsWith(prefix))?.[1];
   if (handler) { await handler(request, response, url); return; }
   if (url.pathname === '/siteaudit/api/campaigns/seolist') { response.setHeader('Content-Type', 'application/json'); response.end(JSON.stringify(auditConfigured ? [{ id: 789 }] : [])); return; }
@@ -132,6 +141,7 @@ const fixture = createServer(async (request, response) => {
     let body = '';
     for await (const chunk of request) body += chunk;
     const rpc = JSON.parse(body);
+    expect(rpc.params).not.toHaveProperty('email');
     observed.push(rpc.method);
     response.setHeader('Content-Type', 'application/json');
     response.setHeader('Set-Cookie', 'rotated=yes; Path=/; HttpOnly');
@@ -182,11 +192,26 @@ function fixtureLayer() {
 
 test('real Chromium restores Galleton cookies, fetches reports, redacts and captures rotation', async () => {
   const result = await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
-    return yield* (yield* Semrush).report(yield* parseReport('keyword_overview', { keyword: 'fixture' }));
+    const semrush = yield* Semrush;
+    expect(semrush.account).toEqual({ email: 'fixture@example.com' });
+    return yield* semrush.report(yield* parseReport('keyword_overview', { keyword: 'fixture' }));
   }).pipe(Effect.provide(fixtureLayer()))));
   expect(result).toEqual({ authenticated: true, report: 'keyword_overview', data: { database: 'us', volume: 100, id: '9223372036854775807' } });
   expect(observed).toContain('keywords.GetInfo');
   expect((await sdk.headers('test', fixtureURL)).Cookie).toContain('rotated=yes');
+}, 30000);
+
+test('native session confirmation fails before reports and never submits a takeover', async () => {
+  sessionConfirmationRequired = true;
+  const count = observed.length;
+  try {
+    const failure = await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      return yield* (yield* Semrush).report(yield* parseReport('account_status', {}));
+    }).pipe(Effect.provide(fixtureLayer()), Effect.flip)));
+    expect(failure).toMatchObject({ _tag: 'SessionError', code: 'session_confirmation_required', message: expect.stringContaining('/multilogin/') });
+    expect(failure.message).not.toContain('expired');
+    expect(observed).toHaveLength(count);
+  } finally { sessionConfirmationRequired = false; }
 }, 30000);
 
 test('expired session fails before making a report request', async () => {

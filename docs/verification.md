@@ -1,9 +1,35 @@
 # Verification
 
-Current source verification: 2026-10-16. The source suite passed 148 tests
+Version 0.14.0 verification: 2026-10-16. Its source suite passed 148 tests
 locally, including real Chromium, Galleton and stateful HTTP fixtures. Live responses and credentials remain
 outside the repository. Evidence below distinguishes local fixtures, native CI
 and real account execution.
+
+## Guru account verification
+
+The subscription page's SEO section explicitly displayed "Guru" and
+"Subscribed" on 2026-10-16. The same page displayed "Trial active". These
+states coexist; trial status does not establish that the account lacks Guru.
+The CLI's Galleton session and the authorized reference browser returned the
+same account identity. Generic overview billing metadata reported
+`is_paid:false` and `product_group:"App Center access"`; these fields do not
+identify the SEO subscription and must not be used to classify its plan.
+
+The export denials below describe observed provider responses for this Guru
+session. They do not establish that another account is required or that all
+Guru accounts lack export access. Further live checks currently encounter a
+`/multilogin/` redirect and HTTP 401 from the keyword gateway, even though the
+subscription page still shows Guru. No session takeover was submitted.
+
+## Backlink Analytics export access
+
+The native Backlinks report loaded example.com results. Clicking its Export
+control displayed "Export is limited" and "Upgrade to Guru". The native network
+graph export client separately checks paid and trial state. Semrush's official
+[Backlinks manual](https://www.semrush.com/kb/501-backlinks-report-manual) describes
+filtered CSV/Excel exports and account limits. No export or upgrade was submitted.
+Backlink Analytics exports remain unsupported. This session has not provided
+a successful native export fixture.
 
 ## Keyword selection workflow verification
 
@@ -167,7 +193,9 @@ the archive was checked after the version became public.
 Rankings and landing-page reads passed on a disposable target with collected
 data. The native export request returned HTTP 403 with error code 1001, "action
 is not allowed". The native UI's export menu states "Export is only available
-for paid Semrush users" and offers an upgrade. The account is on a trial.
+for paid Semrush users" and offers an upgrade. The subscription page separately
+confirms Guru and an active trial; the export denial remains an observation
+about this session rather than evidence of a different SEO plan.
 Unpublished export operations were removed rather than claiming positive live
 verification. No purchase or alternate transport was used.
 

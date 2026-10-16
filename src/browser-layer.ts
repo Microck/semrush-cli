@@ -64,7 +64,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     return { status: response.status, text: await response.text() };
   }));
   // Extract the JSON value with a balanced scanner, never eval page-owned JavaScript.
-  const auth = yield* Effect.try({ try: () => readBootstrap(bootstrap.text), catch: () => new SessionError({ message: 'Semrush sign-in metadata unavailable. Run semrush auth login or import a signed-in browser.' }) });
+  const { email, ...auth } = yield* Effect.try({ try: () => readBootstrap(bootstrap.text), catch: () => new SessionError({ message: 'Semrush sign-in metadata unavailable. Run semrush auth login or import a signed-in browser.' }) });
   const semaphore = yield* Semaphore.make(1);
   let spectrumToken = '';
   const request = Effect.fn('Semrush.request')(function* (path: string, payload: Schema.Json, method = 'POST', extraHeaders: Record<string, string> = {}, responseType: 'json' | 'empty' = 'json') {
@@ -298,11 +298,12 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     return { ...planned, path, headers, body };
   });
   const report = Effect.fn('Semrush.report')(function* ({ name, definition, query }: ReportRequest) {
-    const valid = yield* browserCall(() => page.evaluate(async () => {
+    const session = yield* browserCall(() => page.evaluate(async () => {
       const response = await fetch('/home/', { method: 'HEAD', credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(15000) });
-      return response.ok && new URL(response.url).pathname === '/home/';
+      return { ok: response.ok, path: new URL(response.url).pathname };
     }));
-    if (!valid) return yield* Effect.fail(new SessionError({ message: 'Semrush session expired. Run semrush auth login or import a signed-in browser.' }));
+    if (session.path === '/multilogin/') return yield* Effect.fail(new SessionError({ code: 'session_confirmation_required', message: 'Semrush requires session confirmation at /multilogin/. Open Semrush in your signed-in browser, resolve the prompt, then reimport that browser with semrush auth import --cdp-url <url>. No report was sent.' }));
+    if (!session.ok || session.path !== '/home/') return yield* Effect.fail(new SessionError({ message: 'Semrush session expired. Run semrush auth login or import a signed-in browser.' }));
     const family = definition.transport;
     const planned = ['project_web', 'audit_web', 'tracking_web', 'saved_web', 'notes_web'].includes(family) ? webRequest(definition, query) : undefined;
     const params = planned ? {} : reportParameters(definition, query);
@@ -362,13 +363,13 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     yield* captureCookies(context, sessions.capture, browserOrigin);
     return { authenticated: true as const, report: name, data: redact(reportData ?? null, [auth.apiKey, spectrumToken, spectrumToken.replace(/^Bearer /, ''), requestSecret]) };
   });
-  return Semrush.of({ report: request => semaphore.withPermits(1)(report(request)) });
+  return Semrush.of({ account: { email: email ?? null }, report: request => semaphore.withPermits(1)(report(request)) });
 }));
 
 export const semrushLive = makeSemrushLayer(origin);
 
 interface BootstrapAuth { readonly apiKey: string; readonly userId: string | number; }
-export function readBootstrap(html: string): BootstrapAuth {
+export function readBootstrap(html: string): BootstrapAuth & { readonly email?: string } {
   const match = /window\.sm2\.user\s*=\s*/.exec(html);
   if (!match) throw new Error('No bootstrap');
   const start = match.index + match[0].length;
@@ -383,7 +384,11 @@ export function readBootstrap(html: string): BootstrapAuth {
     else if (char === '{') depth++;
     else if (char === '}' && --depth === 0) {
       const user = parseWire(html.slice(start, index + 1));
-      if (objectValue(user) && Predicate.isString(user.api_key) && (Predicate.isString(user.id) || Predicate.isNumber(user.id))) return { apiKey: user.api_key, userId: user.id };
+      if (objectValue(user) && Predicate.isString(user.api_key) && (Predicate.isString(user.id) || Predicate.isNumber(user.id))) {
+        const auth = { apiKey: user.api_key, userId: user.id };
+        if (Predicate.isString(user.email)) return { ...auth, email: user.email };
+        return auth;
+      }
       break;
     }
   }

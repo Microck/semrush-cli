@@ -6,11 +6,16 @@ The executable is `semrush`; the npm package is `semrush-cli`. Only `semrush` is
 - `semrush <report-name> --<parameter> <value> [--json]` executes one report. Names and flags use hyphens. `semrush <report-name> --help` shows its complete schema-derived options. Objects and arrays use JSON. Report definitions live in `src/report-catalog.json`.
 - `semrush auth import --cdp-url http://127.0.0.1:9234` imports an authorized existing Chromium session into Galleton. No secret-valued command arguments. Import verifies the signed-in session before storing it. Reimport explicitly replaces the CLI's own session with revision checking.
 - `semrush auth login` opens an isolated visible browser, waits for sign-in, and stores its cookies in Galleton. Requires a graphical desktop.
-- `semrush auth status [--check] [--json]` shows Galleton metadata without credentials. `--check` verifies Semrush access.
+- `semrush auth status [--check] [--json]` shows Galleton metadata without credentials. `--check` verifies Semrush access and adds `account.email` from authenticated server metadata, or null when the provider omits it.
 - `semrush auth logout` forgets only the selected Galleton profile. It does not log out other browsers.
 - `semrush setup` installs Chromium. It also initializes and starts the private Galleton daemon.
 - `semrush mcp` runs the stdio MCP server. Stdout contains only protocol messages. MCP exposes the same operations and schemas. Mutations carry readOnlyHint=false and require confirm=true. Delete and leave carry destructiveHint=true. It cannot log in or change local configuration.
-- `semrush doctor [--json]` verifies Galleton, stored session, browser, and an authenticated account report.
+- `semrush doctor [--json]` verifies Galleton, stored session, browser, and an authenticated account report. Success includes `account.email`; it does not infer a subscription tier from generic billing metadata.
+
+A session check redirected to `/multilogin/` fails before a report is sent,
+with instructions to resolve the native session-confirmation page and reimport
+the browser. The CLI never submits session takeover automatically. Login
+redirects still fail as expired sessions. CLI and MCP share these checks.
 
 Successful reports are `{authenticated: true, report: <underscore_name>, data: ...}`. Raw report nesting and provider totals remain visible. Integers outside JavaScript's safe range become decimal strings. Credentials are removed recursively. JSON goes to stdout; human diagnostics and errors go to stderr. No prompts in report or MCP commands. Exit codes: 0 success, 1 service/authentication/report failure, 2 invalid usage, 130 interrupted CLI command. No retries of report requests, which can consume account allowances. No automatic anonymous fallback.
 
@@ -324,10 +329,12 @@ Tier 3; scheduling remains outside this batch pending account capability proof.
 
 ## Position Tracking export access
 
-The trial account's native export menu states that exports require a paid
+The Guru account's native export menu states that exports require a paid
 Semrush subscription. A native report export returned HTTP 403 with error code
 1001, "action is not allowed". These exports remain unexposed and unverified;
 no alternate transport or subscription purchase was used.
+The subscription page confirms both "Guru, Subscribed" and "Trial active".
+Neither trial status nor overview billing flags establish a different SEO plan.
 
 ## Position Tracking distribution and target comparison
 

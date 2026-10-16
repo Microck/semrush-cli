@@ -15,6 +15,10 @@ test('rejects missing or invalid authentication metadata', () => {
   expect(() => readBootstrap('<script>window.sm2.user={"api_key":null,"id":1}</script>')).toThrow();
   expect(() => readBootstrap('<html>Sign in</html>')).toThrow();
 });
+test('account identity comes from user metadata without inferring an SEO plan', () => {
+  expect(readBootstrap('<script>window.sm2.user={"api_key":"secret","id":123,"email":"fixture@example.com"};window.sm2.billingInfo={"is_paid":false,"product_group":"App Center access"}</script>')).toEqual({ apiKey: 'secret', userId: 123, email: 'fixture@example.com' });
+  expect(readBootstrap('<script>window.sm2.user={"api_key":"secret","id":123,"email":false}</script>')).toEqual({ apiKey: 'secret', userId: 123 });
+});
 test('redacts nested secret fields and echoed credential strings', () => {
   expect(redact({ api_key: 'secret', rows: [{ authorization: 'Bearer abc', url: 'https://example.com/secret', title: 'ok' }], error: 'Bearer abc' }, ['secret', 'Bearer abc', 'abc'])).toEqual({ rows: [{ url: 'https://example.com/[redacted]', title: 'ok' }], error: '[redacted]' });
 });

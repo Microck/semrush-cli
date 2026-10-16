@@ -103,20 +103,21 @@ auth.command('import').description('Import a signed-in local Chromium context').
 auth.command('login').description('Sign in through an isolated visible Chromium window').action(async (_options, command: Command) => execute((await import('./auth.js')).login().pipe(Effect.provide(sessionsLive)), command));
 auth.command('status').description('Show session metadata without credentials').option('--check', 'Verify the stored session against Semrush').action((options: { check?: boolean }, command: Command) => execute(Effect.gen(function* () {
   const status = yield* (yield* Sessions).status();
+  let account: { readonly email: string | null } | undefined;
   if (options.check) {
     const { appLayer } = yield* Effect.promise(() => import('./mcp.js'));
     const { Semrush } = yield* Effect.promise(() => import('./browser-service.js'));
     const { parseReport } = yield* Effect.promise(() => import('./validation.js'));
-    yield* Effect.gen(function* () { return yield* (yield* Semrush).report(yield* parseReport('account_status', {})); }).pipe(Effect.provide(appLayer));
+    account = yield* Effect.gen(function* () { const semrush = yield* Semrush; yield* semrush.report(yield* parseReport('account_status', {})); return semrush.account; }).pipe(Effect.provide(appLayer));
   }
-  return { logged_in: status.status === 'ready', source: 'galleton', ...status, session_valid: options.check ? true : undefined };
+  return { logged_in: status.status === 'ready', source: 'galleton', ...status, session_valid: options.check ? true : undefined, account };
 }).pipe(Effect.provide(sessionsLive)), command));
 auth.command('logout').description('Forget this CLI session from Galleton').action((_options, command: Command) => execute(Effect.gen(function* () { yield* (yield* Sessions).forget(); return { logged_in: false, forgotten: true }; }).pipe(Effect.provide(sessionsLive)), command));
 cli.command('doctor').description('Check Galleton, browser and authenticated report access').action(async (_options, command: Command) => {
   const { appLayer } = await import('./mcp.js');
   const { Semrush } = await import('./browser-service.js');
   const { parseReport } = await import('./validation.js');
-  await execute(Effect.gen(function* () { yield* (yield* Semrush).report(yield* parseReport('account_status', {})); return { ok: true, galleton: true, chromium: true, authenticated: true }; }).pipe(Effect.provide(appLayer)), command);
+  await execute(Effect.gen(function* () { const semrush = yield* Semrush; yield* semrush.report(yield* parseReport('account_status', {})); return { ok: true, galleton: true, chromium: true, authenticated: true, account: semrush.account }; }).pipe(Effect.provide(appLayer)), command);
 });
 cli.command('mcp').description('Run the MCP server over stdio').action(async () => (await import('./mcp.js')).serveMcp());
 
