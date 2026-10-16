@@ -1,5 +1,42 @@
 # Verification
 
+## Version 0.19.0 source scope replacement
+
+The source catalog contains 263 operations, 177 reads and 86 confirmed writes.
+TypeScript, Oxlint, generated references, five daemon targets and all 182 tests
+passed on a private ARM64 Raft runner. Three independent simplification reviewers
+found no changes needed. No compilation or browser-heavy checks ran on the
+controller for this batch.
+
+`backlink-audit-replace-scope` reads current campaign metadata, requires edit
+permission and readiness, then sends one `domains.AddByProjectId` request with
+saved settings. It requires an explicit scope and confirmation, marks the MCP
+tool destructive and validates that the acknowledgement selects a fresh audit.
+It rejects missing, unchanged, read-only or locked campaigns before writing.
+Fixture cases preserve nondefault and explicitly cleared settings and verify
+that the old audit ID becomes inaccessible.
+
+A real dropped-response fixture caught Chromium replaying a POST after the
+server committed it. Report requests now use the browser context's shared-cookie
+HTTP client with `maxRetries:0`. That fixture now records exactly one replacement,
+returns a failure and lets the caller read the newly selected audit. Responses
+are disposed after parsing. All existing integration cases still pass.
+The updated transport passed live Guru-account research, project, Backlink Audit
+and Position Tracking reads, plus an authenticated CLI doctor in Raft.
+
+The source MCP operation passed against the task-owned Guru project, replacing
+scope both with nonwww. Empty brands, categories and countries remained empty;
+manual scheduling and disabled recurring notifications remained intact in the
+immediate selected-audit readback. A preceding settings edit temporarily locked
+the audit; the first replacement command refused before writing. After readiness
+returned, one replacement succeeded. Its analysis-completion check is pending.
+A separate native root-to-both replacement already completed while retaining
+nondefault settings, and its former root audit returned native 404.
+
+These checks transfer only the authorized Semrush session to private Galleton
+storage on Raft. The remote session and vault were removed after each live pass.
+Publication and public-artifact verification for this source batch are pending.
+
 Version 0.18.0 verification: 2026-10-16. The source suite passed 178 tests in
 CI and a private ARM64 Raft runner, including real Chromium, Galleton and
 stateful HTTP fixtures. The public npm and GitHub archives match the CI artifact.
@@ -43,10 +80,9 @@ its Galleton vault was removed, and the runner was stopped. The installed local
 command reports `0.18.0`.
 
 The import fixture remains owned by this task for scope-replacement verification.
-A subsequent root-to-both atomic creation selected a fresh audit while retaining
-the nondefault brands, category, country and manual schedule in its immediate
-readback. Analysis is still processing; completed-state and prior-audit behavior
-remain under investigation. No scope-replacement operation is exposed yet.
+A subsequent root-to-both atomic creation completed while retaining the
+nondefault brands, category, country and manual schedule. Its prior audit ID
+returned native 404. The source scope-replacement workflow is covered above.
 
 ## Version 0.17.0 Guru Backlink Audit extensions
 

@@ -79,7 +79,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 
 ## command surface
 
-262 operations, available as cli commands and mcp tools. 177 reads and 85 writes that need explicit confirmation.
+263 operations, available as cli commands and mcp tools. 177 reads and 86 writes that need explicit confirmation.
 
 | command | what it does |
 | --- | --- |
@@ -91,6 +91,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 | `backlink-links`, `backlink-referring-domains`, `backlink-anchors` | inspect backlinks, referring domains and anchor text |
 | `backlink-audit-limits`, `backlink-audit-project`, `backlink-audit-scopes`, `backlink-audit-create` | check allowance and scope, then start a backlink audit |
 | `backlink-audit-campaigns`, `backlink-audit-info`, `backlink-audit-status`, `backlink-audit-configure` | find campaigns, read progress and change selected settings |
+| `backlink-audit-replace-scope` | replace an audit's scope and discard its old analysis |
 | `backlink-audit-links-summary`, `backlink-audit-links-history`, `backlink-audit-authority-distribution` | inspect profile totals, history and distributions |
 | `backlink-audit-links`, `backlink-audit-links-count` | filter audit rows or count matching backlinks |
 | `backlink-audit-target-pages`, `backlink-audit-target-pages-count` | inspect linked target pages and their counts |
@@ -280,7 +281,19 @@ semrush backlink-audit-export --audit-id 789 \
 
 csv export downloads all matching rows, waits up to five minutes for semrush to prepare the file and refuses an existing destination. it works with the verified guru session even though that account's web ui shows a trial upgrade dialog. it does not need `--confirm`. mcp returns an artifact resource.
 
-scope changes on an existing audit remain outside cli coverage because semrush resets scheduling and creates a new audit id. see [backlink audit](https://semrush.micr.dev/docs/backlink-audit) for filters, scope choices and disavow behavior.
+replace an existing audit's scope when you want to discard its old analysis:
+
+```bash
+semrush backlink-audit-replace-scope --project-id 456 --scope both --dry-run
+semrush backlink-audit-replace-scope --project-id 456 --scope both --confirm
+semrush backlink-audit-info --project-id 456
+```
+
+replacement creates a fresh audit id. read `backlink-audit-info` again and use the new `userDomainId` for later audit commands. the audit must be ready, unlocked and editable; choosing its current scope fails before writing.
+
+the cli reads current settings and preserves them in one write, including empty brands, categories and countries, manual scheduling and disabled notifications. it never retries the replacement. if the response is lost, inspect the project before sending another write. mcp exposes the same operation as `backlink_audit_replace_scope`.
+
+pdf reports and connected services remain outside cli coverage. see [backlink audit](https://semrush.micr.dev/docs/backlink-audit) for filters, scope choices and disavow behavior.
 
 ### projects
 
@@ -700,6 +713,8 @@ npm run check
 ```
 
 the cli uses the published [`galleton` 0.1.0 sdk](https://www.npmjs.com/package/galleton). the bundled galleton daemon is still required for sessions. building it from source requires go 1.23 or newer, `tar` and `patch`. published cli packages include the daemon for supported platforms, so npm users do not need go.
+
+the current source passed 182 tests on raft, including a lost-response fixture that verifies one replacement write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
 
 ## documentation
 

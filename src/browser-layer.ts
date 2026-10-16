@@ -73,23 +73,25 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
   let spectrumToken = '';
   const request = Effect.fn('Semrush.request')(function* (path: string, payload: Schema.Json, method = 'POST', extraHeaders: Record<string, string> = {}, responseType: 'json' | 'empty' = 'json', file?: WebRequest['file']) {
     const secrets = [auth.apiKey, spectrumToken, spectrumToken.replace(/^Bearer /, ''), objectValue(payload) && Predicate.isString(payload.display_hash) ? payload.display_hash : '', objectValue(payload) && Predicate.isString(payload.authPassword) ? payload.authPassword : ''];
-    const wire = yield* browserCall(() => page.evaluate(async ({ path, encodedPayload, method, extraHeaders, file }) => {
-      const payload: Schema.Json = JSON.parse(encodedPayload);
-      const query = new URLSearchParams();
+    // Chromium fetch can replay a POST after a connection reset. The context's
+    // HTTP client shares its cookie jar and gives us an explicit no-retry contract.
+    const wire = yield* browserCall(async () => {
+      const address = new URL(path, browserOrigin);
       const queryOnly = method === 'GET' || method === 'DELETE';
-      if (queryOnly) for (const [key, value] of Object.entries(payload ?? {})) for (const item of Array.isArray(value) ? value : [value]) query.append(key, String(item));
-      const options: RequestInit = { method, credentials: 'include', headers: extraHeaders, signal: AbortSignal.timeout(45000) };
-      // The web clients send JSON content type even for bodyless POST/PUT/PATCH actions.
-      if (!file && ['POST', 'PUT', 'PATCH'].includes(method)) options.headers = { 'Content-Type': 'application/json', ...extraHeaders };
+      if (queryOnly) for (const [key, value] of Object.entries(payload ?? {})) for (const item of Array.isArray(value) ? value : [value]) address.searchParams.append(key, String(item));
+      const headers = { Origin: browserOrigin, Referer: page.url(), ...extraHeaders };
+      const multipart: Record<string, string | { name: string; mimeType: string; buffer: Buffer }> = {};
       if (file) {
-        const form = new FormData();
-        for (const [key, value] of Object.entries(payload ?? {})) form.append(key, String(value));
-        form.append(file.field, new Blob([file.contents], { type: 'text/plain' }), file.filename);
-        options.body = form;
-      } else if (!queryOnly && payload !== null) options.body = JSON.stringify(payload);
-      const response = await fetch(queryOnly && query.size > 0 ? path + (path.includes('?') ? '&' : '?') + query : path, options);
-      return { status: response.status, text: await response.text() };
-    }, { path, encodedPayload: JSON.stringify(payload), method, extraHeaders, file }));
+        for (const [key, value] of Object.entries(payload ?? {})) multipart[key] = String(value);
+        multipart[file.field] = { name: file.filename, mimeType: 'text/plain', buffer: Buffer.from(file.contents) };
+      } else if (['POST', 'PUT', 'PATCH'].includes(method)) Object.assign(headers, { 'Content-Type': 'application/json' });
+      const response = await context.request.fetch(address.href, {
+        method, headers, timeout: 45000, maxRetries: 0,
+        ...(file ? { multipart } : !queryOnly && payload !== null ? { data: JSON.stringify(payload) } : {}),
+      });
+      try { return { status: response.status(), text: await response.text() }; }
+      finally { await response.dispose(); }
+    });
     if (wire.status < 200 || wire.status >= 300) {
       const detail = yield* Effect.try({ try: () => JSON.stringify(redact(parseWire(wire.text), secrets)).slice(0, 500), catch: safeBrowserError }).pipe(Effect.option);
       return yield* Effect.fail(new ReportError({ message: `Semrush request returned HTTP ${wire.status}.${Option.isSome(detail) ? ' ' + detail.value : ' Check your session and account permissions.'}` }));
@@ -126,6 +128,32 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     const settings: Query = { brands: [...defaults.defaultBrands], categories: [...defaults.defaultCategories], geo: [...defaults.defaultGeo] };
     Object.assign(settings, params.params);
     return { ...params, params: settings };
+  });
+  /** A scope change replaces the audit; copy settings into that single native write. */
+  const replaceBacklinkAuditScope = Effect.fn('Semrush.replaceBacklinkAuditScope')(function* (params: Query) {
+    const current = yield* Schema.decodeUnknownEffect(Schema.Struct({
+      userDomainId: Schema.Int, projectId: Schema.Int, scope: Schema.String,
+      isOwner: Schema.Boolean, isSharedWrite: Schema.Boolean,
+      statusId: Schema.Number, isLocked: Schema.Boolean, isLockedSettings: Schema.Boolean,
+      params: Schema.StructWithRest(Schema.Struct({
+        brands: Schema.optionalKey(Schema.Array(Schema.String)),
+        categories: Schema.Array(Schema.String), geo: Schema.Array(Schema.String), recrawl: Schema.String,
+        recrawlNotify: Schema.optionalKey(Schema.Boolean), recrawlMajestic: Schema.optionalKey(Schema.Boolean),
+      }), [Schema.Record(Schema.String, Schema.Json)]),
+    }))(yield* rpc('domains.GetByProjectId', { projectId: params.projectId ?? null }, 'bla'))
+      .pipe(Effect.mapError(() => new ReportError({ message: 'Backlink Audit metadata is unavailable. No scope replacement was started.' })));
+    if (current.projectId !== params.projectId) return yield* Effect.fail(new ReportError({ message: 'Backlink Audit returned a different SEO project. No scope replacement was started.' }));
+    if (!current.isOwner && !current.isSharedWrite) return yield* Effect.fail(new ReportError({ message: 'This Backlink Audit is read-only. Scope replacement requires permission to edit it.' }));
+    if (current.scope === params.scope) return yield* Effect.fail(new ReportError({ message: 'This Backlink Audit already uses the selected scope. No replacement was started.' }));
+    if (current.statusId !== 1 || current.isLocked || current.isLockedSettings) return yield* Effect.fail(new ReportError({ message: 'Backlink Audit is not ready for scope replacement. Require statusId:1, isLocked:false and isLockedSettings:false.' }));
+    // Native info omits empty brands and false flags. Explicit values prevent fresh defaults.
+    const settings: Query = { ...current.params, brands: current.params.brands ?? [],
+      recrawlNotify: current.params.recrawlNotify ?? false, recrawlMajestic: current.params.recrawlMajestic ?? false };
+    const created = yield* rpc('domains.AddByProjectId', { ...params, params: settings }, 'bla');
+    const acknowledgement = yield* Schema.decodeUnknownEffect(Schema.Struct({ userDomainId: Schema.Int, projectId: Schema.Int, scope: Schema.String }))(created)
+      .pipe(Effect.mapError(() => new ReportError({ message: 'Backlink Audit did not acknowledge scope replacement. Read backlink-audit-info before retrying; the write was not retried.' })));
+    if (acknowledgement.userDomainId === current.userDomainId || acknowledgement.projectId !== current.projectId || acknowledgement.scope !== params.scope) return yield* Effect.fail(new ReportError({ message: 'Backlink Audit returned an unexpected replacement audit. Read backlink-audit-info before retrying; the write was not retried.' }));
+    return created;
   });
   /** Reruns require native readiness and the current incremental-import allowance. */
   const checkBacklinkAuditControl = Effect.fn('Semrush.checkBacklinkAuditControl')(function* (query: Query) {
@@ -389,7 +417,9 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     }
     let reportData: Schema.Json | undefined;
     let requestSecret = "";
-    if (name === 'backlink_audit_import' && planned) {
+    if (name === 'backlink_audit_replace_scope') {
+      reportData = yield* replaceBacklinkAuditScope(params);
+    } else if (name === 'backlink_audit_import' && planned) {
       reportData = yield* importBacklinks(query, planned);
     } else if (planned) {
       const prepared = yield* prepareWebRequest({ name, definition, query }, planned);

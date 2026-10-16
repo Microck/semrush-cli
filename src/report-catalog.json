@@ -14646,5 +14646,50 @@
         "contents"
       ]
     }
+  },
+  "backlink_audit_replace_scope": {
+    "method": "domains.AddByProjectId",
+    "description": "Replace a ready audit with a fresh scope and retain its settings. Permanently discards the old audit's analysis and starts new analysis.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "project_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "SEO project ID from project-enable-seo, not the folder ID."
+        },
+        "scope": {
+          "type": "string",
+          "enum": [
+            "root",
+            "both",
+            "www",
+            "nonwww"
+          ]
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request plan; current settings are loaded only during execution."
+        }
+      },
+      "required": [
+        "project_id",
+        "scope"
+      ]
+    }
   }
 }

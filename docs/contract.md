@@ -17,7 +17,7 @@ with instructions to resolve the native session-confirmation page and reimport
 the browser. The CLI never submits session takeover automatically. Login
 redirects still fail as expired sessions. CLI and MCP share these checks.
 
-Successful reports are `{authenticated: true, report: <underscore_name>, data: ...}`. Raw report nesting and provider totals remain visible. Integers outside JavaScript's safe range become decimal strings. Credentials are removed recursively. JSON goes to stdout; human diagnostics and errors go to stderr. No prompts in report or MCP commands. Exit codes: 0 success, 1 service/authentication/report failure, 2 invalid usage, 130 interrupted CLI command. No retries of report requests, which can consume account allowances. No automatic anonymous fallback.
+Successful reports are `{authenticated: true, report: <underscore_name>, data: ...}`. Raw report nesting and provider totals remain visible. Integers outside JavaScript's safe range become decimal strings. Credentials are removed recursively. JSON goes to stdout; human diagnostics and errors go to stderr. No prompts in report or MCP commands. Exit codes: 0 success, 1 service/authentication/report failure, 2 invalid usage, 130 interrupted CLI command. Report requests use the browser context's shared-cookie HTTP client with network retries disabled; repeated requests can consume account allowances. No automatic anonymous fallback.
 
 Configuration: `SEMRUSH_GALLETON_URL` (literal loopback HTTP, default `http://127.0.0.1:8771`), `SEMRUSH_GALLETON_TOKEN_FILE` (default `~/.local/share/semrush-cli/galleton/api.token`), `SEMRUSH_SESSION` (default `semrush-cli`), and `SEMRUSH_BROWSER_EXECUTABLE` (optional absolute Chromium path). Authentication is loaded from Galleton into a fresh, transient browser context for each CLI process or MCP server. No persistent plaintext cookie file. Cookie updates from the report browser are captured back into Galleton. Existing reference browser profiles and services are never modified.
 
@@ -45,8 +45,9 @@ SEO setup, including Site Audit and Position Tracking. Account quotas apply.
 
 Every mutation requires explicit `--confirm` or MCP `confirm:true`. Without it,
 the command fails with exit 2 before opening a browser. `--dry-run` or MCP
-`dry_run:true` validates and prints the exact request without authentication or
-network access. Dry runs need no confirmation. IDs are decimal strings and never
+`dry_run:true` validates and prints the request plan without authentication or
+network access. Runtime credentials and settings-preservation reads happen only
+during execution. Dry runs need no confirmation. IDs are decimal strings and never
 arbitrary paths. No operation retries a write. The response envelope remains
 `{authenticated:true, report, data}` for all completed operations.
 
@@ -579,16 +580,32 @@ unlocked campaign (`isLocked:false`, `isLockedSettings:false`) and
 `incImportAvailable:true`. A completed status alone does not imply an unlocked
 campaign: native incremental import kept `statusId:1` while `isLocked:true`.
 
-Scope replacement is not exposed. A native `domains.ApplySettingsScope` call
+`backlink-audit-replace-scope --project-id <seo-id> --scope <scope> --confirm`
+replaces an existing ready, unlocked audit with a fresh one for the selected
+scope. It is destructive: a fresh audit replaces the old analysis. Do not rely
+on audit annotations or selections carrying over. The returned `userDomainId`
+replaces the old audit ID. The same
+scope is refused before writing; use rerun to update the existing audit.
+
+Execution reads the current audit and copies its saved settings into a single
+native `domains.AddByProjectId` call. Empty brands and false notification and
+Majestic flags must be explicit because metadata omits them. Categories, country,
+recurring settings and additional returned settings remain intact. No separate
+reset-and-restore write is used. External services are not connected by this
+operation. Dry runs show the requested project and scope; the preserved settings
+are loaded only at execution. Creation starts asynchronous analysis and consumes
+allowance, so a successful acknowledgement is not crawl completion.
+
+A native `domains.ApplySettingsScope` call
 created a new audit ID and reset manual scheduling to `recrawl:"2weeks"` with
 `recrawlNotify:true`. A subsequent owned root-to-both probe used
 `domains.AddByProjectId` with the current settings and explicit false notification
 and Majestic flags. Its acknowledgement and project readback retained nondefault
 brands, category, country and `recrawl:"never"` while selecting a fresh audit ID.
-The replacement starts analysis; completed-state and old-audit behavior still
-require verification. Treat this as a destructive replacement with fresh history,
-not an in-place history-preserving edit. Do not emulate it with a reset followed
-by a separate settings write.
+After analysis, the replacement unlocked with 563 checked links and retained
+those settings. The old audit ID returned native error 404, "user domain not
+found". This is a destructive replacement with fresh history, not an in-place
+history-preserving edit.
 
 Primary sources are the native target-page saga and table columns in
 `bla_app.5d2833627b8d6106dd60.js`, comment handlers/editor in

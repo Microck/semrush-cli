@@ -7,6 +7,8 @@ import type { Query } from '../src/report-parameters.js';
 /** Stateful native RPC server. The real Chromium client must supply header-only auth. */
 export function makeBacklinkAuditFixture() {
   let settings: Query | undefined;
+  let currentAuditId = 456;
+  let currentScope = 'root';
   const calls: { method: string; params: Query }[] = [];
   let disavow: Query[] = [];
   let nextCommentId = 321;
@@ -14,15 +16,25 @@ export function makeBacklinkAuditFixture() {
   const labels = new Map<string, Set<string>>();
   const networkId = 19387720322;
   const backlink = { id: '00000000-0000-0000-0000-000000000001', urlHash: '9007199254740993', source: 'example.net', sourceUrl: 'https://example.net/link', linkType: 'a', linkNetworks: [{ linkNetworkId: networkId, type: 'path', value: '/links', count: 1, orderNumber: 1 }], list: 'for-review' };
-  const state = { csvImportStarts: 0, csvImportFinishes: 0, csvImportURLs: 1, invalidImportResponse: false, csvImportedContents: '', csvJobs: 0, csvPolls: 0, csvDenied: false, reruns: 0, incImportAvailable: true, lockedSettings: false, lockedAudit: false, rejectTagChanges: false, processing: false, foreignEndpoint: false, omitDisposition: false, exports: 0 };
-  const reset = () => { state.csvImportStarts = 0; state.csvImportFinishes = 0; state.csvImportURLs = 1; state.invalidImportResponse = false; state.csvImportedContents = ''; state.csvJobs = 0; state.csvPolls = 0; state.csvDenied = false; comments.clear(); labels.clear(); nextCommentId = 321; state.reruns = 0; state.incImportAvailable = true; state.lockedSettings = false; state.lockedAudit = false; state.rejectTagChanges = false; backlink.list = 'for-review'; settings = undefined; disavow = []; state.processing = false; state.foreignEndpoint = false; state.omitDisposition = false; state.exports = 0; calls.length = 0; };
+  const state = { dropScopeResponse: false, replacements: 0, readOnly: false, csvImportStarts: 0, csvImportFinishes: 0, csvImportURLs: 1, invalidImportResponse: false, csvImportedContents: '', csvJobs: 0, csvPolls: 0, csvDenied: false, reruns: 0, incImportAvailable: true, lockedSettings: false, lockedAudit: false, rejectTagChanges: false, processing: false, foreignEndpoint: false, omitDisposition: false, exports: 0 };
+  const reset = () => { currentAuditId = 456; currentScope = 'root'; state.dropScopeResponse = false; state.replacements = 0; state.readOnly = false; state.csvImportStarts = 0; state.csvImportFinishes = 0; state.csvImportURLs = 1; state.invalidImportResponse = false; state.csvImportedContents = ''; state.csvJobs = 0; state.csvPolls = 0; state.csvDenied = false; comments.clear(); labels.clear(); nextCommentId = 321; state.reruns = 0; state.incImportAvailable = true; state.lockedSettings = false; state.lockedAudit = false; state.rejectTagChanges = false; backlink.list = 'for-review'; settings = undefined; disavow = []; state.processing = false; state.foreignEndpoint = false; state.omitDisposition = false; state.exports = 0; calls.length = 0; };
   const metadata = () => {
     const stored = settings ? { ...settings } : null;
     // Native info omits false recurring flags; creation echoes the supplied settings.
     if (stored?.recrawlNotify === false) delete stored.recrawlNotify;
     if (stored?.recrawlMajestic === false) delete stored.recrawlMajestic;
     if (stored && Array.isArray(stored.brands) && stored.brands.length === 0) delete stored.brands;
-    return { projectId: 789, userDomainId: 456, domain: 'example.com', scope: 'root', statusId: state.processing ? 2 : 1, isLocked: state.lockedAudit, isLockedSettings: state.lockedSettings, params: stored };
+    return { projectId: 789, userDomainId: currentAuditId, domain: 'example.com', scope: currentScope, isOwner: !state.readOnly, isSharedWrite: false, statusId: state.processing ? 2 : 1, isLocked: state.lockedAudit, isLockedSettings: state.lockedSettings, params: stored };
+  };
+  /** Native setup changes the active ID before acknowledging a replacement. */
+  const addCampaign = (params: Query): Schema.Json => {
+    expect(params.projectId).toBe(789);
+    const scope = Schema.decodeUnknownSync(Schema.Literals(['root', 'both', 'www', 'nonwww']))(params.scope);
+    if (settings) { currentAuditId++; state.replacements++; state.processing = true; }
+    else expect(params.params).toEqual({ brands: ['example'], categories: ['6'], geo: ['us'], recrawl: 'never', recrawlNotify: false, recrawlMajestic: false });
+    currentScope = scope;
+    settings = Schema.decodeUnknownSync(Schema.JsonObject)(params.params);
+    return { ...metadata(), params: settings };
   };
   const overviewMethods = new Set([
     'overview.GetLinksStatsEx', 'overview.GetDomainsStats', 'overview.GetAnchorTypesStats',
@@ -36,16 +48,16 @@ export function makeBacklinkAuditFixture() {
     if (method.startsWith('disavow.')) {
       switch (method) {
         case 'disavow.Move':
-          expect(params).toEqual({ userDomainId: 456, userListItemId: 100, list: 'for-review' });
+          expect(params).toEqual({ userDomainId: currentAuditId, userListItemId: 100, list: 'for-review' });
           backlink.list = 'for-review';
           disavow = disavow.filter(entry => entry.id !== params.userListItemId);
           return null;
         case 'disavow.Delete':
-          expect(params).toEqual({ userDomainId: 456, userListItemId: 101 });
+          expect(params).toEqual({ userDomainId: currentAuditId, userListItemId: 101 });
           disavow = disavow.filter(entry => entry.id !== params.userListItemId);
           return null;
         case 'disavow.Clear':
-          expect(params).toEqual({ userDomainId: 456, withManual: false, withFile: true, withGDT: false });
+          expect(params).toEqual({ userDomainId: currentAuditId, withManual: false, withFile: true, withGDT: false });
           disavow = disavow.filter(entry => entry.statusId !== 5);
           return null;
         case 'disavow.Get': return disavow;
@@ -54,7 +66,7 @@ export function makeBacklinkAuditFixture() {
       }
     }
     if (!method.startsWith('comments.') && !method.startsWith('usertags.')) return undefined;
-    expect(params.userDomainId).toBe(456);
+    expect(params.userDomainId).toBe(currentAuditId);
     if (method === 'comments.GetByIds') {
       if (!Array.isArray(params.ids)) throw new Error('Missing native comment IDs');
       return params.ids.map(id => comments.get(Number(id))).filter(comment => comment !== undefined);
@@ -84,7 +96,7 @@ export function makeBacklinkAuditFixture() {
     throw new Error('Unknown native annotation RPC');
   };
   const targetPages = (method: string, params: Query): Schema.Json => {
-    expect(params.userDomainId).toBe(456);
+    expect(params.userDomainId).toBe(currentAuditId);
     expect(params).toHaveProperty('targetUrlError'); expect(params).toHaveProperty('queryMode');
     if (!Array.isArray(params.userTags)) throw new Error('Missing native label filter');
     const selectedLabels = params.userTags;
@@ -95,7 +107,7 @@ export function makeBacklinkAuditFixture() {
     return urls.slice(page * pageSize, (page + 1) * pageSize).map(url => ({ urls: [url], active: [params.collapse === 'd' ? 2 : 3], new: [0], broken: [0], lost: [0] }));
   };
   const serveFile = async (request: IncomingMessage, response: ServerResponse, url: URL): Promise<boolean> => {
-      if (url.pathname === '/backlink_audit/files/backlinks/upload/456/fixture-import-hash') {
+      if (url.pathname === `/backlink_audit/files/backlinks/upload/${currentAuditId}/fixture-import-hash`) {
         expect(request.method).toBe('POST');
         expect(url.searchParams.get('user_id')).toBe('123'); expect(url.searchParams.get('paid_type')).toBe('2');
         const contentType = request.headers['content-type'] ?? '';
@@ -107,7 +119,7 @@ export function makeBacklinkAuditFixture() {
         response.setHeader('Content-Type', 'application/json');
         response.end(JSON.stringify({ error: false, code: 200, message: null, file: { name: file.name, id: file.name, size: file.size, urls: state.invalidImportResponse ? '1' : state.csvImportURLs } })); return true;
       }
-      if (url.pathname === '/backlink_audit/files/backlinks/download/456') {
+      if (url.pathname === `/backlink_audit/files/backlinks/download/${currentAuditId}`) {
         expect(request.method).toBe('GET'); expect(request.headers.authorization).toBe('fixture-secret');
         expect(url.searchParams.get('user_id')).toBe('123'); expect(url.searchParams.get('paid_type')).toBe('2');
         expect(url.searchParams.get('filename')).toBe('fixture-backlinks.csv');
@@ -158,13 +170,17 @@ export function makeBacklinkAuditFixture() {
       expect(rpc.params).not.toHaveProperty('dry_run');
       calls.push({ method: rpc.method, params: rpc.params });
       response.setHeader('Content-Type', 'application/json');
-      const reply = (result: Schema.Json) => response.end(JSON.stringify({ id: rpc.id, jsonrpc: '2.0', result }));
+      const reply = (result: Schema.Json) => {
+        if (rpc.method === 'domains.AddByProjectId' && state.replacements > 0 && state.dropScopeResponse) { response.destroy(); return; }
+        response.end(JSON.stringify({ id: rpc.id, jsonrpc: '2.0', result }));
+      };
       const fail = (message: string) => response.end(JSON.stringify({ id: rpc.id, jsonrpc: '2.0', error: { code: 502, message } }));
+      if ('userDomainId' in rpc.params && rpc.params.userDomainId !== currentAuditId) { response.end(JSON.stringify({ id: rpc.id, jsonrpc: '2.0', error: { code: 404, message: 'user domain not found' } })); return; }
       const annotationResult = reviewMetadata(rpc.method, rpc.params);
       if (annotationResult !== undefined) { reply(annotationResult); return; }
       switch (rpc.method) {
         case 'projects.Limits': reply({ used: settings ? 1 : 0, max: 15 }); return;
-        case 'domains.GetAll': reply([{ projectId: 789, userDomainId: settings ? 456 : null }]); return;
+        case 'domains.GetAll': reply([{ projectId: 789, userDomainId: settings ? currentAuditId : null }]); return;
         case 'domains.GetProject':
           expect(rpc.params).toEqual({ projectId: 789 });
           reply({ domain: 'example.com', defaultBrands: ['example'], defaultCategories: ['6'], defaultGeo: ['us'] }); return;
@@ -172,18 +188,13 @@ export function makeBacklinkAuditFixture() {
           expect(rpc.params).toEqual({ projectId: 789 });
           reply([{ scope: 'root', available: true, allowed: true, domains: ['example.com'], backlinks: 2 }, { scope: 'both', available: true, allowed: true, domains: ['example.com', 'www.example.com'], backlinks: 2 }, { scope: 'www', available: false, allowed: true, domains: ['www.example.com'], backlinks: 0 }]); return;
         case 'domains.AddByProjectId':
-          expect(settings).toBeUndefined();
-          expect(rpc.params.projectId).toBe(789);
-          expect(rpc.params.scope).toBe('root');
-          settings = rpc.params.params;
-          expect(settings).toEqual({ brands: ['example'], categories: ['6'], geo: ['us'], recrawl: 'never', recrawlNotify: false, recrawlMajestic: false });
-          reply({ ...metadata(), params: settings ?? null }); return;
+          reply(addCampaign(rpc.params)); return;
         case 'domains.GetByProjectId':
           expect(rpc.params).toEqual({ projectId: 789 });
           if (!settings) { fail('Audit not configured'); return; }
           reply(metadata()); return;
         case 'domains.ApplySettings':
-          expect(rpc.params.userDomainId).toBe(456);
+          expect(rpc.params.userDomainId).toBe(currentAuditId);
           if (!settings) { fail('Audit not configured'); return; }
           if (rpc.params.params.brands?.includes('reject')) { fail('Provider rejected fixture-secret'); return; }
           Object.assign(settings, rpc.params.params);
@@ -191,14 +202,14 @@ export function makeBacklinkAuditFixture() {
         case 'backlinks.StartUpload':
           expect(rpc.params).toEqual({}); state.csvImportStarts++; reply('fixture-import-hash'); return;
         case 'backlinks.FinishUpload':
-          expect(rpc.params).toEqual({ userDomainId: 456, hash: 'fixture-import-hash' });
+          expect(rpc.params).toEqual({ userDomainId: currentAuditId, hash: 'fixture-import-hash' });
           expect(state.csvImportURLs).toBeGreaterThan(0); state.csvImportFinishes++; state.processing = true; reply(true); return;
         case 'backlinks.StartBacklinksCSVExport':
-          expect(rpc.params.userDomainId).toBe(456); expect(rpc.params.search).toHaveProperty('collapse');
+          expect(rpc.params.userDomainId).toBe(currentAuditId); expect(rpc.params.search).toHaveProperty('collapse');
           expect(rpc.params).not.toHaveProperty('page'); expect(rpc.params).not.toHaveProperty('pageSize');
           state.csvJobs++; reply({ filename: 'fixture-backlinks.csv' }); return;
         case 'domains.PushIncImport':
-          expect(rpc.params).toEqual({ userDomainId: 456 });
+          expect(rpc.params).toEqual({ userDomainId: currentAuditId });
           expect(state.processing).toBe(false);
           state.reruns++; state.processing = true; reply(true); return;
         case 'backlinks.GetTargetPagesCompound': case 'backlinks.CountTargetPagesCompound':
@@ -208,26 +219,26 @@ export function makeBacklinkAuditFixture() {
           expect(rpc.params.search).toHaveProperty('queryMode');
           reply(rpc.params.search.mode === 'all' || rpc.params.search.mode === backlink.list ? [{ ...backlink, userCommentId: [...comments.values()].find(comment => comment.domain === backlink.source)?.id ?? null }] : []); return;
         case 'backlinks.MoveDomains': case 'backlinks.MoveUrls': case 'backlinks.MoveLinkNetworks':
-          expect(rpc.params).toEqual({ userDomainId: 456, ids: [rpc.method === 'backlinks.MoveLinkNetworks' ? networkId : backlink.id], list: expect.stringMatching(/^(for-review|whitelist|to-remove|disavow)$/) });
+          expect(rpc.params).toEqual({ userDomainId: currentAuditId, ids: [rpc.method === 'backlinks.MoveLinkNetworks' ? networkId : backlink.id], list: expect.stringMatching(/^(for-review|whitelist|to-remove|disavow)$/) });
           backlink.list = rpc.params.list;
           if (backlink.list === 'disavow') disavow.push({ id: 100, type: 'domain', text: 'example.net', statusId: 1 });
           reply(null); return;
         case 'backlinks.Count': reply(2); return;
         case 'backlinks.GetCategoryList': reply([{ id: 6, count: 2 }]); return;
         case 'domains.GetEndpoints':
-          expect(rpc.params).toEqual({ userDomainId: 456 });
-          reply({ backlinksUpload: state.foreignEndpoint ? '//outside.invalid/upload' : '/files/backlinks/upload/456?user_id=123&paid_type=2', backlinksUploadFormField: 'backlinks', backlinksDownload: state.foreignEndpoint ? '//outside.invalid/download' : '/files/backlinks/download/456?user_id=123&paid_type=2', disavowDownload: state.foreignEndpoint ? '//outside.invalid/download' : '/files/disavow/download/456?user_id=123&paid_type=2', disavowUpload: '/files/disavow/upload/456?user_id=123&paid_type=2', disavowUploadFormField: 'disavow' }); return;
+          expect(rpc.params).toEqual({ userDomainId: currentAuditId });
+          reply({ backlinksUpload: state.foreignEndpoint ? '//outside.invalid/upload' : `/files/backlinks/upload/${currentAuditId}?user_id=123&paid_type=2`, backlinksUploadFormField: 'backlinks', backlinksDownload: state.foreignEndpoint ? '//outside.invalid/download' : `/files/backlinks/download/${currentAuditId}?user_id=123&paid_type=2`, disavowDownload: state.foreignEndpoint ? '//outside.invalid/download' : `/files/disavow/download/${currentAuditId}?user_id=123&paid_type=2`, disavowUpload: `/files/disavow/upload/${currentAuditId}?user_id=123&paid_type=2`, disavowUploadFormField: 'disavow' }); return;
         case 'domains.GetStatus':
-          expect(rpc.params).toEqual({ userDomainId: 456, background: false });
+          expect(rpc.params).toEqual({ userDomainId: currentAuditId, background: false });
           reply({ domain: metadata(), isExportLimited: false, incImportAvailable: state.incImportAvailable }); return;
         case 'catalog.CategoriesFull': reply([{ id: 1, name: 'Technology' }]); return;
         case 'catalog.GeoList': reply([{ code: 'us', name: 'United States' }]); return;
         case 'domains.Recommendations':
-          expect(rpc.params).toEqual({ userDomainId: 456 });
+          expect(rpc.params).toEqual({ userDomainId: currentAuditId });
           reply([]); return;
         default:
           if (overviewMethods.has(rpc.method)) {
-            expect(rpc.params.userDomainId).toBe(456);
+            expect(rpc.params.userDomainId).toBe(currentAuditId);
             expect(rpc.params.search).toMatchObject({ targetUrlHash: null, targetUrlPath: null });
             reply({ count: 2, search: rpc.params.search }); return;
           }

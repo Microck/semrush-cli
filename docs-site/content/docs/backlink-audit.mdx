@@ -179,11 +179,28 @@ unlocked.
 It starts native analysis while preserving recurring settings. Poll the status
 to observe processing and completion.
 
-Scope discovery and selection when creating an audit work. Changing an existing
-audit's scope is not exposed: the native operation creates a new audit ID and
-resets scheduling to every two weeks with notifications enabled. Creating another
-audit does not preserve the existing audit's history. The CLI does not perform
-that reset followed by a separate settings write.
+## Replace an audit's scope
+
+```sh
+semrush backlink-audit-replace-scope --project-id 123 --scope both --dry-run
+semrush backlink-audit-replace-scope --project-id 123 --scope both --confirm
+semrush backlink-audit-info --project-id 123
+```
+
+Use the SEO project ID, not its folder ID or current audit ID. Choose `root`,
+`both`, `www` or `nonwww` from the native scope options. The command requires
+permission to edit a ready, unlocked audit and rejects its current scope.
+
+This is destructive. Semrush creates a new audit ID and discards the previous
+analysis. The command copies the current settings into that one creation request,
+including empty brands, categories and countries, manual scheduling and disabled
+notifications. It does not reset the audit and restore settings afterward.
+Do not assume comments, labels or list selections carry into the replacement.
+
+Read `backlink-audit-info` to find the new audit ID, then use it with
+`backlink-audit-status` to observe analysis. A lost response does not trigger
+another write. Inspect the selected audit before deciding whether to try again.
+The dry run shows the request plan; settings are read only during execution.
 
 ## Import backlinks from CSV
 

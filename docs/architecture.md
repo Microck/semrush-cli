@@ -1,6 +1,6 @@
 # Architecture
 
-The CLI and stdio MCP share a catalog of 209 operations (142 reads and 67 writes) and one Semrush Effect service. Input validation populates defaults before credential-bearing resources are acquired. The browser layer owns a transient Chromium context, reads page bootstrap metadata without evaluating page-owned JavaScript, serializes report requests, and closes its browser with the Effect scope. JSON parsing outside Chromium preserves large identifiers as decimal strings.
+The CLI and stdio MCP share a catalog of 263 operations (177 reads and 86 writes) and one Semrush Effect service. Input validation populates defaults before credential-bearing resources are acquired. The browser layer owns a transient Chromium context, reads page bootstrap metadata without evaluating page-owned JavaScript, serializes report requests, and closes its browser with the Effect scope. Report HTTP requests use that context's shared-cookie request client with `maxRetries:0`; Chromium page fetch can silently replay a POST after a connection reset. Response buffers are disposed after reading. JSON parsing outside Chromium preserves large identifiers as decimal strings.
 
 Galleton owns durable encrypted cookies. Its TypeScript SDK is the published, pinned `galleton@0.1.0` npm dependency. The npm package bundles platform builds of the pinned Galleton daemon plus the storage-only provider extension in `patches/galleton-static-provider.patch`.
 

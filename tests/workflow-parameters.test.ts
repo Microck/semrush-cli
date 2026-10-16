@@ -356,3 +356,13 @@ test('Backlink Audit CSV import previews file bytes without staging or exposing 
   await expect(preview('backlink_audit_import', { audit_id: 456, contents: '', dry_run: true })).rejects.toThrow();
   await expect(preview('backlink_audit_import', { audit_id: 456, contents, filename: '../bad.csv', dry_run: true })).rejects.toThrow();
 });
+
+
+test('Backlink Audit scope replacement previews only explicit inputs before runtime preservation reads', async () => {
+  await expect(preview('backlink_audit_replace_scope', { project_id: 789, scope: 'both' })).rejects.toThrow('--confirm');
+  expect((await preview('backlink_audit_replace_scope', { project_id: 789, scope: 'both', dry_run: true })).body).toEqual({
+    id: 1, jsonrpc: '2.0', method: 'domains.AddByProjectId', params: { projectId: 789, scope: 'both', params: {} },
+  });
+  await expect(preview('backlink_audit_replace_scope', { project_id: 789, dry_run: true })).rejects.toThrow();
+  await expect(preview('backlink_audit_replace_scope', { project_id: 789, scope: 'invalid', dry_run: true })).rejects.toThrow();
+});

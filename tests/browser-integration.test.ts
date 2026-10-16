@@ -1084,3 +1084,66 @@ test('Backlink Audit CSV import refuses locked audits, foreign endpoints and inv
     expect(backlinkAuditFixture.state.csvImportFinishes).toBe(0);
   }).pipe(Effect.provide(fixtureLayer()))));
 }, 30000);
+
+
+test('Backlink Audit scope replacement preserves saved values and explicit clears in one write per fresh audit', async () => {
+  backlinkAuditFixture.reset();
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const semrush = yield* Semrush;
+    const run = (name: string, query: Query) => parseReport(name, query).pipe(Effect.flatMap(request => semrush.report(request)));
+    yield* run('backlink_audit_create', { project_id: 789, confirm: true });
+    yield* run('backlink_audit_configure', { audit_id: 456, brands: ['kept'], categories: [1], countries: ['gb'], confirm: true });
+    const before = backlinkAuditFixture.calls.length;
+    expect((yield* run('backlink_audit_replace_scope', { project_id: 789, scope: 'both', confirm: true })).data).toMatchObject({
+      userDomainId: 457, scope: 'both', statusId: 2,
+      params: { brands: ['kept'], categories: ['1'], geo: ['gb'], recrawl: 'never', recrawlNotify: false, recrawlMajestic: false },
+    });
+    expect(backlinkAuditFixture.calls.slice(before).map(call => call.method)).toEqual(['domains.GetByProjectId', 'domains.AddByProjectId']);
+    expect((yield* run('backlink_audit_status', { audit_id: 456 }).pipe(Effect.flip)).message).toContain('user domain not found');
+    backlinkAuditFixture.state.processing = false;
+    yield* run('backlink_audit_configure', { audit_id: 457, brands: [], categories: [], countries: [], recrawl_notify: true, recrawl_majestic: true, confirm: true });
+    expect((yield* run('backlink_audit_replace_scope', { project_id: 789, scope: 'nonwww', confirm: true })).data).toMatchObject({
+      userDomainId: 458, scope: 'nonwww', params: { brands: [], categories: [], geo: [], recrawl: 'never', recrawlNotify: true, recrawlMajestic: true },
+    });
+    expect(backlinkAuditFixture.state.replacements).toBe(2);
+    expect((yield* run('backlink_audit_info', { project_id: 789 })).data).toMatchObject({ userDomainId: 458, scope: 'nonwww' });
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+test('Backlink Audit scope replacement refuses missing, unchanged, read-only and locked audits before writing', async () => {
+  backlinkAuditFixture.reset();
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const semrush = yield* Semrush;
+    const run = (name: string, query: Query) => parseReport(name, query).pipe(Effect.flatMap(request => semrush.report(request)));
+    const replace = () => run('backlink_audit_replace_scope', { project_id: 789, scope: 'both', confirm: true });
+    expect((yield* replace().pipe(Effect.flip)).message).toContain('Audit not configured');
+    yield* run('backlink_audit_create', { project_id: 789, confirm: true });
+    expect((yield* run('backlink_audit_replace_scope', { project_id: 789, scope: 'root', confirm: true }).pipe(Effect.flip)).message).toContain('already uses');
+    backlinkAuditFixture.state.readOnly = true;
+    expect((yield* replace().pipe(Effect.flip)).message).toContain('read-only');
+    backlinkAuditFixture.state.readOnly = false; backlinkAuditFixture.state.lockedAudit = true;
+    expect((yield* replace().pipe(Effect.flip)).message).toContain('isLocked:false');
+    backlinkAuditFixture.state.lockedAudit = false; backlinkAuditFixture.state.lockedSettings = true;
+    expect((yield* replace().pipe(Effect.flip)).message).toContain('isLockedSettings:false');
+    backlinkAuditFixture.state.lockedSettings = false; backlinkAuditFixture.state.processing = true;
+    expect((yield* replace().pipe(Effect.flip)).message).toContain('statusId:1');
+    expect(backlinkAuditFixture.state.replacements).toBe(0);
+    expect(backlinkAuditFixture.calls.filter(call => call.method === 'domains.AddByProjectId')).toHaveLength(1);
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+
+test('Backlink Audit scope replacement does not retry when the response is lost after commit', async () => {
+  backlinkAuditFixture.reset();
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const semrush = yield* Semrush;
+    const run = (name: string, query: Query) => parseReport(name, query).pipe(Effect.flatMap(request => semrush.report(request)));
+    yield* run('backlink_audit_create', { project_id: 789, confirm: true });
+    backlinkAuditFixture.state.dropScopeResponse = true;
+    const failed = yield* run('backlink_audit_replace_scope', { project_id: 789, scope: 'both', confirm: true }).pipe(Effect.flip);
+    expect(failed.message).toBeTruthy();
+    expect(backlinkAuditFixture.state.replacements).toBe(1);
+    expect(backlinkAuditFixture.calls.filter(call => call.method === 'domains.AddByProjectId')).toHaveLength(2);
+    expect((yield* run('backlink_audit_info', { project_id: 789 })).data).toMatchObject({ userDomainId: 457, scope: 'both', params: { recrawl: 'never' } });
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);

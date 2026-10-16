@@ -1,6 +1,6 @@
 {
   "name": "semrush-cli",
-  "version": "0.18.0",
+  "version": "0.19.0",
   "description": "Semrush research from your terminal and MCP clients. TypeScript, Effect, and Galleton.",
   "type": "module",
   "bin": {
