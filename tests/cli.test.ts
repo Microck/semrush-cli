@@ -64,7 +64,7 @@ test('built CLI runs help and version without credentials', async () => {
 test('built catalog distinguishes read reports and project writes', async () => {
   const { stdout, stderr } = await cli(['reports', '--json']);
   const listed = JSON.parse(stdout);
-  expect(listed).toHaveLength(265);
+  expect(listed).toHaveLength(266);
   expect(listed.filter((entry: { read_only: boolean }) => !entry.read_only)).toHaveLength(86);
   expect(stderr).toBe('');
 });
@@ -92,7 +92,7 @@ test('MCP advertises write safety and previews without an authenticated runtime'
     expect((await client.listResourceTemplates()).resourceTemplates[0]?.uriTemplate).toBe('semrush-export://{export_id}{?offset,limit}');
     await expect(client.readResource({ uri: 'semrush-export://unknown' })).rejects.toThrow('Download an export first');
     const listed = await client.listTools();
-    expect(listed.tools).toHaveLength(265);
+    expect(listed.tools).toHaveLength(266);
     expect(listed.tools.find(tool => tool.name === 'project_delete')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
     expect(listed.tools.find(tool => tool.name === 'backlink_audit_disavow_import')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
     expect(listed.tools.find(tool => tool.name === 'backlink_audit_export')?.annotations).toMatchObject({ readOnlyHint: true, idempotentHint: false });

@@ -79,7 +79,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 
 ## command surface
 
-265 operations, available as cli commands and mcp tools. 179 reads and 86 writes that need explicit confirmation.
+266 operations, available as cli commands and mcp tools. 180 reads and 86 writes that need explicit confirmation.
 
 | command | what it does |
 | --- | --- |
@@ -149,6 +149,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 | `audit-export-pages`, `audit-export-issues`, `audit-export-issue` | download native csv or xlsx reports |
 | `audit-export-page-issues` | download the latest crawl's page-by-issue matrix |
 | `audit-export-markup` | download a crawl's markup and structured data |
+| `audit-export-compare` | download a comparison of two crawls |
 | `notes`, `note`, `note-databases`, `note-hidden-categories` | list and read chart notes, database options and hidden categories |
 | `notes-export` | download all chart notes as native csv |
 | `note-create`, `note-update`, `note-delete` | create, edit or delete your own user notes |
@@ -684,6 +685,15 @@ copy page and snapshot ids from the results. exports require `--output` and refu
 
 live mcp checks for both exports matched native csv and xlsx bytes exactly. the cli markup xlsx matched all worksheet and content bytes; only semrush's creation timestamp in `docProps/core.xml` differed.
 
+compare two crawls using distinct snapshot ids from `audit-snapshots`:
+
+```bash
+semrush audit-export-compare --first-snapshot-id '<previous_snapshot_id>' \
+  --second-snapshot-id '<latest_snapshot_id>' --output comparison.csv
+```
+
+both ids are required, and the cli preserves their order. semrush puts the second crawl's columns before the first crawl's columns. the download keeps semrush's calculated changes intact. csv is the default, or use `--format xlsx`. live cli and mcp checks verified both formats on existing 23-page historical crawls. csv bytes matched fresh native downloads exactly. xlsx workbook contents matched except for semrush's creation timestamp in `docProps/core.xml`.
+
 `audit-recrawl` queues a page again. `audit-abort` cancels a running crawl; `audit-finalize` stops collecting pages and processes what it has. these writes need `--confirm`. see [site audit](https://semrush.micr.dev/docs/site-audit) for crawl settings, stop conditions and limits.
 
 ## mcp
@@ -722,7 +732,7 @@ npm run check
 
 the cli uses the published [`galleton` 0.1.0 sdk](https://www.npmjs.com/package/galleton). the bundled galleton daemon is still required for sessions. building it from source requires go 1.23 or newer, `tar` and `patch`. published cli packages include the daemon for supported platforms, so npm users do not need go.
 
-the current source passed 185 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
+the current source passed 187 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
 
 ## documentation
 

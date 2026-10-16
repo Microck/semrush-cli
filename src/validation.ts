@@ -16,6 +16,7 @@ export const parseReport = Effect.fn('Reports.parse')(function* (name: string, i
   if ((name === 'saved_keywords_move' || name === 'saved_keywords_copy') && query.list_id === query.target_list_id) {
     return yield* Effect.fail(new UsageError({ message: 'Source and destination Saved Keywords collections must be different.' }));
   }
+  if (name === 'audit_export_compare' && query.first_snapshot_id === query.second_snapshot_id) return yield* Effect.fail(new UsageError({ message: 'Choose two different Site Audit snapshots for comparison.' }));
   const definition = reports[name];
   if (definition.transport === 'notes_web') {
     for (const key of ['datetime', 'datetime_from', 'datetime_to']) {

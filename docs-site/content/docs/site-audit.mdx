@@ -159,6 +159,7 @@ from an agent.
 | Crawled Pages with markup | `audit-export-markup` | Explicit snapshot ID |
 | Issues | `audit-export-issues` | Explicit snapshot ID |
 | Pages affected by one issue | `audit-export-issue` | Snapshot and issue IDs |
+| Compare Crawls | `audit-export-compare` | Two explicit snapshot IDs |
 
 Page, page/issue matrix and markup exports accept `--relative`, `--sort` and
 `--filter` with the native field values. The matrix has one column per issue;
@@ -168,7 +169,26 @@ you need a specific historical crawl.
 Crawled-links exports remain unsupported. Both native formats returned HTTP 404,
 `no endpoint for the requested path`, while page exports from the same snapshot
 succeeded. This is an endpoint failure, not evidence of a Guru plan restriction.
-Compare Crawls and the All reports batch download are not yet exposed.
+The All reports batch download is not yet exposed.
+
+## Compare two crawls
+
+Use `audit-snapshots` to choose two different completed snapshots from the same
+campaign. The web UI defaults the first selection to the previous crawl and the
+second to the latest crawl.
+
+```sh
+semrush audit-export-compare \
+  --first-snapshot-id '<previous_snapshot_id>' \
+  --second-snapshot-id '<latest_snapshot_id>' \
+  --output comparison.csv
+```
+
+Use `--format xlsx --output comparison.xlsx` for Excel. Both snapshot IDs are
+required. The CLI preserves your selection order and Semrush's native file.
+Its columns put the second crawl before the first, followed by provider-computed
+deltas. The CLI does not reorder columns or recalculate changes. This download
+leaves campaign settings and crawl allowance unchanged.
 
 Use the web UI for connected integrations.
 Deleting a project also deletes its attached audit.
@@ -188,3 +208,8 @@ The protected-audit pass uploaded a one-URL list through both the native UI and
 the CLI/MCP request. A ten-page cap finished at six pages, including HTTP 200
 for the protected HTML page. Credential creation, replacement, retention and
 explicit disabling passed readbacks. The owned projects were deleted afterward.
+
+The comparison download and default snapshot order follow the current
+[native export module](https://static.semrush.com/siteaudit/review/3909.2dd2f158589125911115.js).
+Both formats passed native, CLI and MCP checks on two existing completed
+23-page crawls. The checks left their settings and saved results intact.

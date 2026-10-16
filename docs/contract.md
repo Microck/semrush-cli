@@ -719,3 +719,18 @@ the browser and is disposed on success, failure or interruption. Cancellation
 aborts only that export and leaves the serialized MCP runtime usable. The same
 JSON, form and multipart contracts, pending-job polling and artifact bytes remain
 unchanged. Galleton remains the sole durable credential store.
+
+## Site Audit Compare Crawls download
+
+`audit-export-compare --first-snapshot-id <id> --second-snapshot-id <id>` sends
+GET `/siteaudit/export/snapshot/{second_snapshot_id}/compare/{first_snapshot_id}`
+with `export=csv|xlsx` and the runtime account key. Both IDs are explicit and
+must differ. The native UI defaults the first selection to the previous crawl
+and the second to the latest crawl. The CLI preserves the supplied order.
+
+The [native export module](https://static.semrush.com/siteaudit/review/3909.2dd2f158589125911115.js) initializes those two settings from
+`prevSnapshot` and `lastSnapshot` and uses that exact path. Positive native
+CSV and XLSX downloads compared two completed 23-page crawls. The CSV places
+second-crawl columns before first-crawl columns and retains provider-computed
+deltas. The CLI must preserve those bytes without reordering or recalculating
+values. It does not start a crawl or change campaign settings.

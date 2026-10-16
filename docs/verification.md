@@ -1,5 +1,29 @@
 # Verification
 
+## Version 0.21.0 Compare Crawls
+
+The source catalog contains 266 operations, 180 reads and 86 confirmed writes.
+TypeScript, Oxlint, generated references, five bundled daemon targets and all
+187 tests passed on a private ARM64 Raft runner. Three independent
+simplification reviews found no changes needed. No local compilation or
+browser verification ran on the controller.
+
+`audit-export-compare` accepts two explicit, different snapshot IDs. Its native
+request places the second ID before `/compare/` and the first ID afterward.
+It defaults to CSV and also supports XLSX. The CLI preserves provider column
+order and deltas. A real HTTP fixture verifies exact request fields, snapshot
+ordering, filename and CSV bytes, including the native negative delta. Input
+validation rejects identical, missing and malformed IDs.
+
+Authenticated source CLI and MCP calls passed in both formats using two
+existing completed 23-page snapshots. Native CSV bytes matched exactly. XLSX
+workbook entries matched except Semrush's creation timestamp in
+`docProps/core.xml`, which changes between independent requests. Both actual
+CLI formats passed, and a same-snapshot command failed before authentication.
+The authenticated CLI doctor also passed. Only reads ran against that existing
+audit; no settings, crawls or account projects changed. The authorized session
+copy and remote vault were removed after verification.
+
 ## Version 0.20.0 native Site Audit exports
 
 The source catalog contains 265 operations, 179 reads and 86 confirmed writes.

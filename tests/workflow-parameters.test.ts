@@ -376,3 +376,16 @@ test('Site Audit export selections preserve native resource IDs and format field
     method: 'GET', path: '/siteaudit/export/pagesStructuredData/opaque_snapshot', body: { export: 'xlsx', relative: true, sort: 'url_desc', filter: 'café' },
   });
 });
+
+test('Site Audit comparisons keep native snapshot ordering and require distinct explicit IDs', async () => {
+  const selection = { first_snapshot_id: 'old_snapshot', second_snapshot_id: 'new_snapshot' };
+  expect(await preview('audit_export_compare', selection)).toEqual({
+    method: 'GET', path: '/siteaudit/export/snapshot/new_snapshot/compare/old_snapshot', body: { export: 'csv' },
+  });
+  expect(await preview('audit_export_compare', { ...selection, format: 'xlsx' })).toEqual({
+    method: 'GET', path: '/siteaudit/export/snapshot/new_snapshot/compare/old_snapshot', body: { export: 'xlsx' },
+  });
+  await expect(preview('audit_export_compare', { ...selection, second_snapshot_id: 'old_snapshot' })).rejects.toThrow('two different Site Audit snapshots');
+  await expect(preview('audit_export_compare', { first_snapshot_id: 'old_snapshot' })).rejects.toThrow();
+  await expect(preview('audit_export_compare', { ...selection, first_snapshot_id: '../old' })).rejects.toThrow();
+});

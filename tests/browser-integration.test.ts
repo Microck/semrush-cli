@@ -43,6 +43,7 @@ let auditRejectPassword = false;
 let auditOtherConnection: 'ga' | 'bot' | null = null;
 let delayedExportStarted = () => {};
 let delayedExportClosed = () => {};
+const auditComparisonCSV = 'Issue Id,Issue,15 Oct 2026 (15:12 UTC),15 Oct 2026 (13:52 UTC),Delta,Delta Percent\r\nn/a,Site Health,93,85,-8,-8.60\r\n';
 const observed: string[] = [];
 let keywordList: { BasketID: number; Owner: { ID: number }; Name: string } | undefined;
 let listKeywords: { Phrase: string; Database: string; Tags: string[] }[] = [];
@@ -88,6 +89,13 @@ const fixture = createServer(async (request, response) => {
     }
     response.setHeader('Content-Type', 'text/csv; charset=utf-8');
     response.setHeader('Content-Disposition', 'attachment; filename=fixture.csv');
+    if (url.pathname === '/siteaudit/export/snapshot/new_snapshot/compare/old_snapshot') {
+      expect(request.method).toBe('GET');
+      expect(request.headers.cookie).toContain('session=authorized');
+      expect([...url.searchParams.keys()].sort()).toEqual(['export', 'key']);
+      response.setHeader('Content-Disposition', 'attachment; filename=compare_crawls.csv');
+      response.end(auditComparisonCSV); return;
+    }
     if (url.pathname === '/siteaudit/export/campaigns/789' || url.pathname === '/siteaudit/export/pagesStructuredData/opaque_snapshot') {
       expect(request.method).toBe('GET');
       expect(request.headers.cookie).toContain('session=authorized');
@@ -1189,6 +1197,18 @@ test('Site Audit issue matrices and markup exports preserve filters, bytes and c
       expect(report.artifact.mime_type).toBe('text/csv');
       expect(Buffer.from((yield* files.read(report.artifact.uri)).blob, 'base64').toString('utf8')).toBe(contents);
     }
+    expect((yield* service.report(yield* parseReport('account_status', {}))).authenticated).toBe(true);
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+test('Site Audit comparison preserves the selected crawl order and native delta bytes', async () => {
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const service = yield* Semrush;
+    const report = yield* service.report(yield* parseReport('audit_export_compare', { first_snapshot_id: 'old_snapshot', second_snapshot_id: 'new_snapshot' }));
+    if (!report.artifact) throw new Error('Expected the native comparison artifact');
+    expect(report.artifact.filename).toBe('compare_crawls.csv');
+    expect(report.artifact.mime_type).toBe('text/csv');
+    expect(Buffer.from((yield* (yield* Exports).read(report.artifact.uri)).blob, 'base64').toString('utf8')).toBe(auditComparisonCSV);
     expect((yield* service.report(yield* parseReport('account_status', {}))).authenticated).toBe(true);
   }).pipe(Effect.provide(fixtureLayer()))));
 }, 30000);

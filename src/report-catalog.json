@@ -5415,6 +5415,49 @@
       ]
     }
   },
+  "audit_export_compare": {
+    "method": "/siteaudit/export/snapshot/{second_snapshot_id}/compare/{first_snapshot_id}",
+    "description": "Download a native CSV or XLSX comparison of two different Site Audit crawls.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "response_type": "download",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "first_snapshot_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "description": "First comparison snapshot, normally the previous crawl."
+        },
+        "second_snapshot_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "description": "Second comparison snapshot, normally the latest crawl. Native output columns appear before the first snapshot."
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "csv",
+            "xlsx"
+          ],
+          "default": "csv"
+        }
+      },
+      "required": [
+        "first_snapshot_id",
+        "second_snapshot_id"
+      ]
+    }
+  },
   "audit_export_issue": {
     "method": "/siteaudit/export/issues/{snapshot_id}/issue/{issue_id}",
     "description": "Download affected-page rows for one issue as CSV or XLSX.",

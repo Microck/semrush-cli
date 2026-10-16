@@ -3,7 +3,7 @@ title: Web UI coverage
 description: Supported web workflows, evidence and remaining gaps.
 ---
 
-The CLI has 265 fixed operations: 179 reads and 86 confirmed writes.
+The CLI has 266 fixed operations: 180 reads and 86 confirmed writes.
 It uses your web session and the current web UI's request contracts. Account
 permissions and quotas apply to both interfaces. This is not full Semrush suite
 parity. The table distinguishes implemented workflows from remaining gaps.
@@ -23,7 +23,7 @@ parity. The table distinguishes implemented workflows from remaining gaps.
 | Projects | Create, inspect, rename, add first domain, delete, leave, tags and pinning | Sharing invitations and account administration |
 | Project dashboard | Toolkit status, metric values and detail URLs | Third-party integration setup |
 | SEO setup | Create an SEO project and explicitly start automatic Site Audit/Position Tracking setup | Connected-service audit setup |
-| Site Audit | Discovery, limits, settings, HTTP Basic authentication, uploaded URL lists, schedules, launch, page and issue tables, page recrawl, execution status, abort/finalize, structure, performance, linking, history, snapshots, page, issue-matrix, markup and issue CSV/XLSX exports | Google Analytics and Web Bot Auth connections; crawled-links, Compare Crawls and All reports downloads |
+| Site Audit | Discovery, limits, settings, HTTP Basic authentication, uploaded URL lists, schedules, launch, page and issue tables, page recrawl, execution status, abort/finalize, structure, performance, linking, history, snapshots, page, issue-matrix, markup, issue and Compare Crawls CSV/XLSX exports | Google Analytics and Web Bot Auth connections; crawled-links and All reports downloads |
 | Position Tracking | Target creation, destructive replacement/deletion, complete tracked keyword/tag reads, locations, limits, keyword add/delete/tags, competitor replacement, partial address/business/brand/volume settings edits, campaign settings reads, alert listing/counts, rule lifecycle, rankings, pages, ranking distribution, competitor discovery, target comparison, visibility/distribution/cannibalization trends | Tier 3 crawl schedules, AI-target brand matching and clearing, alert-event changes and paid-only UI exports |
 | Keyword Strategy Builder | Domain strategy lifecycle, presets, filtered page opportunities, page URLs/SERPs, existing/recommended keywords, keyword deletion and CSV/XLSX exports; seed-based basket lifecycle, topics/pages, paginated clusters, favorites, selected-cluster deletion and metric refresh, keyword import, tags, deletion/undo, clustering, four native export selections and owner-aware selected keyword/cluster copy/move; send selected phrases to tracking | Mind-map image exports and content generation |
 | Saved Keywords | Create, rename, delete/undo collections; keyword import, filters, metrics, tags, workflow labels, copy/move, deletion/undo, metadata and CSV/semicolon CSV/XLSX exports; send selected phrases to tracking | Content generation |
@@ -36,11 +36,19 @@ for Magic, Gap, Saved Keywords and the builder.
 
 ## Verification
 
-The source suite has 185 tests, including real Chromium, a private Galleton
+The source suite has 187 tests, including real Chromium, a private Galleton
 daemon and stateful HTTP fixtures. All 48 original research mappings also have
 differential tests against the Python reference. Across versioned live passes,
-all 179 reads have execution evidence. The two latest Site Audit exports matched native CSV and XLSX downloads through MCP. The CLI markup XLSX matched workbook contents, with only the provider creation timestamp differing. The write checks combine native UI/API execution and real CLI/MCP calls; the versioned record identifies each pass. Shared-project leave
-has request-contract coverage but no shared-account fixture.
+all 180 reads have execution evidence. Page/issue-matrix and markup exports
+matched native CSV and XLSX downloads through MCP. The CLI markup XLSX matched
+workbook contents, with only the provider creation timestamp differing.
+Comparison exports also passed through CLI and MCP in both formats; CSV matched
+native bytes and XLSX matched workbook contents apart from Semrush's creation
+timestamp.
+
+The write checks combine native UI/API execution and real CLI/MCP calls; the
+versioned record identifies each pass. Shared-project leave has request-contract
+coverage but no shared-account fixture.
 
 Live checks covered project lifecycle, bounded Site Audit crawls and stop
 controls, tracking targets and rankings, alert rules, saved keyword collections,
