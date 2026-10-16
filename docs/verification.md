@@ -1,11 +1,11 @@
 # Verification
 
-Version 0.15.0 source verification: 2026-10-16. The source suite passed 157
-tests locally, including real Chromium, Galleton and stateful HTTP fixtures.
+Version 0.16.0 source verification: 2026-10-16. The source suite passed 166
+tests in CI, including real Chromium, Galleton and stateful HTTP fixtures.
 Live responses and credentials remain outside the repository. Evidence below
 distinguishes local fixtures, native CI and real account execution.
 
-## Backlink Audit source verification
+## Version 0.16.0 Backlink Audit
 
 Version 0.16.0 adds 39 Backlink Audit operations: 29 reads and ten
 confirmed writes. The source catalog contains 249 operations, 171 reads and
@@ -56,6 +56,21 @@ browser after local browser launches timed out. Its original context, login and
 configuration were preserved. Deletion acknowledged HTTP 200; a subsequent
 folder read returned HTTP 404 and campaign discovery showed absence. Existing
 account resources were untouched. Detailed journals remain private.
+
+[CI run 38867866346](https://github.com/Microck/semrush-cli/actions/runs/38867866346)
+passed all 166 tests, lint, TypeScript, the Fumadocs build and package setup on
+Linux, macOS and Windows. The public npm archive matches the tested CI archive
+byte-for-byte: 14,462,939 bytes, SHA-256
+`cd43b29d58c7f02e6ce130408f51c2f9332449a87ca6c67dbf37d7b98513b3b8`.
+The visible [GitHub release](https://github.com/Microck/semrush-cli/releases/tag/v0.16.0)
+has matching archive/checksum asset digests.
+
+A fresh global registry installation returned version 0.16.0 and passed live
+`doctor`. Its MCP server advertised 249 tools, 171 reads and 78 writes. Account,
+Backlink Audit limits/campaigns and keyword reads authenticated. The installed
+CLI preview preserved the native category-string encoding. Production Backlink
+Audit and coverage pages passed Chromium at 390px with HTTP 200, no page errors
+and no horizontal overflow. Existing logos, fonts, theme and GIFs were preserved.
 
 ## Version 0.15.0 protected audits and URL lists
 
