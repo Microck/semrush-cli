@@ -64,7 +64,7 @@ test('built CLI runs help and version without credentials', async () => {
 test('built catalog distinguishes read reports and project writes', async () => {
   const { stdout, stderr } = await cli(['reports', '--json']);
   const listed = JSON.parse(stdout);
-  expect(listed).toHaveLength(266);
+  expect(listed).toHaveLength(270);
   expect(listed.filter((entry: { read_only: boolean }) => !entry.read_only)).toHaveLength(86);
   expect(stderr).toBe('');
 });
@@ -92,13 +92,14 @@ test('MCP advertises write safety and previews without an authenticated runtime'
     expect((await client.listResourceTemplates()).resourceTemplates[0]?.uriTemplate).toBe('semrush-export://{export_id}{?offset,limit}');
     await expect(client.readResource({ uri: 'semrush-export://unknown' })).rejects.toThrow('Download an export first');
     const listed = await client.listTools();
-    expect(listed.tools).toHaveLength(266);
+    expect(listed.tools).toHaveLength(270);
     expect(listed.tools.find(tool => tool.name === 'project_delete')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
     expect(listed.tools.find(tool => tool.name === 'backlink_audit_disavow_import')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
     expect(listed.tools.find(tool => tool.name === 'backlink_audit_export')?.annotations).toMatchObject({ readOnlyHint: true, idempotentHint: false });
     expect(listed.tools.find(tool => tool.name === 'backlink_audit_replace_scope')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true, idempotentHint: false });
     for (const name of ['backlink_audit_comment_delete', 'backlink_audit_tag_delete']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
     expect(listed.tools.find(tool => tool.name === 'project_create')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false });
+    for (const name of ['audit_js_impact_guide', 'audit_js_impact_changed_pages', 'audit_js_impact_pages', 'audit_export_js_impact']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: true, destructiveHint: false });
     const preview = await client.callTool({ name: 'project_create', arguments: { name: 'example', dry_run: true } });
     expect(preview.isError).not.toBe(true);
     expect(preview.content).toEqual([{ type: 'text', text: JSON.stringify({ dry_run: true, report: 'project_create', request: { method: 'POST', path: '/apis/v4-raw/folders/api/v0/folders', body: { properties: [{ name: { value: 'example' } }] } } }) }]);
@@ -128,4 +129,10 @@ test('notes accept explicit null project scope in CLI previews without loading c
   const reply = JSON.parse((await cli(['note-update', '--note-id', 'owned-1', '--project-id', 'null', '--dry-run', '--json'])).stdout);
   expect(reply.request.body).toEqual({ project: null });
   await expect(cli(['note-update', '--note-id', 'owned-1', '--project-id', 'not-a-number', '--dry-run'])).rejects.toMatchObject({ code: 2, stdout: '' });
+});
+
+test('JS Impact export requires a destination and rejects irrelevant filters before authentication', async () => {
+  expect((await cli(['audit-export-js-impact', '--help'])).stdout).toContain('--output <path>');
+  await expect(cli(['audit-export-js-impact', '--campaign-id', '123'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('--output') });
+  await expect(cli(['audit-js-impact-pages', '--campaign-id', '123', '--status', 'unchanged', '--parameters', '["title"]'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('must NOT have more than 0 items') });
 });

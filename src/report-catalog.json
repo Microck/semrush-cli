@@ -3656,6 +3656,256 @@
       ]
     }
   },
+  "audit_js_impact_guide": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/js-impact/guide",
+    "description": "JavaScript rendering impact summary and changed-page examples by parameter.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "SEO project/campaign ID from project-enable-seo, not the folder ID."
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    }
+  },
+  "audit_js_impact_changed_pages": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/js-impact/changed-pages",
+    "description": "Number of Site Audit pages changed by JavaScript rendering.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "SEO project/campaign ID from project-enable-seo, not the folder ID."
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    }
+  },
+  "audit_js_impact_pages": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/js-impact/details",
+    "description": "Paginated Site Audit before/after JavaScript rendering values and filters.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "SEO project/campaign ID from project-enable-seo, not the folder ID."
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "all",
+            "changed",
+            "unchanged"
+          ],
+          "default": "all",
+          "description": "Compare pages before and after JavaScript rendering."
+        },
+        "query": {
+          "type": "string",
+          "default": "",
+          "description": "URL search text."
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "clientSideRedirect",
+              "metaRobots",
+              "title",
+              "metaDescription",
+              "linksCount",
+              "wordsCount",
+              "canonical",
+              "googleStructuredData"
+            ]
+          },
+          "uniqueItems": true,
+          "maxItems": 8,
+          "default": [],
+          "description": "Changed parameter keys. Requires status changed."
+        },
+        "sort": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ],
+          "default": "desc"
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "default": 0,
+          "description": "Zero-based page number."
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000,
+          "default": 10
+        }
+      },
+      "required": [
+        "campaign_id"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "all",
+                  "unchanged"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "parameters": {
+                "maxItems": 0
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "audit_export_js_impact": {
+    "method": "/siteaudit/export/js-impact/{campaign_id}",
+    "description": "Download all matching JavaScript impact rows as native CSV or XLSX.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "SEO project/campaign ID from project-enable-seo, not the folder ID."
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "all",
+            "changed",
+            "unchanged"
+          ],
+          "default": "all",
+          "description": "Compare pages before and after JavaScript rendering."
+        },
+        "query": {
+          "type": "string",
+          "default": "",
+          "description": "URL search text."
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "clientSideRedirect",
+              "metaRobots",
+              "title",
+              "metaDescription",
+              "linksCount",
+              "wordsCount",
+              "canonical",
+              "googleStructuredData"
+            ]
+          },
+          "uniqueItems": true,
+          "maxItems": 8,
+          "default": [],
+          "description": "Changed parameter keys. Requires status changed."
+        },
+        "sort": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ],
+          "default": "desc"
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "csv",
+            "xlsx"
+          ],
+          "default": "csv"
+        }
+      },
+      "required": [
+        "campaign_id"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "all",
+                  "unchanged"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "parameters": {
+                "maxItems": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    "response_type": "download"
+  },
   "audit_status": {
     "method": "/siteaudit/api/campaigns/status/{campaign_id}",
     "description": "Current Site Audit execution status.",

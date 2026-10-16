@@ -1,4 +1,4 @@
-import type { Schema } from 'effect';
+import { Predicate, type Schema } from 'effect';
 import packageInfo from '../package.json' with { type: 'json' };
 import catalog from './report-catalog.json' with { type: 'json' };
 
@@ -424,6 +424,7 @@ function keywordListParameters(definition: Report, q: Query): Query {
 
 /** Public-site settings use the wizard contract. Saving and launching are separate operations. */
 function auditParameters(definition: Report, q: Query): Query {
+  if (definition.method.endsWith('/js-impact/details') || definition.method.startsWith('/siteaudit/export/js-impact/')) return auditJSImpactParameters(q);
   if (!definition.method.endsWith('/save')) {
     const parameters = publicParameters(definition, q);
     if ('format' in parameters) { parameters.export = parameters.format ?? null; delete parameters.format; }
@@ -444,6 +445,16 @@ function auditParameters(definition: Report, q: Query): Query {
     authEnabled: q.auth_enabled ?? false, authUsername: q.auth_username ?? '', authPassword: q.auth_password ?? '', gaSettings: {}, gaStatus: '',
     webBotAuthEnabled: false, webBotAuthSignatureAgent: '', webBotAuthSignatureInput: '', webBotAuthSignature: '',
   };
+}
+
+/** The JS Impact table and download share filters, but exports always include all matching pages. */
+function auditJSImpactParameters(q: Query): Query {
+  const parameters: Query = { sort: String(q.sort).toUpperCase(), page: q.page ?? 0, limit: q.limit ?? 100000 };
+  if (Predicate.isString(q.query) && q.query.trim()) parameters.url = q.query;
+  if (q.status !== 'all') parameters.changed = q.status === 'changed' ? 'true' : 'false';
+  if (q.status === 'changed' && Array.isArray(q.parameters) && q.parameters.length) parameters.parameters = q.parameters.join(',');
+  if ('format' in q) parameters.export = q.format ?? null;
+  return parameters;
 }
 
 /** Only catalog parameters go on wire; identifiers embedded in a path are not repeated. */

@@ -389,3 +389,29 @@ test('Site Audit comparisons keep native snapshot ordering and require distinct 
   await expect(preview('audit_export_compare', { first_snapshot_id: 'old_snapshot' })).rejects.toThrow();
   await expect(preview('audit_export_compare', { ...selection, first_snapshot_id: '../old' })).rejects.toThrow();
 });
+
+test('JS Impact guide and counts use fixed campaign reads without table filters', async () => {
+  for (const [name, suffix] of [['audit_js_impact_guide', 'guide'], ['audit_js_impact_changed_pages', 'changed-pages']] satisfies [string, string][]) {
+    expect(await preview(name, { campaign_id: 123 })).toEqual({ method: 'GET', path: '/siteaudit/api/campaigns/123/js-impact/' + suffix, body: {} });
+    await expect(preview(name, { campaign_id: 123, status: 'changed' })).rejects.toThrow('additional properties');
+  }
+});
+
+test('JS Impact pagination, filters and sorting match the current native client', async () => {
+  expect(await preview('audit_js_impact_pages', { campaign_id: 123 })).toEqual({ method: 'GET', path: '/siteaudit/api/campaigns/123/js-impact/details', body: { sort: 'DESC', page: 0, limit: 10 } });
+  expect((await preview('audit_js_impact_pages', { campaign_id: 123, page: 2, limit: 25, query: '/café', status: 'changed', parameters: ['title', 'wordsCount'], sort: 'asc' })).body).toEqual({ sort: 'ASC', page: 2, limit: 25, url: '/café', changed: 'true', parameters: 'title,wordsCount' });
+  expect((await preview('audit_js_impact_pages', { campaign_id: 123, status: 'unchanged' })).body).toEqual({ sort: 'DESC', page: 0, limit: 10, changed: 'false' });
+});
+
+test('JS Impact exports keep filters while downloading all matching rows', async () => {
+  expect(await preview('audit_export_js_impact', { campaign_id: 123 })).toEqual({ method: 'GET', path: '/siteaudit/export/js-impact/123', body: { sort: 'DESC', page: 0, limit: 100000, export: 'csv' } });
+  expect((await preview('audit_export_js_impact', { campaign_id: 123, status: 'changed', parameters: ['canonical'], query: '/one', sort: 'asc', format: 'xlsx' })).body).toEqual({ sort: 'ASC', page: 0, limit: 100000, url: '/one', changed: 'true', parameters: 'canonical', export: 'xlsx' });
+  await expect(preview('audit_export_js_impact', { campaign_id: 123, page: 1 })).rejects.toThrow('additional properties');
+});
+
+test('invalid JS Impact selections fail at the public boundary', async () => {
+  const invalidInputs: Query[] = [{ parameters: ['title'] }, { status: 'unchanged', parameters: ['title'] }, { status: 'changed', parameters: ['unknown'] }, { status: 'changed', parameters: ['title', 'title'] }, { page: -1 }, { limit: 0 }, { sort: 'url_desc' }];
+  for (const invalid of invalidInputs) {
+    await expect(preview('audit_js_impact_pages', { campaign_id: 123, ...invalid })).rejects.toThrow();
+  }
+});

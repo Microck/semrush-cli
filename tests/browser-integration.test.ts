@@ -58,7 +58,7 @@ const serveTrackingAlertsFixture = makeTrackingAlertsFixture();
 const trackingTargetsFixture = makeTrackingTargetsFixture();
 const serveNotesFixture = makeNotesFixture();
 const backlinkAuditFixture = makeBacklinkAuditFixture();
-const fixtureHandlers = new Map([[folderPath, serveProjectFixture], [savedPath, serveSavedFixture], ['/notes/api/', serveNotesFixture]]);
+const fixtureHandlers = new Map([[folderPath, serveProjectFixture], [savedPath, serveSavedFixture], ['/notes/api/', serveNotesFixture], ['/siteaudit/api/campaigns/789/js-impact/', serveJSImpactFixture], ['/siteaudit/export/js-impact/', serveJSImpactFixture]]);
 /** Serve the native authentication checks separately from report fixtures. */
 function serveAuthenticationFixture(request: IncomingMessage, response: ServerResponse, url: URL): boolean {
   if (url.pathname === '/robots.txt') { response.end('User-agent: *\nDisallow: /'); return true; }
@@ -1210,5 +1210,59 @@ test('Site Audit comparison preserves the selected crawl order and native delta 
     expect(report.artifact.mime_type).toBe('text/csv');
     expect(Buffer.from((yield* (yield* Exports).read(report.artifact.uri)).blob, 'base64').toString('utf8')).toBe(auditComparisonCSV);
     expect((yield* service.report(yield* parseReport('account_status', {}))).authenticated).toBe(true);
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+
+const jsImpactRows = [
+  { url: 'https://example.com/changed', changed: true, parameters: { title: { valueBeforeJs: 'Before', valueAfterJs: 'After' } } },
+  { url: 'https://example.com/unchanged', changed: false, parameters: { title: { valueBeforeJs: 'Same', valueAfterJs: 'Same' } } },
+];
+const jsImpactCSV = 'Page Url,Comparison Status,Title before JS rendering,Title after JS rendering\r\nhttps://example.com/changed,Changed,Before,After\r\n';
+/** A real HTTP fixture applies the native table selectors and serves provider file bytes. */
+async function serveJSImpactFixture(request: IncomingMessage, response: ServerResponse, url: URL) {
+  expect(request.method).toBe('GET'); expect(request.headers.cookie).toContain('session=authorized');
+  expect(url.searchParams.get('key')).toBe('fixture-secret');
+  response.setHeader('Content-Type', 'application/json');
+  if (url.pathname.endsWith('/guide')) {
+    expect([...url.searchParams.keys()]).toEqual(['key']);
+    response.end(JSON.stringify({ totalPages: 2, changedPages: 1, parameters: { title: { changedPages: 1, examples: ['https://example.com/changed'] } } })); return;
+  }
+  if (url.pathname.endsWith('/changed-pages')) {
+    expect([...url.searchParams.keys()]).toEqual(['key']);
+    response.end('{"changedPages":1}'); return;
+  }
+  const allowed = ['key', 'sort', 'page', 'limit', 'url', 'changed', 'parameters', 'export'];
+  expect([...url.searchParams.keys()].every(key => allowed.includes(key))).toBe(true);
+  expect(['ASC', 'DESC']).toContain(url.searchParams.get('sort'));
+  const filtered = jsImpactRows.filter(row => (!url.searchParams.has('changed') || String(row.changed) === url.searchParams.get('changed'))
+    && (!url.searchParams.has('url') || row.url.includes(url.searchParams.get('url') ?? '')));
+  if (url.searchParams.has('parameters')) { expect(url.searchParams.get('changed')).toBe('true'); expect(url.searchParams.get('parameters')).toBe('title'); }
+  if (url.pathname === '/siteaudit/export/js-impact/789') {
+    expect(url.searchParams.get('page')).toBe('0'); expect(url.searchParams.get('limit')).toBe('100000');
+    expect(url.searchParams.get('export')).toBe('csv'); expect(filtered).toEqual([jsImpactRows[0]]);
+    response.setHeader('Content-Type', 'text/csv'); response.setHeader('Content-Disposition', 'attachment; filename=js_impact.csv');
+    response.end(jsImpactCSV); return;
+  }
+  expect(url.pathname).toBe('/siteaudit/api/campaigns/789/js-impact/details');
+  const page = Number(url.searchParams.get('page')); const limit = Number(url.searchParams.get('limit'));
+  const ordered = [...filtered].sort((a, b) => a.url.localeCompare(b.url) * (url.searchParams.get('sort') === 'ASC' ? 1 : -1));
+  response.end(JSON.stringify({ pageNumber: page, pageSizeLimit: limit, totalAuditPages: filtered.length, changedAuditPages: filtered.filter(row => row.changed).length, auditPages: ordered.slice(page * limit, (page + 1) * limit) })); return;
+}
+
+test('JS Impact reads apply native pagination and filters and preserve export bytes', async () => {
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const service = yield* Semrush;
+    const call = (name: string, input: Query = {}) => Effect.gen(function* () { return yield* service.report(yield* parseReport(name, { campaign_id: 789, ...input })); });
+    expect((yield* call('audit_js_impact_guide')).data).toMatchObject({ totalPages: 2, changedPages: 1 });
+    expect((yield* call('audit_js_impact_changed_pages')).data).toEqual({ changedPages: 1 });
+    expect((yield* call('audit_js_impact_pages', { sort: 'asc', limit: 1, page: 1 })).data).toMatchObject({ pageNumber: 1, totalAuditPages: 2, auditPages: [jsImpactRows[1]] });
+    expect((yield* call('audit_js_impact_pages', { status: 'unchanged' })).data).toMatchObject({ totalAuditPages: 1, changedAuditPages: 0, auditPages: [jsImpactRows[1]] });
+    expect((yield* call('audit_js_impact_pages', { status: 'changed', query: '/changed', parameters: ['title'] })).data).toMatchObject({ totalAuditPages: 1, auditPages: [jsImpactRows[0]] });
+    expect((yield* call('audit_js_impact_pages', { query: '/missing' })).data).toMatchObject({ totalAuditPages: 0, auditPages: [] });
+    const exported = yield* call('audit_export_js_impact', { status: 'changed', parameters: ['title'] });
+    if (!exported.artifact) throw new Error('Expected native JS Impact artifact');
+    expect(exported.artifact.filename).toBe('js_impact.csv');
+    expect(Buffer.from((yield* (yield* Exports).read(exported.artifact.uri)).blob, 'base64').toString('utf8')).toBe(jsImpactCSV);
   }).pipe(Effect.provide(fixtureLayer()))));
 }, 30000);

@@ -79,7 +79,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 
 ## command surface
 
-266 operations, available as cli commands and mcp tools. 180 reads and 86 writes that need explicit confirmation.
+270 operations, available as cli commands and mcp tools. 184 reads and 86 writes that need explicit confirmation.
 
 | command | what it does |
 | --- | --- |
@@ -150,6 +150,8 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 | `audit-export-page-issues` | download the latest crawl's page-by-issue matrix |
 | `audit-export-markup` | download a crawl's markup and structured data |
 | `audit-export-compare` | download a comparison of two crawls |
+| `audit-js-impact-guide`, `audit-js-impact-changed-pages`, `audit-js-impact-pages` | inspect changes caused by javascript rendering |
+| `audit-export-js-impact` | download matching javascript impact rows as csv or xlsx |
 | `notes`, `note`, `note-databases`, `note-hidden-categories` | list and read chart notes, database options and hidden categories |
 | `notes-export` | download all chart notes as native csv |
 | `note-create`, `note-update`, `note-delete` | create, edit or delete your own user notes |
@@ -696,6 +698,26 @@ both ids are required, and the cli preserves their order. semrush puts the secon
 
 `audit-recrawl` queues a page again. `audit-abort` cancels a running crawl; `audit-finalize` stops collecting pages and processes what it has. these writes need `--confirm`. see [site audit](https://semrush.micr.dev/docs/site-audit) for crawl settings, stop conditions and limits.
 
+### javascript rendering impact
+
+read the javascript impact summary, changed-page count and before/after page values for a campaign:
+
+```bash
+semrush audit-js-impact-guide --campaign-id 456
+semrush audit-js-impact-changed-pages --campaign-id 456
+semrush audit-js-impact-pages --campaign-id 456 --page 0 --limit 10
+semrush audit-js-impact-pages --campaign-id 456 \
+  --status changed --parameters '["title","canonical"]' --query example.com
+semrush audit-export-js-impact --campaign-id 456 --output js-impact.csv
+semrush audit-export-js-impact --campaign-id 456 --format xlsx --output js-impact.xlsx
+```
+
+these commands read existing crawl results and do not start rendering or analysis. use the seo campaign id, not a snapshot id. page reads default to page `0`, limit `10`, status `all` and sort `desc`. choose `--status changed` or `--status unchanged`, use `--query` to search urls, or pass `--sort asc`.
+
+`--parameters` accepts `clientSideRedirect`, `metaRobots`, `title`, `metaDescription`, `linksCount`, `wordsCount`, `canonical` and `googleStructuredData`. a non-empty selection requires `--status changed`. exports use the same filters, request page `0` with a limit of `100000`, and require `--output`. csv is the default; xlsx is also supported. mcp returns an artifact resource.
+
+live cli and mcp checks on an owned three-page crawl with rendering enabled matched native summary, count and filtered/paginated page json. the results included one unchanged page and no changed-title rows. csv bytes matched native downloads for both clients. mcp xlsx bytes matched exactly; cli xlsx workbook contents matched except for semrush's creation timestamp in `docProps/core.xml`. the web ui's all reports download remains outside cli coverage.
+
 ## mcp
 
 finish setup and sign in first, then add this to your client's mcp config:
@@ -732,7 +754,7 @@ npm run check
 
 the cli uses the published [`galleton` 0.1.0 sdk](https://www.npmjs.com/package/galleton). the bundled galleton daemon is still required for sessions. building it from source requires go 1.23 or newer, `tar` and `patch`. published cli packages include the daemon for supported platforms, so npm users do not need go.
 
-the current source passed 187 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
+the current source passed 193 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
 
 ## documentation
 

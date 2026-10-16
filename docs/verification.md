@@ -1,5 +1,36 @@
 # Verification
 
+## Version 0.22.0 JS Impact
+
+The source catalog contains 270 operations, 184 reads and 86 confirmed writes.
+TypeScript, Oxlint, generated references, all five daemon targets and 193 tests
+passed on the private ARM64 Raft runner. Three independent simplification
+reviewers found no changes needed. No local compilation or browser verification
+ran on the controller.
+
+Four read-only operations expose the native JS Impact guide, changed-page count,
+filtered before/after page table and CSV/XLSX downloads. They reuse the existing
+audit and download transports. A real HTTP fixture verifies pagination, empty
+and nonempty filtered tables, native status and parameter encoding, and exact
+export bytes. CLI checks reject invalid selections before authentication and
+require an output destination. MCP advertises all four tools as read-only.
+
+Native Guru research used a new audit capped at three pages, with rendering
+enabled, manual scheduling and notifications off. Semrush marked JS Impact
+available, returned one unchanged page row and generated CSV/XLSX exports.
+A prior one-page crawl returned empty reports with availability false. These
+outcomes distinguish crawl data availability from a subscription gate. The
+owned research projects were deleted and remote credentials removed.
+
+Source CLI and MCP JSON results matched native guide/count reads and five page
+selections: defaults, unchanged, changed-title, a missing URL and a second page
+with ascending order. The populated native selection contained one unchanged
+row. Changed-title and missing-URL selections were empty. Both CSV exports
+matched native bytes; MCP XLSX matched exactly and CLI XLSX matched all workbook
+contents apart from the provider creation timestamp. The source fixture was
+deleted and its remote session removed. Positive changed-row behavior has real
+HTTP fixture coverage, not live-account evidence.
+
 ## Version 0.21.0 Compare Crawls
 
 The source catalog contains 266 operations, 180 reads and 86 confirmed writes.

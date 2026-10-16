@@ -627,9 +627,10 @@ though the UI's separate trial selector opens an upgrade dialog.
 The native CSV client polls HTTP 202 at two-second intervals with a five-minute
 deadline. Starting a job is never retried by the download loop. The CLI exposes
 one export operation, saves the native bytes, and MCP returns its existing file
-artifact. Binary downloads use one scoped browser-fetch path for GET and POST,
-including runtime headers and provider filenames. The browser owns the fetched
-blob until scoped cleanup; MCP continues to transfer file chunks separately.
+artifact. Binary downloads use one scoped HTTP client for GET and POST, including
+runtime headers and provider filenames. Its cookies are synchronized with the
+browser, and its responses and client are disposed after the download. MCP
+transfers private file chunks separately.
 
 A native label pass added the same label to two target pages. Its counter was
 two, the label-filtered table returned two groups, and removing one association
@@ -734,3 +735,37 @@ CSV and XLSX downloads compared two completed 23-page crawls. The CSV places
 second-crawl columns before first-crawl columns and retains provider-computed
 deltas. The CLI must preserve those bytes without reordering or recalculating
 values. It does not start a crawl or change campaign settings.
+
+## Site Audit JS Impact
+
+The fixed read operations are `audit_js_impact_guide`,
+`audit_js_impact_changed_pages`, `audit_js_impact_pages` and
+`audit_export_js_impact`. They require a numeric SEO campaign ID and never
+configure rendering or start a crawl. Their native paths are, respectively,
+`/siteaudit/api/campaigns/{campaign_id}/js-impact/guide`,
+`/siteaudit/api/campaigns/{campaign_id}/js-impact/changed-pages`,
+`/siteaudit/api/campaigns/{campaign_id}/js-impact/details`, and
+`/siteaudit/export/js-impact/{campaign_id}`. Runtime authentication adds `key`.
+
+The page table uses zero-based `page` (default 0), `limit` (default 10),
+`sort=asc|desc` (default desc), `query` (default empty),
+`status=all|changed|unchanged` (default all), and an optional unique array of
+`parameters`. Native requests uppercase sort, map a nonblank query to `url`,
+and map changed/unchanged to the string `changed=true|false`. All-status omits
+`changed`. Parameter selections require changed-status and become a comma-
+separated native value. Allowed keys are clientSideRedirect, metaRobots, title,
+metaDescription, linksCount, wordsCount, canonical and googleStructuredData.
+No CLI-only field or campaign ID is repeated in the native query.
+
+The export accepts the same filters, fixes native page 0 and limit 100000, and
+maps `format=csv|xlsx` (default csv) to `export`. CLI requires a new `--output`
+file; MCP returns the existing single-file artifact/resource contract. Provider
+bytes and before/after values are preserved. Guide and changed-page-count reads
+accept no table filters. The native UI enables JS Impact when the account is
+Guru/Business and campaign info has `jsImpactReportDataAvailable=true`. Empty
+native results do not establish report availability or a subscription gate.
+
+Primary evidence is current native review module39805 and its export caller.
+An owned, rendering-enabled Guru crawl completed at three pages with report
+availability true; native JSON returned one unchanged row and CSV/XLSX
+downloads succeeded. Changed-row live behavior requires separate verification.

@@ -213,3 +213,35 @@ The comparison download and default snapshot order follow the current
 [native export module](https://static.semrush.com/siteaudit/review/3909.2dd2f158589125911115.js).
 Both formats passed native, CLI and MCP checks on two existing completed
 23-page crawls. The checks left their settings and saved results intact.
+
+
+## Inspect JavaScript rendering impact
+
+JS Impact compares page values before and after JavaScript rendering. A Guru or
+Business account needs a completed rendering-enabled crawl with
+`jsImpactReportDataAvailable: true` in `audit-info`. The read commands do not
+turn rendering on or start another crawl.
+
+```sh
+semrush audit-js-impact-guide --campaign-id 456
+semrush audit-js-impact-changed-pages --campaign-id 456
+semrush audit-js-impact-pages --campaign-id 456 --status unchanged --page 0 --limit 10
+semrush audit-js-impact-pages --campaign-id 456 --status changed --parameters '["title","canonical"]'
+semrush audit-export-js-impact --campaign-id 456 --status changed --format xlsx --output js-impact.xlsx
+```
+
+Page numbers start at zero. Use `--query` to search URLs, `--status` to choose
+`all`, `changed` or `unchanged`, and `--sort asc|desc` for native order.
+Parameter filters require `--status changed`. Their keys are `clientSideRedirect`,
+`metaRobots`, `title`, `metaDescription`, `linksCount`, `wordsCount`, `canonical`
+and `googleStructuredData`.
+
+Guide results include per-parameter counts and examples. The page table returns
+Semrush's before/after values and pagination metadata. Exports accept the same
+filters and download up to 100,000 matching rows, starting at page zero; they do
+not export only the current table page. CSV is the default format. Files use the
+same destination and MCP resource rules as other audit exports.
+
+Empty reports can mean the crawl has no JS Impact data. Check the availability
+flag rather than treating an empty response as proof of a subscription limit.
+The All reports batch download remains unsupported.
