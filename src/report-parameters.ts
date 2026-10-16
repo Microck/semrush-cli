@@ -21,6 +21,7 @@ export interface Query { [key: string]: Schema.Json; }
 /** Fixed request shapes observed in semrush-web-mcp. No arbitrary RPC or URL input. */
 export function reportParameters(definition: Report, q: Query): Query {
   const family = definition.transport;
+  if (family === 'bla') return backlinkAuditParameters(definition, q);
   if (family === 'notes_web') return noteParameters(definition, q);
   if (family === 'ksb') return domainStrategyParameters(definition, q);
   if (family === 'saved_web') return savedParameters(definition, q);
@@ -38,6 +39,67 @@ export function reportParameters(definition: Report, q: Query): Query {
   if (family === 'projects') return { filter: (q.filters ?? null), range: { limit: (q.limit ?? null), offset: (q.offset ?? null) } };
   if (definition.method.endsWith('selector-list')) return { limit: 10000, offset: 0 };
   return {};
+}
+
+/** Backlink Audit has separate SEO project IDs, campaign IDs and native search objects. */
+function backlinkAuditParameters(definition: Report, query: Query): Query {
+  const method = definition.method;
+  if (['projects.Limits', 'domains.GetAll', 'catalog.CategoriesFull', 'catalog.GeoList'].includes(method)) return {};
+  if (['domains.GetProject', 'domains.GetScopes', 'domains.GetByProjectId'].includes(method)) return { projectId: query.project_id ?? null };
+  if (method === 'domains.AddByProjectId') return { projectId: query.project_id ?? null, scope: query.scope ?? 'root', params: backlinkAuditSettings(query) };
+  if (method === 'domains.ApplySettings') return { userDomainId: query.audit_id ?? null, params: backlinkAuditSettings(query) };
+  const parameters: Query = { userDomainId: query.audit_id ?? null };
+  if (['backlinks.MoveDomains', 'backlinks.MoveUrls', 'backlinks.MoveLinkNetworks', 'disavow.Move', 'disavow.Delete', 'disavow.Clear'].includes(method)) return backlinkAuditListParameters(method, query);
+  if (method === 'domains.GetStatus') return { ...parameters, background: query.background ?? false };
+  if (method === 'backlinks.Get' || method === 'backlinks.Count') return backlinkAuditTableParameters(query);
+  if (method === 'disavow.Get' || method === 'disavow.Count') {
+    parameters.search = { query: query.query ?? null, status: query.status ?? null, source: query.source ?? null, type: query.type ?? null };
+    if (method === 'disavow.Get') Object.assign(parameters, { sort: { field: 'statusId', type: query.descending === false ? 'ASC' : 'DESC' }, pageSize: query.page_size ?? 50, page: query.page ?? 0 });
+    return parameters;
+  }
+  if (method === 'disavow.Counters') return { ...parameters, search: { targetUrlHash: query.target_url_hash ?? null, targetUrlPath: query.target_url_path ?? null } };
+  if (!method.startsWith('overview.')) return parameters;
+  const search: Query = { targetUrlHash: query.target_url_hash ?? null, targetUrlPath: query.target_url_path ?? null };
+  if (method === 'overview.GetRelStats' && query.by_domain) search.collapse = 'd';
+  parameters.search = search;
+  if (method === 'overview.GetLostFoundTimechart') Object.assign(parameters, { list: query.list ?? 'new', showDiff: query.show_diff ?? true, withDomains: query.with_domains ?? true });
+  if (method === 'overview.GetAnchorDistributionNew') Object.assign(parameters, { anchorTypes: query.anchor_types ?? ['all'], limit: query.limit ?? 100, orderBy: 'backlinks' });
+  if (method === 'overview.TopRefDomains') Object.assign(parameters, { limit: query.limit ?? 100, showOnlyToxic: query.only_toxic ?? false });
+  return parameters;
+}
+
+/** Backlink selections and disavow items use distinct native identifier fields. */
+function backlinkAuditListParameters(method: string, query: Query): Query {
+  const parameters: Query = { userDomainId: query.audit_id ?? null };
+  if (method.startsWith('backlinks.Move')) return { ...parameters, ids: query.ids ?? [], list: query.list ?? null };
+  if (method === 'disavow.Clear') return { ...parameters, withManual: query.with_manual ?? false, withFile: query.with_file ?? false, withGDT: query.with_gdt ?? false };
+  parameters.userListItemId = query.item_id ?? null;
+  if (method === 'disavow.Move') parameters.list = query.list ?? null;
+  return parameters;
+}
+
+/** Native settings are partial; category IDs use the web client's string encoding. */
+function backlinkAuditSettings(query: Query): Query {
+  const settings: Query = {};
+  for (const [input, output] of [['brands', 'brands'], ['categories', 'categories'], ['countries', 'geo'], ['recrawl', 'recrawl'], ['recrawl_notify', 'recrawlNotify'], ['recrawl_majestic', 'recrawlMajestic']] as const) {
+    const value = query[input];
+    // The category picker returns numbers; the native settings client sends string IDs.
+    if (value !== undefined) settings[output] = input === 'categories' && Array.isArray(value) ? value.map(category => String(category)) : value;
+  }
+  return settings;
+}
+
+/** Table filters use schema defaults; the native field names differ from CLI flags. */
+function backlinkAuditTableParameters(query: Query): Query {
+  const fields = [['authority_min', 'aScoreMin'], ['authority_max', 'aScoreMax'], ['anchor_types', 'anchorTypes'],
+    ['category_id', 'categoryId'], ['is_new', 'isNew'], ['target_error', 'isTargetError'], ['link_type', 'linkType'],
+    ['query', 'query'], ['query_mode', 'queryMode'], ['rel', 'rel'], ['toxic_markers', 'toxicMarkerIds'],
+    ['toxic_type', 'toxicType'], ['mode', 'mode'], ['source', 'src'], ['target_url_hash', 'targetUrlHash'], ['target_url_path', 'targetUrlPath']] as const;
+  const search: Query = Object.fromEntries(fields.map(([input, output]) => [output, query[input] ?? null]));
+  search.collapse = query.by_domain === false ? null : 'd';
+  if (['new', 'broken', 'lost'].includes(String(query.mode))) search.rangeDays = query.range_days ?? 30;
+  if (query.completely) search.completely = true;
+  return { userDomainId: query.audit_id ?? null, search, pageSize: query.page_size ?? 50, page: query.page ?? 0 };
 }
 
 /** The current domain strategy API uses camelCase fields and header-only runtime auth. */
@@ -212,13 +274,18 @@ export interface WebRequest { method: string; path: string; body: Schema.Json; e
 
 /** Fixed public request plans. RPC credentials enter only inside the browser layer. */
 export function webRequest(definition: Report, query: Query): WebRequest {
+  if (definition.transport === 'bla') return { method: 'POST', path: '/backlink_audit/rpc/?method=' + encodeURIComponent(definition.method), body: rpcBody(definition.method, reportParameters(definition, query)) };
   if (definition.transport === 'kwm' || definition.transport === 'ksb') return { method: 'POST', path: definition.transport === 'ksb' ? '/ksb/rpc' : '/kwm/rpc', body: rpcBody(definition.method, reportParameters(definition, query)) };
   const parameters = reportParameters(definition, query);
   const path = definition.method.replace(/\{([a-z_]+)\}/g, (_match, key: string) => encodeURIComponent(String(query[key])));
-  if ('request_encoding' in definition && definition.request_encoding === 'multipart') return {
-    method: definition.http_method, path, body: null, encoding: 'multipart',
-    file: { field: 'file-urls', filename: String(query.filename), contents: String(query.contents) },
-  };
+  if ('request_encoding' in definition && definition.request_encoding === 'multipart') {
+    const prepared: WebRequest = { method: definition.http_method, path, body: parameters, encoding: 'multipart' };
+    if ('file_field' in definition) {
+      prepared.file = { field: definition.file_field, filename: String(query.filename), contents: String(query.contents) };
+      prepared.body = null;
+    }
+    return prepared;
+  }
   if ('request_encoding' in definition && definition.request_encoding === 'form') return {
     method: definition.http_method, path: definition.method, body: parameters, encoding: 'form',
   };

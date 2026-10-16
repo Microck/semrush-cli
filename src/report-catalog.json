@@ -11409,6 +11409,2376 @@
     "mutation": true,
     "destructive": false,
     "http_method": "POST",
-    "request_encoding": "multipart"
+    "request_encoding": "multipart",
+    "file_field": "file-urls"
+  },
+  "backlink_audit_limits": {
+    "method": "projects.Limits",
+    "description": "Read Backlink Audit project allowance.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    }
+  },
+  "backlink_audit_campaigns": {
+    "method": "domains.GetAll",
+    "description": "List SEO projects and their Backlink Audit campaign IDs.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    }
+  },
+  "backlink_audit_categories": {
+    "method": "catalog.CategoriesFull",
+    "description": "Read native Backlink Audit category choices.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    }
+  },
+  "backlink_audit_countries": {
+    "method": "catalog.GeoList",
+    "description": "Read native Backlink Audit country choices.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    }
+  },
+  "backlink_audit_project": {
+    "method": "domains.GetProject",
+    "description": "Read setup metadata and recommended settings for an SEO project.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "project_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "SEO project ID from project-enable-seo, not the folder ID."
+        }
+      },
+      "required": [
+        "project_id"
+      ]
+    }
+  },
+  "backlink_audit_scopes": {
+    "method": "domains.GetScopes",
+    "description": "Read valid and permitted Backlink Audit scopes before creating a campaign.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "project_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "SEO project ID from project-enable-seo, not the folder ID."
+        }
+      },
+      "required": [
+        "project_id"
+      ]
+    }
+  },
+  "backlink_audit_info": {
+    "method": "domains.GetByProjectId",
+    "description": "Read Backlink Audit metadata and its userDomainId for an SEO project.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "project_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "SEO project ID from project-enable-seo, not the folder ID."
+        }
+      },
+      "required": [
+        "project_id"
+      ]
+    }
+  },
+  "backlink_audit_status": {
+    "method": "domains.GetStatus",
+    "description": "Read analysis progress, import status and current campaign metadata.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "background": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "audit_id"
+      ]
+    }
+  },
+  "backlink_audit_links_summary": {
+    "method": "overview.GetLinksStatsEx",
+    "description": "Read link counts and toxicity totals.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "target_url_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "target_url_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "audit_id"
+      ]
+    }
+  },
+  "backlink_audit_domains_summary": {
+    "method": "overview.GetDomainsStats",
+    "description": "Read referring-domain counts and toxicity totals.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "target_url_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "target_url_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "audit_id"
+      ]
+    }
+  },
+  "backlink_audit_anchor_types": {
+    "method": "overview.GetAnchorTypesStats",
+    "description": "Read anchor-type distribution.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "target_url_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "target_url_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "audit_id"
+      ]
+    }
+  },
+  "backlink_audit_rel_summary": {
+    "method": "overview.GetRelStats",
+    "description": "Read link-attribute distribution.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "target_url_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "target_url_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "by_domain": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "audit_id"
+      ]
+    }
+  },
+  "backlink_audit_removed_summary": {
+    "method": "overview.GetRemovedStats",
+    "description": "Read removal and disavow totals.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "target_url_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "target_url_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "audit_id"
+      ]
+    }
+  },
+  "backlink_audit_historical_stats": {
+    "method": "overview.GetHistoricalDomainStats",
+    "description": "Read historical domain statistics.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "target_url_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "target_url_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "audit_id"
+      ]
+    }
+  },
+  "backlink_audit_authority_history": {
+    "method": "overview.GetDomainAScoreTimechart",
+    "description": "Read referring-domain authority history.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "target_url_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "target_url_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "audit_id"
+      ]
+    }
+  },
+  "backlink_audit_domains_history": {
+    "method": "overview.GetDomainsTimechart",
+    "description": "Read referring-domain count history.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "target_url_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "target_url_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "audit_id"
+      ]
+    }
+  },
+  "backlink_audit_links_history": {
+    "method": "overview.GetLinksTimechart",
+    "description": "Read backlink count history.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "target_url_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "target_url_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "audit_id"
+      ]
+    }
+  },
+  "backlink_audit_changes": {
+    "method": "overview.GetLostFoundTimechart",
+    "description": "Read new, broken or lost backlink trends.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "target_url_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "target_url_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "list": {
+          "type": "string",
+          "enum": [
+            "new",
+            "broken",
+            "lost"
+          ],
+          "default": "new"
+        },
+        "show_diff": {
+          "type": "boolean",
+          "default": true
+        },
+        "with_domains": {
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "required": [
+        "audit_id"
+      ]
+    }
+  },
+  "backlink_audit_authority_distribution": {
+    "method": "overview.GetDomainAScoreDistribution",
+    "description": "Read referring-domain authority distribution.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "target_url_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "target_url_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "audit_id"
+      ]
+    }
+  },
+  "backlink_audit_link_types": {
+    "method": "overview.GetLinkTypeDistribution",
+    "description": "Read backlink-type distribution.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "target_url_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "target_url_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "audit_id"
+      ]
+    }
+  },
+  "backlink_audit_anchors": {
+    "method": "overview.GetAnchorDistributionNew",
+    "description": "Read anchor distribution.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "target_url_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "target_url_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "anchor_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "minItems": 1,
+          "default": [
+            "all"
+          ]
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 100
+        }
+      },
+      "required": [
+        "audit_id"
+      ]
+    }
+  },
+  "backlink_audit_top_domains": {
+    "method": "overview.TopRefDomains",
+    "description": "Read top referring domains.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "target_url_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "target_url_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 100
+        },
+        "only_toxic": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "audit_id"
+      ]
+    }
+  },
+  "backlink_audit_recommendations": {
+    "method": "domains.Recommendations",
+    "description": "Read campaign recommendations without marking them read.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        }
+      },
+      "required": [
+        "audit_id"
+      ]
+    }
+  },
+  "backlink_audit_create": {
+    "method": "domains.AddByProjectId",
+    "description": "Create and immediately start a Backlink Audit. Defaults to no recurring updates or notification email.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "project_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "SEO project ID from project-enable-seo, not the folder ID."
+        },
+        "scope": {
+          "type": "string",
+          "enum": [
+            "root",
+            "both",
+            "www",
+            "nonwww"
+          ],
+          "default": "root"
+        },
+        "brands": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "maxItems": 10
+        },
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "uniqueItems": true
+        },
+        "countries": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z]{2}$"
+          },
+          "uniqueItems": true
+        },
+        "recrawl": {
+          "type": "string",
+          "enum": [
+            "never",
+            "1week",
+            "2weeks",
+            "1month"
+          ],
+          "default": "never"
+        },
+        "recrawl_notify": {
+          "type": "boolean",
+          "description": "Email notifications for recurring audit updates.",
+          "default": false
+        },
+        "recrawl_majestic": {
+          "type": "boolean",
+          "description": "Refresh connected Majestic data during recurring updates.",
+          "default": false
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "project_id"
+      ]
+    }
+  },
+  "backlink_audit_configure": {
+    "method": "domains.ApplySettings",
+    "description": "Change only supplied Backlink Audit settings, preserving omitted settings and integrations.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "brands": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "maxItems": 10
+        },
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "uniqueItems": true
+        },
+        "countries": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z]{2}$"
+          },
+          "uniqueItems": true
+        },
+        "recrawl": {
+          "type": "string",
+          "enum": [
+            "never",
+            "1week",
+            "2weeks",
+            "1month"
+          ]
+        },
+        "recrawl_notify": {
+          "type": "boolean",
+          "description": "Email notifications for recurring audit updates."
+        },
+        "recrawl_majestic": {
+          "type": "boolean",
+          "description": "Refresh connected Majestic data during recurring updates."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "audit_id"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "brands"
+          ]
+        },
+        {
+          "required": [
+            "categories"
+          ]
+        },
+        {
+          "required": [
+            "countries"
+          ]
+        },
+        {
+          "required": [
+            "recrawl"
+          ]
+        },
+        {
+          "required": [
+            "recrawl_notify"
+          ]
+        },
+        {
+          "required": [
+            "recrawl_majestic"
+          ]
+        }
+      ]
+    }
+  },
+  "backlink_audit_disavow_export": {
+    "method": "/backlink_audit/files/disavow/download/{audit_id}",
+    "description": "Export the disavow TXT file and mark its entries exported in Semrush. Does not upload to Google.",
+    "transport": "bla_file",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "request_encoding": "multipart",
+    "response_type": "download",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "txt"
+          ],
+          "default": "txt"
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "audit_id"
+      ]
+    }
+  },
+  "backlink_audit_links": {
+    "method": "backlinks.Get",
+    "description": "Read the paginated audit table with native backlink filters and domain grouping.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "target_url_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "target_url_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "authority_min": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "authority_max": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "anchor_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "category_id": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "is_new": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "target_error": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "link_type": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "a",
+                "form",
+                "img",
+                "iframe"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "query": {
+          "type": "string",
+          "default": ""
+        },
+        "query_mode": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "rel": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "follow",
+                "noFollow",
+                "ugc",
+                "sponsored"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "toxic_markers": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "toxic_type": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "toxic",
+                "potentially-toxic",
+                "non-toxic",
+                "ignored",
+                "disavow"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "all",
+            "for-review",
+            "whitelist",
+            "to-remove",
+            "disavow",
+            "new",
+            "broken",
+            "lost"
+          ],
+          "default": "for-review"
+        },
+        "by_domain": {
+          "type": "boolean",
+          "default": true
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "page_size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 50
+        },
+        "range_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3650
+        },
+        "completely": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "audit_id"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "range_days"
+            ]
+          },
+          "then": {
+            "properties": {
+              "mode": {
+                "enum": [
+                  "new",
+                  "broken",
+                  "lost"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "completely"
+            ],
+            "properties": {
+              "completely": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "mode": {
+                "enum": [
+                  "new",
+                  "broken",
+                  "lost"
+                ]
+              },
+              "by_domain": {
+                "const": true
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "backlink_audit_links_count": {
+    "method": "backlinks.Count",
+    "description": "Count backlinks matching the audit table filters.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "target_url_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "target_url_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "authority_min": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "authority_max": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "anchor_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "category_id": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "is_new": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "target_error": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "link_type": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "a",
+                "form",
+                "img",
+                "iframe"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "query": {
+          "type": "string",
+          "default": ""
+        },
+        "query_mode": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "rel": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "follow",
+                "noFollow",
+                "ugc",
+                "sponsored"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "toxic_markers": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "toxic_type": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "toxic",
+                "potentially-toxic",
+                "non-toxic",
+                "ignored",
+                "disavow"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "all",
+            "for-review",
+            "whitelist",
+            "to-remove",
+            "disavow",
+            "new",
+            "broken",
+            "lost"
+          ],
+          "default": "for-review"
+        },
+        "by_domain": {
+          "type": "boolean",
+          "default": true
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "page_size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 50
+        },
+        "range_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3650
+        },
+        "completely": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "audit_id"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "range_days"
+            ]
+          },
+          "then": {
+            "properties": {
+              "mode": {
+                "enum": [
+                  "new",
+                  "broken",
+                  "lost"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "completely"
+            ],
+            "properties": {
+              "completely": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "mode": {
+                "enum": [
+                  "new",
+                  "broken",
+                  "lost"
+                ]
+              },
+              "by_domain": {
+                "const": true
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "backlink_audit_link_categories": {
+    "method": "backlinks.GetCategoryList",
+    "description": "Read categories present in the audited backlink profile.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        }
+      },
+      "required": [
+        "audit_id"
+      ]
+    }
+  },
+  "backlink_audit_disavow": {
+    "method": "disavow.Get",
+    "description": "Read paginated disavow domain and URL entries.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "query": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "status": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "enum": [
+                1,
+                4,
+                5,
+                6
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "manual",
+                "file",
+                "gdt"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "type": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "domain",
+                "url"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "descending": {
+          "type": "boolean",
+          "default": true
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "page_size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 50
+        }
+      },
+      "required": [
+        "audit_id"
+      ]
+    }
+  },
+  "backlink_audit_disavow_count": {
+    "method": "disavow.Count",
+    "description": "Count disavow entries matching the selected filters.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "query": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "status": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "enum": [
+                1,
+                4,
+                5,
+                6
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "manual",
+                "file",
+                "gdt"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "type": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "domain",
+                "url"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "audit_id"
+      ]
+    }
+  },
+  "backlink_audit_disavow_counters": {
+    "method": "disavow.Counters",
+    "description": "Read disavow workflow counters with optional target-page selection.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "target_url_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "target_url_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "audit_id"
+      ]
+    }
+  },
+  "backlink_audit_disavow_import": {
+    "method": "/backlink_audit/files/disavow/upload/{audit_id}",
+    "description": "Import an existing disavow TXT file into Semrush. Can remove prior imported entries absent from the file; imported entries are marked disavowed. Does not upload to Google.",
+    "transport": "bla_file",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "POST",
+    "request_encoding": "multipart",
+    "file_field": "disavow",
+    "response_type": "empty",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "contents": {
+          "type": "string",
+          "minLength": 1,
+          "contentMediaType": "text/plain",
+          "description": "Native disavow TXT contents. Import queues parsing; use backlink-audit-status to inspect completion."
+        },
+        "filename": {
+          "type": "string",
+          "default": "semrush-disavow.txt",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[^/\\\\\\r\\n\\u0000]+\\.txt$",
+          "description": "Disavow upload filename, ending in .txt."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        },
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        }
+      },
+      "required": [
+        "audit_id",
+        "contents"
+      ]
+    }
+  },
+  "backlink_audit_move_domains": {
+    "method": "backlinks.MoveDomains",
+    "description": "Move selected referring domains to a Semrush review, whitelist, remove or disavow list. Does not contact websites or upload to Google.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+          },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Native row id values from the corresponding grouped or individual audit table, not urlHash values."
+        },
+        "list": {
+          "type": "string",
+          "enum": [
+            "for-review",
+            "whitelist",
+            "to-remove",
+            "disavow"
+          ]
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "audit_id",
+        "ids",
+        "list"
+      ]
+    }
+  },
+  "backlink_audit_move_links": {
+    "method": "backlinks.MoveUrls",
+    "description": "Move selected individual backlinks to a Semrush review, whitelist, remove or disavow list. Does not contact websites or upload to Google.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+          },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Native row id values from the corresponding grouped or individual audit table, not urlHash values."
+        },
+        "list": {
+          "type": "string",
+          "enum": [
+            "for-review",
+            "whitelist",
+            "to-remove",
+            "disavow"
+          ]
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "audit_id",
+        "ids",
+        "list"
+      ]
+    }
+  },
+  "backlink_audit_move_networks": {
+    "method": "backlinks.MoveLinkNetworks",
+    "description": "Move selected link networks to a Semrush review, whitelist, remove or disavow list. Does not contact websites or upload to Google.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Native linkNetworkId values."
+        },
+        "list": {
+          "type": "string",
+          "enum": [
+            "for-review",
+            "whitelist",
+            "to-remove",
+            "disavow"
+          ]
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "audit_id",
+        "ids",
+        "list"
+      ]
+    }
+  },
+  "backlink_audit_disavow_move": {
+    "method": "disavow.Move",
+    "description": "Move a disavow item and its associated backlinks back to a Semrush review, whitelist or remove list. Does not update Google.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "list": {
+          "type": "string",
+          "enum": [
+            "for-review",
+            "whitelist",
+            "to-remove"
+          ]
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        },
+        "item_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Native numeric id from backlink-audit-disavow, not a backlink row id."
+        }
+      },
+      "required": [
+        "audit_id",
+        "item_id",
+        "list"
+      ]
+    }
+  },
+  "backlink_audit_disavow_delete": {
+    "method": "disavow.Delete",
+    "description": "Delete a selected item from the Semrush disavow list. Does not update Google.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        },
+        "item_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Native numeric id from backlink-audit-disavow, not a backlink row id."
+        }
+      },
+      "required": [
+        "audit_id",
+        "item_id"
+      ]
+    }
+  },
+  "backlink_audit_disavow_clear": {
+    "method": "disavow.Clear",
+    "description": "Clear explicitly selected manual, file-imported or Disavow Tool-imported items from the Semrush list. Manual links return to Audit and Lost & Found; does not update Google.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        },
+        "with_manual": {
+          "type": "boolean",
+          "default": false,
+          "description": "Move manually added links back to Audit and Lost & Found."
+        },
+        "with_file": {
+          "type": "boolean",
+          "default": false,
+          "description": "Remove items imported from a disavow file."
+        },
+        "with_gdt": {
+          "type": "boolean",
+          "default": false,
+          "description": "Remove items imported from the Google Disavow Tool."
+        }
+      },
+      "required": [
+        "audit_id"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "with_manual"
+          ],
+          "properties": {
+            "with_manual": {
+              "const": true
+            }
+          }
+        },
+        {
+          "required": [
+            "with_file"
+          ],
+          "properties": {
+            "with_file": {
+              "const": true
+            }
+          }
+        },
+        {
+          "required": [
+            "with_gdt"
+          ],
+          "properties": {
+            "with_gdt": {
+              "const": true
+            }
+          }
+        }
+      ]
+    }
   }
 }

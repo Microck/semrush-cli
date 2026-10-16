@@ -21,6 +21,7 @@ import { makeSeedFixture } from './seed-strategy-fixture.js';
 import { makeDomainFixture } from './domain-strategy-fixture.js';
 import { makeSavedFixture, savedPath } from './saved-keywords-fixture.js';
 import { text as readText } from 'node:stream/consumers';
+import { makeBacklinkAuditFixture } from './backlink-audit-fixture.js';
 
 const exec = promisify(execFile);
 const binary = resolve(`dist/daemon/galleton-${process.platform}-${process.arch}${process.platform === 'win32' ? '.exe' : ''}`);
@@ -55,6 +56,7 @@ const serveTransferFixture = makeTransferFixture();
 const serveTrackingAlertsFixture = makeTrackingAlertsFixture();
 const trackingTargetsFixture = makeTrackingTargetsFixture();
 const serveNotesFixture = makeNotesFixture();
+const backlinkAuditFixture = makeBacklinkAuditFixture();
 const fixtureHandlers = new Map([[folderPath, serveProjectFixture], [savedPath, serveSavedFixture], ['/notes/api/', serveNotesFixture]]);
 /** Serve the native authentication checks separately from report fixtures. */
 function serveAuthenticationFixture(request: IncomingMessage, response: ServerResponse, url: URL): boolean {
@@ -88,6 +90,7 @@ const fixture = createServer(async (request, response) => {
     response.setHeader('Content-Disposition', 'attachment; filename=fixture.csv');
     response.end('url,title\nhttps://example.com/,café\n'); return;
   }
+  if (url.pathname.startsWith('/backlink_audit/')) { await backlinkAuditFixture.serve(request, response, url); return; }
   if (url.pathname === '/tracking/alerts/') { await serveTrackingAlertsFixture(request, response); return; }
   if (['/tracking/web-api/', '/tracking/hashes', '/positions/api/'].some(prefix => url.pathname.startsWith(prefix))) { await serveTrackingFixture(request, response, url); return; }
   if (url.pathname.startsWith('/siteaudit/api/') || url.pathname === '/siteaudit/private/polling') { await serveAuditFixture(request, response, url); return; }
@@ -849,4 +852,103 @@ test('native target replacement preserves complete keyword tags and deletion rem
       expect(state.deleted).toBe(true); expect(state.writes).toBe(2);
     }).pipe(Effect.provide(fixtureLayer()))));
   } finally { state.enabled = false; }
+}, 30000);
+
+
+test('Backlink Audit uses native RPC auth, recommended creation defaults and partial settings', async () => {
+  backlinkAuditFixture.reset();
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const semrush = yield* Semrush;
+    const run = (name: string, query: Query) => parseReport(name, query).pipe(Effect.flatMap(request => semrush.report(request)));
+    const scope = yield* run('backlink_audit_scopes', { project_id: 789 });
+    expect(scope.data).toMatchObject([{ scope: 'root', allowed: true }]);
+    const created = yield* run('backlink_audit_create', { project_id: 789, confirm: true });
+    expect(created.data).toMatchObject({ userDomainId: 456, params: { brands: ['example'], geo: ['us'], recrawl: 'never', recrawlNotify: false } });
+    const writesBefore = backlinkAuditFixture.calls.filter(call => call.method === 'domains.AddByProjectId').length;
+    const duplicate = yield* run('backlink_audit_create', { project_id: 789, confirm: true }).pipe(Effect.flip);
+    expect(duplicate.message).toContain('already has a Backlink Audit');
+    expect(backlinkAuditFixture.calls.filter(call => call.method === 'domains.AddByProjectId')).toHaveLength(writesBefore);
+    yield* run('backlink_audit_configure', { audit_id: 456, brands: ['changed'], confirm: true });
+    const updated = yield* run('backlink_audit_info', { project_id: 789 });
+    expect(updated.data).toMatchObject({ params: { brands: ['changed'], geo: ['us'], categories: ['6'], recrawl: 'never' } });
+    expect(updated.data).not.toHaveProperty('params.recrawlNotify');
+    expect(updated.data).not.toHaveProperty('params.recrawlMajestic');
+    yield* run('backlink_audit_configure', { audit_id: 456, brands: [], confirm: true });
+    const cleared = yield* run('backlink_audit_info', { project_id: 789 });
+    expect(cleared.data).toMatchObject({ params: { categories: ['6'], geo: ['us'], recrawl: 'never' } });
+    expect(cleared.data).not.toHaveProperty('params.brands');
+    const failure = yield* run('backlink_audit_configure', { audit_id: 456, brands: ['reject'], confirm: true }).pipe(Effect.flip);
+    expect(failure.message).toContain('[redacted]'); expect(failure.message).not.toContain('fixture-secret');
+    const reads = ['limits', 'campaigns', 'project', 'status', 'categories', 'countries', 'recommendations', 'links_summary', 'domains_summary', 'anchor_types', 'rel_summary', 'removed_summary', 'historical_stats', 'authority_history', 'domains_history', 'links_history', 'changes', 'authority_distribution', 'link_types', 'anchors', 'top_domains'];
+    for (const name of reads) {
+      const result = yield* run('backlink_audit_' + name, name === 'project' ? { project_id: 789 } : ['limits', 'campaigns', 'categories', 'countries'].includes(name) ? {} : { audit_id: 456 });
+      expect(result.authenticated).toBe(true);
+    }
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+
+test('Backlink Audit TXT export uses native multipart auth and refuses processing or unexpected endpoints', async () => {
+  backlinkAuditFixture.reset();
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const semrush = yield* Semrush;
+    const files = yield* Exports;
+    const run = (name: string, query: Query) => parseReport(name, query).pipe(Effect.flatMap(request => semrush.report(request)));
+    yield* run('backlink_audit_create', { project_id: 789, confirm: true });
+    backlinkAuditFixture.state.processing = true;
+    const processing = yield* run('backlink_audit_disavow_export', { audit_id: 456, confirm: true }).pipe(Effect.flip);
+    expect(processing.message).toContain('not ready for file operations'); expect(backlinkAuditFixture.state.exports).toBe(0);
+    backlinkAuditFixture.state.processing = false; backlinkAuditFixture.state.foreignEndpoint = true;
+    const foreign = yield* run('backlink_audit_disavow_export', { audit_id: 456, confirm: true }).pipe(Effect.flip);
+    expect(foreign.message).toContain('unexpected file endpoint'); expect(backlinkAuditFixture.state.exports).toBe(0);
+    backlinkAuditFixture.state.foreignEndpoint = false;
+    const imported = yield* run('backlink_audit_disavow_import', { audit_id: 456, contents: 'domain:example.net\nhttps://example.org/unwanted\n', confirm: true });
+    expect(imported.data).toBeNull();
+    const entries = yield* run('backlink_audit_disavow', { audit_id: 456 });
+    expect(entries.data).toMatchObject([{ type: 'domain', text: 'example.net' }, { type: 'url', text: 'https://example.org/unwanted' }]);
+    const count = yield* run('backlink_audit_disavow_count', { audit_id: 456 });
+    expect(count.data).toBe(2);
+    const exported = yield* run('backlink_audit_disavow_export', { audit_id: 456, confirm: true });
+    if (!exported.artifact) throw new Error('Missing native TXT export artifact');
+    expect(exported.artifact).toMatchObject({ filename: 'disavow.txt', mime_type: 'text/plain' });
+    const content = yield* files.read(exported.artifact.uri);
+    expect(Buffer.from(content.blob, 'base64').toString()).toBe('domain:example.net\nhttps://example.org/unwanted\n');
+    expect(backlinkAuditFixture.state.exports).toBe(1);
+    backlinkAuditFixture.state.omitDisposition = true;
+    const unnamed = yield* run('backlink_audit_disavow_export', { audit_id: 456, confirm: true });
+    expect(unnamed.artifact).toMatchObject({ filename: 'semrush-export.txt', mime_type: 'text/plain' });
+    backlinkAuditFixture.state.omitDisposition = false;
+    yield* run('backlink_audit_disavow_import', { audit_id: 456, contents: 'domain:example.net\ndomain:example.org\n', confirm: true });
+    const replaced = yield* run('backlink_audit_disavow', { audit_id: 456 });
+    expect(replaced.data).toMatchObject([{ text: 'example.net' }, { text: 'example.org' }]);
+    expect(JSON.stringify(replaced.data)).not.toContain('https://example.org/unwanted');
+    yield* run('backlink_audit_disavow_delete', { audit_id: 456, item_id: 101, confirm: true });
+    expect((yield* run('backlink_audit_disavow', { audit_id: 456 })).data).toMatchObject([{ id: 102, text: 'example.org' }]);
+    yield* run('backlink_audit_disavow_clear', { audit_id: 456, with_file: true, confirm: true });
+    expect((yield* run('backlink_audit_disavow_count', { audit_id: 456 })).data).toBe(0);
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+
+test('Backlink Audit moves native domain, URL and network selections between lists and restores them', async () => {
+  backlinkAuditFixture.reset();
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const semrush = yield* Semrush;
+    const run = (name: string, query: Query) => parseReport(name, query).pipe(Effect.flatMap(request => semrush.report(request)));
+    for (const [operation, ids, destination] of [
+      ['move_domains', ['00000000-0000-0000-0000-000000000001'], 'whitelist'],
+      ['move_links', ['00000000-0000-0000-0000-000000000001'], 'to-remove'],
+      ['move_networks', [19387720322], 'disavow'],
+    ] as const) {
+      yield* run('backlink_audit_' + operation, { audit_id: 456, ids: [...ids], list: destination, confirm: true });
+      expect((yield* run('backlink_audit_links', { audit_id: 456, mode: destination })).data).toMatchObject([{ list: destination }]);
+      expect((yield* run('backlink_audit_links', { audit_id: 456, mode: 'for-review' })).data).toEqual([]);
+      if (destination === 'disavow') {
+        expect((yield* run('backlink_audit_disavow', { audit_id: 456 })).data).toMatchObject([{ id: 100, statusId: 1 }]);
+        yield* run('backlink_audit_disavow_move', { audit_id: 456, item_id: 100, list: 'for-review', confirm: true });
+        expect((yield* run('backlink_audit_disavow_count', { audit_id: 456 })).data).toBe(0);
+      } else yield* run('backlink_audit_' + operation, { audit_id: 456, ids: [...ids], list: 'for-review', confirm: true });
+      expect((yield* run('backlink_audit_links', { audit_id: 456 })).data).toMatchObject([{ list: 'for-review' }]);
+    }
+  }).pipe(Effect.provide(fixtureLayer()))));
 }, 30000);

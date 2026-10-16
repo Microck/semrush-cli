@@ -79,7 +79,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 
 ## command surface
 
-210 operations, available as cli commands and mcp tools. 142 reads and 68 writes that need explicit confirmation.
+249 operations, available as cli commands and mcp tools. 171 reads and 78 writes that need explicit confirmation.
 
 | command | what it does |
 | --- | --- |
@@ -89,6 +89,14 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 | `domain-pages`, `domain-subdomains`, `domain-position-changes` | pages, subdomains and ranking changes |
 | `keyword-gap`, `backlink-gap` | compare domains and find keyword or backlink opportunities |
 | `backlink-links`, `backlink-referring-domains`, `backlink-anchors` | inspect backlinks, referring domains and anchor text |
+| `backlink-audit-limits`, `backlink-audit-project`, `backlink-audit-scopes`, `backlink-audit-create` | check allowance and scope, then start a backlink audit |
+| `backlink-audit-campaigns`, `backlink-audit-info`, `backlink-audit-status`, `backlink-audit-configure` | find campaigns, read progress and change selected settings |
+| `backlink-audit-links-summary`, `backlink-audit-links-history`, `backlink-audit-authority-distribution` | inspect profile totals, history and distributions |
+| `backlink-audit-links`, `backlink-audit-links-count` | filter audit rows or count matching backlinks |
+| `backlink-audit-move-domains`, `backlink-audit-move-links`, `backlink-audit-move-networks` | move selections between review, whitelist, remove and disavow lists |
+| `backlink-audit-disavow`, `backlink-audit-disavow-count`, `backlink-audit-disavow-counters` | inspect disavow entries and workflow totals |
+| `backlink-audit-disavow-import`, `backlink-audit-disavow-export` | import or export native disavow txt files |
+| `backlink-audit-disavow-move`, `backlink-audit-disavow-delete`, `backlink-audit-disavow-clear` | move or delete selected entries, or clear explicitly chosen sources |
 | `domain-ai-visibility`, `domain-ai-countries`, `domain-ai-sources` | ai visibility, countries and citation sources |
 | `project-create`, `project-get`, `project-update`, `project-delete` | create and manage projects |
 | `project-tags`, `project-set-tags`, `project-pin` | organize your projects |
@@ -174,6 +182,53 @@ semrush keyword-gap --domains '["openai.com","anthropic.com"]'
 semrush backlink-links --domain openai.com
 semrush backlink-gap --domains '["openai.com","anthropic.com"]'
 ```
+
+### backlink audit
+
+backlink audit stores a campaign under an seo project, separate from backlink analytics. enable seo first, then check your allowance and available scopes:
+
+```bash
+semrush project-enable-seo --folder-id 123 --confirm
+semrush backlink-audit-limits
+semrush backlink-audit-project --project-id 456
+semrush backlink-audit-scopes --project-id 456
+semrush backlink-audit-create --project-id 456 --scope root --confirm
+semrush backlink-audit-info --project-id 456
+```
+
+use the returned seo project id for `--project-id`. creation starts analysis immediately and consumes your allowance. recurring analysis defaults to `never`, with recurring email notifications and majestic refresh off.
+
+copy the campaign's `userDomainId` into `--audit-id`; it differs from the folder and seo project ids:
+
+```bash
+semrush backlink-audit-status --audit-id 789
+semrush backlink-audit-links-summary --audit-id 789
+semrush backlink-audit-links-history --audit-id 789
+semrush backlink-audit-authority-distribution --audit-id 789
+semrush backlink-audit-links --audit-id 789 --mode for-review
+semrush backlink-audit-links-count --audit-id 789 --category-id 6
+semrush backlink-audit-configure --audit-id 789 --brands '["Example"]' --confirm
+```
+
+settings updates change only supplied fields. omitted settings and integrations remain intact. tables group by referring domain by default; use `--by-domain false` for individual links.
+
+move selected rows with `backlink-audit-move-domains` or `backlink-audit-move-links`, using their native `id` values in `--ids`, not `urlHash`. `backlink-audit-move-networks` takes numeric `linkNetworkId` values. choose `--list for-review`, `whitelist`, `to-remove` or `disavow`, then add `--confirm`. move back to the original list to reverse a move.
+
+read the disavow list and its counts, then export its native txt file:
+
+```bash
+semrush backlink-audit-disavow --audit-id 789
+semrush backlink-audit-disavow-count --audit-id 789
+semrush backlink-audit-disavow-counters --audit-id 789
+semrush backlink-audit-disavow-export --audit-id 789 --output disavow.txt --confirm
+semrush backlink-audit-disavow-import --audit-id 789 --contents-file current-disavow.txt --confirm
+```
+
+export requires a ready, unlocked audit and refuses an existing output file. it marks entries exported in semrush, so it requires confirmation. import can remove earlier file-imported entries missing from the new file. export first and include entries you want to retain, then inspect `backlink-audit-status` and the list after importing.
+
+`backlink-audit-disavow-move` and `backlink-audit-disavow-delete` take a numeric `--item-id` from the disavow list. move also needs `--list for-review`, `whitelist` or `to-remove`. `backlink-audit-disavow-clear` requires an explicit source selection with `--with-manual true`, `--with-file true` or `--with-gdt true`. these writes need `--confirm`; use `--dry-run` to preview them.
+
+these commands change lists in semrush. they do not contact website owners or upload to google. csv export remains outside verified coverage; the web ui shows an upgrade gate on the current guru account with an active trial. see [backlink audit](https://semrush.micr.dev/docs/backlink-audit) for filters, scope choices and disavow behavior.
 
 ### projects
 
@@ -596,7 +651,7 @@ the cli uses the published [`galleton` 0.1.0 sdk](https://www.npmjs.com/package/
 
 ## documentation
 
-full docs live at [semrush.micr.dev](https://semrush.micr.dev). setup, authentication, projects, saved keywords, keyword strategy builder, position tracking, chart notes, site audits, exports, mcp and the complete command reference.
+full docs live at [semrush.micr.dev](https://semrush.micr.dev). setup, authentication, projects, saved keywords, keyword strategy builder, position tracking, chart notes, site audits, backlink audit, exports, mcp and the complete command reference.
 
 - [coverage](https://semrush.micr.dev/docs/coverage)
 - [authentication](https://semrush.micr.dev/docs/authentication)

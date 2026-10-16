@@ -1,0 +1,462 @@
+{
+  "source": "https://static.semrush.com/backlink-audit/tools/bla_app.5d2833627b8d6106dd60.js",
+  "requests": [
+    {
+      "name": "backlink_audit_limits",
+      "input": {},
+      "method": "projects.Limits",
+      "params": {}
+    },
+    {
+      "name": "backlink_audit_campaigns",
+      "input": {},
+      "method": "domains.GetAll",
+      "params": {}
+    },
+    {
+      "name": "backlink_audit_categories",
+      "input": {},
+      "method": "catalog.CategoriesFull",
+      "params": {}
+    },
+    {
+      "name": "backlink_audit_countries",
+      "input": {},
+      "method": "catalog.GeoList",
+      "params": {}
+    },
+    {
+      "name": "backlink_audit_project",
+      "input": {
+        "project_id": 789
+      },
+      "method": "domains.GetProject",
+      "params": {
+        "projectId": 789
+      }
+    },
+    {
+      "name": "backlink_audit_scopes",
+      "input": {
+        "project_id": 789
+      },
+      "method": "domains.GetScopes",
+      "params": {
+        "projectId": 789
+      }
+    },
+    {
+      "name": "backlink_audit_info",
+      "input": {
+        "project_id": 789
+      },
+      "method": "domains.GetByProjectId",
+      "params": {
+        "projectId": 789
+      }
+    },
+    {
+      "name": "backlink_audit_status",
+      "input": {
+        "audit_id": 456
+      },
+      "method": "domains.GetStatus",
+      "params": {
+        "userDomainId": 456,
+        "background": false
+      }
+    },
+    {
+      "name": "backlink_audit_links_summary",
+      "input": {
+        "audit_id": 456
+      },
+      "method": "overview.GetLinksStatsEx",
+      "params": {
+        "userDomainId": 456,
+        "search": {
+          "targetUrlHash": null,
+          "targetUrlPath": null
+        }
+      }
+    },
+    {
+      "name": "backlink_audit_domains_summary",
+      "input": {
+        "audit_id": 456
+      },
+      "method": "overview.GetDomainsStats",
+      "params": {
+        "userDomainId": 456,
+        "search": {
+          "targetUrlHash": null,
+          "targetUrlPath": null
+        }
+      }
+    },
+    {
+      "name": "backlink_audit_anchor_types",
+      "input": {
+        "audit_id": 456
+      },
+      "method": "overview.GetAnchorTypesStats",
+      "params": {
+        "userDomainId": 456,
+        "search": {
+          "targetUrlHash": null,
+          "targetUrlPath": null
+        }
+      }
+    },
+    {
+      "name": "backlink_audit_rel_summary",
+      "input": {
+        "audit_id": 456
+      },
+      "method": "overview.GetRelStats",
+      "params": {
+        "userDomainId": 456,
+        "search": {
+          "targetUrlHash": null,
+          "targetUrlPath": null
+        }
+      }
+    },
+    {
+      "name": "backlink_audit_removed_summary",
+      "input": {
+        "audit_id": 456
+      },
+      "method": "overview.GetRemovedStats",
+      "params": {
+        "userDomainId": 456,
+        "search": {
+          "targetUrlHash": null,
+          "targetUrlPath": null
+        }
+      }
+    },
+    {
+      "name": "backlink_audit_historical_stats",
+      "input": {
+        "audit_id": 456
+      },
+      "method": "overview.GetHistoricalDomainStats",
+      "params": {
+        "userDomainId": 456,
+        "search": {
+          "targetUrlHash": null,
+          "targetUrlPath": null
+        }
+      }
+    },
+    {
+      "name": "backlink_audit_authority_history",
+      "input": {
+        "audit_id": 456
+      },
+      "method": "overview.GetDomainAScoreTimechart",
+      "params": {
+        "userDomainId": 456,
+        "search": {
+          "targetUrlHash": null,
+          "targetUrlPath": null
+        }
+      }
+    },
+    {
+      "name": "backlink_audit_domains_history",
+      "input": {
+        "audit_id": 456
+      },
+      "method": "overview.GetDomainsTimechart",
+      "params": {
+        "userDomainId": 456,
+        "search": {
+          "targetUrlHash": null,
+          "targetUrlPath": null
+        }
+      }
+    },
+    {
+      "name": "backlink_audit_links_history",
+      "input": {
+        "audit_id": 456
+      },
+      "method": "overview.GetLinksTimechart",
+      "params": {
+        "userDomainId": 456,
+        "search": {
+          "targetUrlHash": null,
+          "targetUrlPath": null
+        }
+      }
+    },
+    {
+      "name": "backlink_audit_changes",
+      "input": {
+        "audit_id": 456
+      },
+      "method": "overview.GetLostFoundTimechart",
+      "params": {
+        "userDomainId": 456,
+        "search": {
+          "targetUrlHash": null,
+          "targetUrlPath": null
+        },
+        "list": "new",
+        "showDiff": true,
+        "withDomains": true
+      }
+    },
+    {
+      "name": "backlink_audit_authority_distribution",
+      "input": {
+        "audit_id": 456
+      },
+      "method": "overview.GetDomainAScoreDistribution",
+      "params": {
+        "userDomainId": 456,
+        "search": {
+          "targetUrlHash": null,
+          "targetUrlPath": null
+        }
+      }
+    },
+    {
+      "name": "backlink_audit_link_types",
+      "input": {
+        "audit_id": 456
+      },
+      "method": "overview.GetLinkTypeDistribution",
+      "params": {
+        "userDomainId": 456,
+        "search": {
+          "targetUrlHash": null,
+          "targetUrlPath": null
+        }
+      }
+    },
+    {
+      "name": "backlink_audit_anchors",
+      "input": {
+        "audit_id": 456
+      },
+      "method": "overview.GetAnchorDistributionNew",
+      "params": {
+        "userDomainId": 456,
+        "search": {
+          "targetUrlHash": null,
+          "targetUrlPath": null
+        },
+        "anchorTypes": [
+          "all"
+        ],
+        "limit": 100,
+        "orderBy": "backlinks"
+      }
+    },
+    {
+      "name": "backlink_audit_top_domains",
+      "input": {
+        "audit_id": 456
+      },
+      "method": "overview.TopRefDomains",
+      "params": {
+        "userDomainId": 456,
+        "search": {
+          "targetUrlHash": null,
+          "targetUrlPath": null
+        },
+        "limit": 100,
+        "showOnlyToxic": false
+      }
+    },
+    {
+      "name": "backlink_audit_recommendations",
+      "input": {
+        "audit_id": 456
+      },
+      "method": "domains.Recommendations",
+      "params": {
+        "userDomainId": 456
+      }
+    },
+    {
+      "name": "backlink_audit_links",
+      "input": {
+        "audit_id": 456
+      },
+      "method": "backlinks.Get",
+      "params": {
+        "userDomainId": 456,
+        "search": {
+          "aScoreMin": null,
+          "aScoreMax": null,
+          "anchorTypes": [],
+          "categoryId": null,
+          "isNew": null,
+          "isTargetError": null,
+          "linkType": null,
+          "query": "",
+          "queryMode": null,
+          "rel": null,
+          "toxicMarkerIds": [],
+          "toxicType": null,
+          "mode": "for-review",
+          "collapse": "d",
+          "src": null,
+          "targetUrlHash": null,
+          "targetUrlPath": null
+        },
+        "pageSize": 50,
+        "page": 0
+      }
+    },
+    {
+      "name": "backlink_audit_links_count",
+      "input": {
+        "audit_id": 456
+      },
+      "method": "backlinks.Count",
+      "params": {
+        "userDomainId": 456,
+        "search": {
+          "aScoreMin": null,
+          "aScoreMax": null,
+          "anchorTypes": [],
+          "categoryId": null,
+          "isNew": null,
+          "isTargetError": null,
+          "linkType": null,
+          "query": "",
+          "queryMode": null,
+          "rel": null,
+          "toxicMarkerIds": [],
+          "toxicType": null,
+          "mode": "for-review",
+          "collapse": "d",
+          "src": null,
+          "targetUrlHash": null,
+          "targetUrlPath": null
+        },
+        "pageSize": 50,
+        "page": 0
+      }
+    },
+    {
+      "name": "backlink_audit_link_categories",
+      "input": {
+        "audit_id": 456
+      },
+      "method": "backlinks.GetCategoryList",
+      "params": {
+        "userDomainId": 456
+      }
+    },
+    {
+      "name": "backlink_audit_disavow",
+      "input": {
+        "audit_id": 456
+      },
+      "method": "disavow.Get",
+      "params": {
+        "userDomainId": 456,
+        "search": {
+          "query": null,
+          "status": null,
+          "source": null,
+          "type": null
+        },
+        "sort": {
+          "field": "statusId",
+          "type": "DESC"
+        },
+        "pageSize": 50,
+        "page": 0
+      }
+    },
+    {
+      "name": "backlink_audit_disavow_count",
+      "input": {
+        "audit_id": 456
+      },
+      "method": "disavow.Count",
+      "params": {
+        "userDomainId": 456,
+        "search": {
+          "query": null,
+          "status": null,
+          "source": null,
+          "type": null
+        }
+      }
+    },
+    {
+      "name": "backlink_audit_disavow_counters",
+      "input": {
+        "audit_id": 456
+      },
+      "method": "disavow.Counters",
+      "params": {
+        "userDomainId": 456,
+        "search": {
+          "targetUrlHash": null,
+          "targetUrlPath": null
+        }
+      }
+    },
+    {
+      "name": "backlink_audit_rel_summary",
+      "input": {
+        "audit_id": 456,
+        "by_domain": true
+      },
+      "method": "overview.GetRelStats",
+      "params": {
+        "userDomainId": 456,
+        "search": {
+          "targetUrlHash": null,
+          "targetUrlPath": null,
+          "collapse": "d"
+        }
+      }
+    },
+    {
+      "name": "backlink_audit_changes",
+      "input": {
+        "audit_id": 456,
+        "list": "broken"
+      },
+      "method": "overview.GetLostFoundTimechart",
+      "params": {
+        "userDomainId": 456,
+        "search": {
+          "targetUrlHash": null,
+          "targetUrlPath": null
+        },
+        "list": "broken",
+        "showDiff": true,
+        "withDomains": true
+      }
+    },
+    {
+      "name": "backlink_audit_changes",
+      "input": {
+        "audit_id": 456,
+        "list": "lost"
+      },
+      "method": "overview.GetLostFoundTimechart",
+      "params": {
+        "userDomainId": 456,
+        "search": {
+          "targetUrlHash": null,
+          "targetUrlPath": null
+        },
+        "list": "lost",
+        "showDiff": true,
+        "withDomains": true
+      }
+    }
+  ]
+}

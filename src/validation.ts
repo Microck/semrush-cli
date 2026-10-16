@@ -25,8 +25,8 @@ export const parseReport = Effect.fn('Reports.parse')(function* (name: string, i
     if (Predicate.isString(query.datetime_from) && Predicate.isString(query.datetime_to) && Date.parse(query.datetime_from) > Date.parse(query.datetime_to)) return yield* Effect.fail(new UsageError({ message: 'datetime_from must not exceed datetime_to.' }));
   }
   if (definition.transport === 'kwm' && 'target_basket_id' in query && query.basket_id === query.target_basket_id) return yield* Effect.fail(new UsageError({ message: 'Source and destination Keyword Strategy Builder baskets must be different.' }));
-  if (definition.transport === 'ksb' && 'volume_min' in query) {
-    const bounds = [['volume_min', 'volume_max'], ['difficulty_min', 'difficulty_max']] satisfies [string, string][];
+  if ((definition.transport === 'ksb' && 'volume_min' in query) || (definition.transport === 'bla' && 'authority_min' in query)) {
+    const bounds: [string, string][] = definition.transport === 'bla' ? [['authority_min', 'authority_max']] : [['volume_min', 'volume_max'], ['difficulty_min', 'difficulty_max']];
     for (const [lower, upper] of bounds) {
       const minimum = query[lower]; const maximum = query[upper];
       if (Predicate.isNumber(minimum) && Predicate.isNumber(maximum) && minimum > maximum) return yield* Effect.fail(new UsageError({ message: `${lower} must not exceed ${upper}.` }));

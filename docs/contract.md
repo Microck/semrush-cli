@@ -445,3 +445,102 @@ Location IDs belong to a search engine. Use `position-locations --query
 "United Kingdom" --engine bing` to resolve Bing's IDs and language options.
 Do not reuse Google's numeric location IDs when switching engines. An unsupported
 location/language remains a provider error; no replacement is retried.
+
+## Backlink Audit campaigns and reports
+
+Backlink Audit uses its own fixed JSON-RPC endpoint, `/backlink_audit/rpc/`,
+with the method in the query string and the runtime bootstrap API key in the
+native `Authorization` header. It is separate from Backlink Analytics.
+No command accepts an arbitrary RPC method or endpoint.
+
+Campaign discovery and setup use SEO `project_id` values, not folder IDs.
+Campaign info returns `userDomainId`; subsequent report commands call this
+`audit_id`. Scope choices are `root`, `both`, `www` and `nonwww`.
+The scope lookup reports which variants exist and whether the account allows
+an audit. A nonexistent domain is a provider error, not an empty audit.
+
+Creation uses `domains.AddByProjectId` and immediately starts analysis. It
+requires confirmation, refuses an existing audit and uses the native project's
+recommended brands, categories and countries unless explicitly supplied.
+Recurring analysis defaults to `never`, notification emails to false and
+Majestic refresh to false. Configuration uses `domains.ApplySettings` with only
+supplied settings. It preserves omitted fields and connected services.
+
+Overview reports retain native JSON for link/domain totals, anchor and link
+attribute distributions, historical counts, authority history/distribution,
+new/broken/lost trends, top referring domains and recommendations. Target-page
+selectors are the native target URL hash and path. These commands read reports;
+they do not render charts or send outreach.
+
+Primary sources are the current Backlink Audit app
+`bla_app.5d2833627b8d6106dd60.js`, the native setup wizard and captured overview
+requests. The native setup request separates `projectId`, `scope` and `params`.
+`params` contains brands, categories, countries (`geo`) and recurring settings.
+
+Disavow TXT export is a confirmed write because Semrush marks exported entries
+and updates export metadata. It does not upload a file to Google. The native
+client POSTs multipart form data with the runtime `apiKey` field to the campaign's
+`disavowDownload` endpoint from `domains.GetEndpoints`. Endpoint account query
+parameters remain runtime-only. Export requires the audit to be ready and
+unlocked. The CLI saves the native text file; MCP returns its artifact URI.
+
+The audit table uses `backlinks.Get` and `backlinks.Count`, zero-based `page`
+and `pageSize`, and a native `search` object. Domain grouping is `collapse:"d"`;
+individual links use null. Filters include authority bounds, anchor codes,
+category, new/target-error flags, native link/attribute codes, toxic markers,
+list mode, source and target-page selection. Link type codes are `a`, `form`,
+`img` and `iframe`; link attribute codes are `follow`, `noFollow`, `ugc` and
+`sponsored`. They differ from display labels.
+
+Disavow list reads use `disavow.Get` and `disavow.Count` with `query`, `status`,
+`source` and `type` filters. Sorting is a separate native object. Status codes
+are 1 waiting, 4 exported, 5 disavowed and 6 not-disavowed. Domain and URL entries
+remain distinct. Counters use the overview target-page search shape.
+
+Disavow file import sends the native multipart `apiKey` and `disavow` fields.
+The endpoint acknowledges a successful upload with HTTP 200 and an empty body.
+It then parses the file asynchronously. A null command result acknowledges
+upload acceptance, not successful parsing; inspect `backlink-audit-status` and
+the disavow list afterward. The native UI's file import is independent of
+Google Search Console and makes no upload to Google.
+
+A second live file import removed a prior file-imported URL that was absent
+from the replacement file. Import is therefore destructive and must not be
+described as a merge. Imported entries receive native status 5 (disavowed);
+that is Semrush's file interpretation, not proof of an upload to Google.
+
+Category catalog IDs are numeric. The native wizard converts selected IDs to
+strings before saving, and the API rejects numeric values in `params.categories`.
+The CLI/MCP accepts numeric category IDs and applies that native serialization;
+recommended project categories already use the API's string representation.
+
+An explicit empty brand list clears the saved brands. The native response then
+omits `params.brands`; it does not retain the old brands. Empty categories and
+countries remain explicit arrays. Report results preserve those native shapes.
+
+Backlink list actions use `backlinks.MoveDomains`, `backlinks.MoveUrls` and
+`backlinks.MoveLinkNetworks`. Each sends `{userDomainId, ids, list}`. Domain and
+individual-link selection uses the native row `id`, an opaque UUID-shaped string,
+not `urlHash`. Network selection uses numeric `linkNetworkId` values. Destinations
+are `for-review`, `whitelist`, `to-remove` and `disavow`. Moving to `to-remove`
+queues an item in Semrush without contacting a website. Moving to `disavow`
+prepares Semrush's list without uploading to Google. The same operation with the
+original list reverses a move. All moves require confirmation; dry runs send
+nothing. Table reads accept all eight native lists, including remove and disavow.
+
+Disavow row management uses `disavow.Move` with `{userDomainId, userListItemId,
+list}` and `disavow.Delete` with `{userDomainId, userListItemId}`. The item ID is
+numeric and comes from the disavow table; backlink selection IDs are different.
+Moving returns associated backlinks to review, whitelist or remove. Deletion
+removes the Semrush list item. Neither operation changes a file already uploaded
+to Google. Deletion is marked destructive. Both operations require confirmation.
+
+Bulk disavow clearing uses `disavow.Clear` with `{userDomainId, withManual,
+withFile, withGDT}`. All three flags default to false, as in the native UI;
+at least one must be explicitly true. Manual items move back to the Audit and
+Lost & Found lists. File and Disavow Tool imported items are removed from the
+Semrush list. This destructive confirmed operation makes no change to Google.
+
+Creation acknowledges explicit false recurring-notification and Majestic flags.
+A fresh `domains.GetByProjectId` read omits those false flags while retaining
+`recrawl:"never"`. Preserve the native response rather than inserting boolean fields into report JSON.

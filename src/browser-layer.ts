@@ -12,7 +12,8 @@ import { Exports } from './exports.js';
 
 interface ExportState { download?: Download; cancel: () => void; }
 
-const transportPaths = new Map([['domain', '/dpa/rpc'], ['direct', '/dpa/rpc'], ['magic', '/kmtgw/v2/webapi'], ['keyword', '/kwogw/v2/webapi'], ['kwm', '/kwm/rpc'], ['ksb', '/ksb/rpc']]);
+const transportPaths = new Map([['domain', '/dpa/rpc'], ['direct', '/dpa/rpc'], ['magic', '/kmtgw/v2/webapi'], ['keyword', '/kwogw/v2/webapi'], ['kwm', '/kwm/rpc'], ['ksb', '/ksb/rpc'], ['bla', '/backlink_audit/rpc/']]);
+const exportMimeTypes = { csv: 'text/csv', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', txt: 'text/plain' };
 const json = JSONbig({ storeAsString: true, protoAction: 'error', constructorAction: 'error' });
 const safeBrowserError = () => new ReportError({ message: 'Semrush browser request failed. Run semrush doctor. If your session expired, sign in again with semrush auth login.' });
 const browserCall = <A>(run: () => Promise<A>) => Effect.tryPromise({ try: run, catch: safeBrowserError });
@@ -79,6 +80,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       if (!file && ['POST', 'PUT', 'PATCH'].includes(method)) options.headers = { 'Content-Type': 'application/json', ...extraHeaders };
       if (file) {
         const form = new FormData();
+        for (const [key, value] of Object.entries(payload ?? {})) form.append(key, String(value));
         form.append(file.field, new Blob([file.contents], { type: 'text/plain' }), file.filename);
         options.body = form;
       } else if (!queryOnly && payload !== null) options.body = JSON.stringify(payload);
@@ -104,9 +106,39 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     const payload = transport === 'domain' ? { request_id: randomUUID(), report: webReport, args: params, ...auth } : transport === 'direct' ? { ...params, ...auth } : params;
     const rpcParams = transport === 'kwm' ? { ...payload, ...(method.startsWith('user.') ? { api_key: auth.apiKey, user_id: auth.userId } : { APIKey: auth.apiKey, UserID: auth.userId }) } : payload;
     const extra: Record<string, string> = ['kwm', 'ksb'].includes(transport) ? { 'api-key': auth.apiKey, 'user-id': String(auth.userId) } : {};
-    const body = yield* request(transportPaths.get(transport) ?? '/kwogw/v2/webapi', rpcBody(method, rpcParams), 'POST', extra);
+    if (transport === 'bla') extra.Authorization = auth.apiKey;
+    const path = transportPaths.get(transport) ?? '/kwogw/v2/webapi';
+    const body = yield* request(transport === 'bla' ? path + '?method=' + encodeURIComponent(method) : path, rpcBody(method, rpcParams), 'POST', extra);
     if (!objectValue(body) || !('result' in body)) return yield* Effect.fail(new ReportError({ message: `Semrush ${method}: missing report result.` }));
     return body.result ?? null;
+  });
+  /** Fill the wizard's recommended values only for a new campaign; edits remain partial. */
+  const createBacklinkAudit = Effect.fn('Semrush.createBacklinkAudit')(function* (params: Query) {
+    const campaigns = yield* Schema.decodeUnknownEffect(Schema.Array(Schema.Struct({ projectId: Schema.Number, userDomainId: Schema.NullOr(Schema.Number) })))(yield* rpc('domains.GetAll', {}, 'bla'))
+      .pipe(Effect.mapError(() => new ReportError({ message: 'Backlink Audit campaign discovery returned an unexpected response. No audit was created.' })));
+    if (campaigns.some(campaign => campaign.projectId === params.projectId && campaign.userDomainId !== null)) return yield* Effect.fail(new ReportError({ message: 'This SEO project already has a Backlink Audit. Use backlink-audit-configure to change its settings.' }));
+    const defaults = yield* Schema.decodeUnknownEffect(Schema.Struct({ defaultBrands: Schema.Array(Schema.String), defaultCategories: Schema.Array(Schema.String), defaultGeo: Schema.Array(Schema.String) }))(
+      yield* rpc('domains.GetProject', { projectId: params.projectId ?? null }, 'bla'),
+    ).pipe(Effect.mapError(() => new ReportError({ message: 'Backlink Audit setup metadata is unavailable. Inspect backlink-audit-project before creating an audit.' })));
+    const settings: Query = { brands: [...defaults.defaultBrands], categories: [...defaults.defaultCategories], geo: [...defaults.defaultGeo] };
+    Object.assign(settings, params.params);
+    return { ...params, params: settings };
+  });
+  /** Use the native campaign file endpoints without exposing account query parameters or keys. */
+  const backlinkAuditFile = Effect.fn('Semrush.backlinkAuditFile')(function* (query: Query, planned: WebRequest) {
+    const current = yield* Schema.decodeUnknownEffect(Schema.Struct({ domain: Schema.Struct({ statusId: Schema.Number, isLockedSettings: Schema.Boolean }) }))(
+      yield* rpc('domains.GetStatus', { userDomainId: query.audit_id ?? null, background: false }, 'bla'),
+    ).pipe(Effect.mapError(() => new ReportError({ message: 'Backlink Audit state is unavailable. No file request was sent.' })));
+    if (current.domain.statusId !== 1 || current.domain.isLockedSettings) return yield* Effect.fail(new ReportError({ message: 'Backlink Audit is not ready for file operations. Inspect backlink-audit-status; files require statusId:1 and isLockedSettings:false.' }));
+    const endpoints = yield* Schema.decodeUnknownEffect(Schema.Struct({ disavowDownload: Schema.String, disavowUpload: Schema.String, disavowUploadFormField: Schema.String }))(
+      yield* rpc('domains.GetEndpoints', { userDomainId: query.audit_id ?? null }, 'bla'),
+    ).pipe(Effect.mapError(() => new ReportError({ message: 'Backlink Audit file metadata is unavailable. No file request was sent.' })));
+    if (planned.file && planned.file.field !== endpoints.disavowUploadFormField) return yield* Effect.fail(new ReportError({ message: 'Backlink Audit returned an unexpected upload field.' }));
+    const resource = planned.file ? endpoints.disavowUpload : endpoints.disavowDownload;
+    const address = yield* Effect.try({ try: () => new URL('/backlink_audit' + resource, browserOrigin), catch: () => new ReportError({ message: 'Backlink Audit returned an invalid file endpoint.' }) });
+    if (address.origin !== browserOrigin || address.pathname !== planned.path) return yield* Effect.fail(new ReportError({ message: 'Backlink Audit returned an unexpected file endpoint.' }));
+    const body: Query = { apiKey: auth.apiKey };
+    return { ...planned, path: address.href, headers: {}, body };
   });
   const checkAuditSettings = Effect.fn('Semrush.checkAuditSettings')(function* (name: string, query: Query) {
     if (name === 'audit_abort' || name === 'audit_finalize') {
@@ -129,6 +161,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     }
   });
   const downloadExport = Effect.fn('Semrush.downloadExport')(function* (request: ReturnType<typeof webRequest>, format: Schema.Json | undefined) {
+    const extension = format === 'xlsx' ? 'xlsx' : format === 'txt' ? 'txt' : 'csv';
     const address = new URL(request.path, browserOrigin);
     if (request.method === 'GET') {
       for (const [key, value] of Object.entries(request.body ?? {})) address.searchParams.set(key, String(value));
@@ -151,15 +184,23 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       // JSON POSTs need the web origin. Closing this page aborts fetch and revokes its Blob URL.
       yield* browserCall(() => exportPage.goto(browserOrigin + '/robots.txt', { waitUntil: 'domcontentloaded', timeout: 45000 }));
       const attachment = yield* browserCall(() => exportPage.evaluate(async ({ address, body, extension, encoding }) => {
-        const response = await fetch(address, { method: 'POST', credentials: 'include', headers: { 'Content-Type': encoding === 'form' ? 'application/x-www-form-urlencoded' : 'application/json' },
-          body: encoding === 'form' ? new URLSearchParams(Object.entries(body ?? {}).map(([key, value]) => [key, String(value)])) : JSON.stringify(body), signal: AbortSignal.timeout(45000) });
+        const options: RequestInit = { method: 'POST', credentials: 'include', signal: AbortSignal.timeout(45000) };
+        if (encoding === 'multipart') {
+          const form = new FormData();
+          for (const [key, value] of Object.entries(body ?? {})) form.append(key, String(value));
+          options.body = form;
+        } else {
+          options.headers = { 'Content-Type': encoding === 'form' ? 'application/x-www-form-urlencoded' : 'application/json' };
+          options.body = encoding === 'form' ? new URLSearchParams(Object.entries(body ?? {}).map(([key, value]) => [key, String(value)])) : JSON.stringify(body);
+        }
+        const response = await fetch(address, options);
         const contentType = response.headers.get('content-type') ?? '';
         if (!response.ok || /text\/html|application\/(?:[^;]+\+)?json/i.test(contentType)) return { status: response.status, url: '', filename: '' };
         const disposition = response.headers.get('content-disposition') ?? '';
         const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
         const filename = encoded ? decodeURIComponent(encoded) : (disposition.match(/filename="([^"]+)"|filename=([^;]+)/i)?.slice(1).find(Boolean)?.trim() ?? 'semrush-export.' + extension);
         return { status: response.status, url: URL.createObjectURL(await response.blob()), filename };
-      }, { address: address.href, body: request.body, extension: format === 'xlsx' ? 'xlsx' : 'csv', encoding: 'encoding' in request ? request.encoding : 'json' }));
+      }, { address: address.href, body: request.body, extension, encoding: 'encoding' in request ? request.encoding : 'json' }));
       if (!attachment.url) return yield* Effect.fail(new ReportError({ message: `Semrush did not return an export file (HTTP ${attachment.status}). Check your session, export permissions and selected resource.` }));
       file = attachment;
     }
@@ -212,8 +253,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     }), catch: error => error instanceof ReportError ? error : new ReportError({ message: 'Semrush did not produce an export download. Check your session and export permissions.' }) });
 
     const filename = download.suggestedFilename().replaceAll(auth.apiKey, '[redacted]');
-    const mimeType = format === 'xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv';
-    return yield* exports.create(filename, mimeType, destination => download.saveAs(destination));
+    return yield* exports.create(filename, exportMimeTypes[extension], destination => download.saveAs(destination));
   });
   /** Prepare native tracking bodies. Settings replace all fields and require current values plus fresh edit metadata. */
   const trackingBody = Effect.fn('Semrush.trackingBody')(function* (definition: ReportRequest['definition'], query: Query, changes: Schema.Json) {
@@ -288,6 +328,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
   /** Acquire native metadata and credentials only after public validation and write consent. */
   const prepareWebRequest = Effect.fn('Semrush.prepareWebRequest')(function* ({ name, definition, query }: ReportRequest, planned: ReturnType<typeof webRequest>) {
     const family = definition.transport;
+    if (family === 'bla_file') return yield* backlinkAuditFile(query, planned);
     // The web UI only allows adding a website to a project that has none.
     if (name === 'project_update' && query.domain !== undefined) {
       const current = yield* request('/apis/v4-raw/folders/api/v0/folders/folder', { folder_id: query.folder_id ?? null }, 'GET');
@@ -312,7 +353,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     if (session.path === '/multilogin/') return yield* Effect.fail(new SessionError({ code: 'session_confirmation_required', message: 'Semrush requires session confirmation at /multilogin/. Open Semrush in your signed-in browser, resolve the prompt, then reimport that browser with semrush auth import --cdp-url <url>. No report was sent.' }));
     if (!session.ok || session.path !== '/home/') return yield* Effect.fail(new SessionError({ message: 'Semrush session expired. Run semrush auth login or import a signed-in browser.' }));
     const family = definition.transport;
-    const planned = ['project_web', 'audit_web', 'tracking_web', 'saved_web', 'notes_web'].includes(family) ? webRequest(definition, query) : undefined;
+    const planned = ['project_web', 'audit_web', 'tracking_web', 'saved_web', 'notes_web', 'bla_file'].includes(family) ? webRequest(definition, query) : undefined;
     const params = planned ? {} : reportParameters(definition, query);
     let reportData: Schema.Json | undefined;
     let requestSecret = "";
@@ -326,8 +367,8 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       }
       const responseType = 'response_type' in definition && definition.response_type === 'empty' ? 'empty' : 'json';
       reportData = yield* request(prepared.path, prepared.body, prepared.method, prepared.headers, responseType, prepared.file);
-    } else if (['keyword', 'domain', 'direct', 'magic', 'kwm', 'ksb'].includes(family)) {
-      reportData = yield* rpc(definition.method, params, family, definition.web_report);
+    } else if (['keyword', 'domain', 'direct', 'magic', 'kwm', 'ksb', 'bla'].includes(family)) {
+      reportData = yield* rpc(definition.method, name === 'backlink_audit_create' ? yield* createBacklinkAudit(params) : params, family, definition.web_report);
       if ('response_type' in definition && ['download_url', 'export_id'].includes(definition.response_type)) {
         const href = yield* nativeExportURL(definition.response_type, reportData, browserOrigin, auth);
         const artifact = yield* Effect.scoped(downloadExport({ method: 'GET', path: href, body: {} }, query.format));

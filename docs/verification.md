@@ -5,6 +5,58 @@ tests locally, including real Chromium, Galleton and stateful HTTP fixtures.
 Live responses and credentials remain outside the repository. Evidence below
 distinguishes local fixtures, native CI and real account execution.
 
+## Backlink Audit source verification
+
+Version 0.16.0 adds 39 Backlink Audit operations: 29 reads and ten
+confirmed writes. The source catalog contains 249 operations, 171 reads and
+78 writes. Three independent simplification reviewers found no worthwhile
+changes. A full run passed 165 tests and failed one new assertion that expected
+the wrong validation-error wording. The corrected assertion separately checks
+missing selection and explicit all-false selection; its focused rerun passed. A final local full run stalled under full host swap
+and was stopped; CI is the required complete release check.
+
+The same signed-in account confirms Guru SEO entitlement and an active trial.
+Backlink Audit's CSV button opens a subscription dialog saying that free and
+trial users can export only a disavow file. CSV remains unsupported. Guru
+status does not establish that this particular export is available.
+
+An owned `httpbingo.org` campaign finished with 581 checked links. All 29 reads
+passed authenticated CLI/MCP calls. Nondefault authority, category, anchor,
+link-type, link-attribute, text, new/error and toxic-marker filters returned
+native counts. Domain, individual-link and network moves passed destination
+reads and restoration checks. Network IDs come from a row's `linkNetworks`
+array, not its URL hash or string selection ID.
+
+Partial settings changed only supplied fields. Nonempty categories and countries
+passed, including the native string serialization of numeric category IDs.
+Explicit clearing and restoration passed. Empty brands disappear from the
+native response; categories and countries remain empty arrays. Source MCP
+campaign creation passed on a second owned project, using Semrush's recommended
+brands/categories/countries and manual recurring settings. Creation echoes
+false notification/Majestic flags; a subsequent info read omits those false
+fields while retaining `recrawl:"never"`.
+
+Native TXT file import returned HTTP 200 with an empty acknowledgement, then
+parsing completed. A replacement import removed a prior imported URL omitted
+from the new file, proving that import is destructive rather than a merge.
+CLI TXT saving and MCP artifact reconstruction passed. Export changes Semrush's
+entry/export metadata and therefore requires confirmation. No file was uploaded
+to Google.
+
+A real MCP disavow move returned a selected backlink to review, and deleting
+one imported domain preserved its sibling. Native file-source bulk clearing
+emptied the remaining import. The native UI's intercepted, aborted clear request
+established the three explicit source flags. The real Chromium/HTTP fixture
+verifies the CLI/MCP clear operation. Its live MCP verification timed out before
+the first read under full host swap; no ambiguous clear write was retried.
+
+Both owned projects were deleted and Backlink Audit discovery confirmed their
+absence. The first cleanup used an isolated context on the existing authorized
+browser after local browser launches timed out. Its original context, login and
+configuration were preserved. Deletion acknowledged HTTP 200; a subsequent
+folder read returned HTTP 404 and campaign discovery showed absence. Existing
+account resources were untouched. Detailed journals remain private.
+
 ## Version 0.15.0 protected audits and URL lists
 
 The current Site Audit wizard and a native UI upload established the multipart

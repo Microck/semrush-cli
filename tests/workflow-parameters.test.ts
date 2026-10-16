@@ -1,4 +1,5 @@
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
+import { readFile } from 'node:fs/promises';
 import { expect, test } from 'vitest';
 import { parseReport } from '../src/validation.js';
 import type { Query } from '../src/report-parameters.js';
@@ -248,4 +249,63 @@ test('target replacement and deletion require consent and expose no runtime capa
 test('tracking engine-specific location lookup matches native selectors', async () => {
   const parsed = await Effect.runPromise(parseReport('position_locations', { query: 'United Kingdom', engine: 'bing' }));
   expect(webRequest(parsed.definition, parsed.query).body).toEqual({ q: 'United Kingdom', filter_engine: 'bing' });
+});
+
+
+test('Backlink Audit read requests match captured native wizard and overview contracts', async () => {
+  const contract = Schema.decodeUnknownSync(Schema.Struct({ source: Schema.String, requests: Schema.Array(Schema.Struct({ name: Schema.String, input: Schema.Record(Schema.String, Schema.Json), method: Schema.String, params: Schema.Record(Schema.String, Schema.Json) })) }))(JSON.parse(await readFile(new URL('./fixtures/backlink-audit-requests.json', import.meta.url), 'utf8')));
+  for (const sample of contract.requests) {
+    const parsed = await Effect.runPromise(parseReport(sample.name, sample.input));
+    expect(webRequest(parsed.definition, parsed.query)).toEqual({ method: 'POST', path: '/backlink_audit/rpc/?method=' + sample.method, body: { id: 1, jsonrpc: '2.0', method: sample.method, params: sample.params } });
+  }
+});
+
+test('Backlink Audit creation has manual defaults and configuration includes only supplied fields', async () => {
+  const created = await preview('backlink_audit_create', { project_id: 789, dry_run: true });
+  expect(created.body).toMatchObject({ method: 'domains.AddByProjectId', params: { projectId: 789, scope: 'root', params: { recrawl: 'never', recrawlNotify: false, recrawlMajestic: false } } });
+  const configured = await preview('backlink_audit_configure', { audit_id: 456, brands: [], dry_run: true });
+  expect(configured.body).toEqual({ id: 1, jsonrpc: '2.0', method: 'domains.ApplySettings', params: { userDomainId: 456, params: { brands: [] } } });
+  await expect(preview('backlink_audit_configure', { audit_id: 456, dry_run: true })).rejects.toThrow('required');
+  await expect(preview('backlink_audit_create', { project_id: 789 })).rejects.toThrow('--confirm');
+  const categories = await preview('backlink_audit_configure', { audit_id: 456, categories: [6], dry_run: true });
+  expect(categories.body).toMatchObject({ params: { params: { categories: ['6'] } } });
+});
+
+
+test('Backlink Audit disavow export requires consent and its preview excludes runtime account metadata', async () => {
+  await expect(preview('backlink_audit_disavow_export', { audit_id: 456 })).rejects.toThrow('--confirm');
+  expect(await preview('backlink_audit_disavow_export', { audit_id: 456, dry_run: true })).toEqual({ method: 'POST', path: '/backlink_audit/files/disavow/download/456', body: {}, encoding: 'multipart' });
+});
+
+
+test('Backlink Audit list moves require consent and native selection identifiers', async () => {
+  for (const [operation, method, ids] of [
+    ['move_domains', 'MoveDomains', ['00000000-0000-0000-0000-000000000001']],
+    ['move_links', 'MoveUrls', ['00000000-0000-0000-0000-000000000001']],
+    ['move_networks', 'MoveLinkNetworks', [19387720322]],
+  ] as const) {
+    const input = { audit_id: 456, ids: [...ids], list: 'whitelist' };
+    await expect(preview('backlink_audit_' + operation, input)).rejects.toThrow('--confirm');
+    expect((await preview('backlink_audit_' + operation, { ...input, dry_run: true })).body).toEqual({ id: 1, jsonrpc: '2.0', method: 'backlinks.' + method, params: { userDomainId: 456, ids, list: 'whitelist' } });
+  }
+  await expect(preview('backlink_audit_move_links', { audit_id: 456, ids: ['9007199254740993'], list: 'whitelist', dry_run: true })).rejects.toThrow('pattern');
+});
+
+
+test('Disavow row actions use numeric item IDs and require consent', async () => {
+  for (const operation of ['move', 'delete']) {
+    const input: Query = { audit_id: 456, item_id: 101 };
+    const params: Query = { userDomainId: 456, userListItemId: 101 };
+    if (operation === 'move') { input.list = 'for-review'; params.list = 'for-review'; }
+    await expect(preview('backlink_audit_disavow_' + operation, input)).rejects.toThrow('--confirm');
+    expect((await preview('backlink_audit_disavow_' + operation, { ...input, dry_run: true })).body).toEqual({ id: 1, jsonrpc: '2.0', method: operation === 'move' ? 'disavow.Move' : 'disavow.Delete', params });
+  }
+});
+
+
+test('Disavow bulk clearing requires an explicit source selection and consent', async () => {
+  await expect(preview('backlink_audit_disavow_clear', { audit_id: 456, dry_run: true })).rejects.toThrow("required property 'with_file'");
+  await expect(preview('backlink_audit_disavow_clear', { audit_id: 456, with_manual: false, with_file: false, with_gdt: false, dry_run: true })).rejects.toThrow('constant');
+  await expect(preview('backlink_audit_disavow_clear', { audit_id: 456, with_file: true })).rejects.toThrow('--confirm');
+  expect((await preview('backlink_audit_disavow_clear', { audit_id: 456, with_file: true, dry_run: true })).body).toEqual({ id: 1, jsonrpc: '2.0', method: 'disavow.Clear', params: { userDomainId: 456, withManual: false, withFile: true, withGDT: false } });
 });
