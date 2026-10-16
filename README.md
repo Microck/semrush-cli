@@ -190,6 +190,8 @@ writes need `--confirm`. `--dry-run` validates the inputs and prints the request
 
 ### saved keywords
 
+select phrases from keyword magic or keyword gap, then pass them to `saved-keywords-import` or `position-keywords-add`. saved collections also appear as builder baskets. the [keyword workflow guide](https://semrush.micr.dev/docs/keyword-workflows) shows how to select, save and track phrases with `jq`. importing into a list does not start tracking.
+
 manage the collections you see in semrush's saved keywords page:
 
 ```bash

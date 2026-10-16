@@ -1,0 +1,119 @@
+---
+title: Save and track keyword selections
+description: Move selected research results into a list or tracking target.
+---
+
+Keyword Magic, Keyword Gap, Saved Keywords and Keyword Strategy Builder expose
+phrases in their JSON results. Use the existing import and tracking commands to
+send those selections to their destination. These commands require confirmation;
+reading or selecting phrases does not save them or start tracking.
+
+This guide uses Bash and `jq`. Sign in first with the
+[authentication guide](/docs/authentication). Review the selected phrases before
+sending a write. Each example selects one bounded page, not every report page.
+
+In a Bash script, stop if a command or pipeline fails:
+
+```sh
+set -euo pipefail
+```
+
+## Select Keyword Magic results
+
+```sh
+selected_phrases=$(semrush keyword-magic --keyword 'email marketing' \
+  --database us --page-size 2 --json |
+  jq -ce '[.data.keywords[].phrase] | unique | select(length > 0)')
+printf '%s\n' "$selected_phrases"
+```
+
+The JSON field is `phrase`. Choose filters, matching mode and sort order before
+selecting a page. An empty result makes `jq -e` fail. Do not continue to a write
+when the research command or selection fails.
+
+## Select Keyword Gap results
+
+```sh
+selected_phrases=$(semrush keyword-gap \
+  --domains '["semrush.com","ahrefs.com"]' --database us --limit 2 --json |
+  jq -ce '[.data.keywords[].keyword] | unique | select(length > 0)')
+printf '%s\n' "$selected_phrases"
+```
+
+Gap rows use `keyword`, unlike Magic rows. Change the domains and gap filters for
+your own comparison. The first domain is your reference site.
+
+## Save the selection
+
+Create an empty collection, or use an existing list ID from `saved-keyword-lists`:
+
+```sh
+semrush saved-keyword-list-create --name 'research shortlist' --confirm --json
+```
+
+Use the returned `data.list_id` in the next command. List IDs are decimal
+strings, not project or tracking campaign IDs.
+
+```sh
+semrush saved-keywords-import --list-id 123 \
+  --keywords "$selected_phrases" --database us --tags '["research"]' --dry-run
+semrush saved-keywords-import --list-id 123 \
+  --keywords "$selected_phrases" --database us --tags '["research"]' --confirm
+semrush saved-keywords --list-id 123 --limit 20 --json
+```
+
+Replace `123` with your list ID. Use the same database as the research report.
+Import adds the selection and tags; it does not clear existing keywords, generate
+content or start clustering. Import and metrics remain subject to account limits.
+
+## Read the selection through Keyword Strategy Builder
+
+A regular Saved Keywords collection also appears as a builder basket. Resolve
+its native builder identifiers:
+
+```sh
+semrush keyword-lists --name-filter 'research shortlist' --json
+```
+
+Choose the exact `BasketID` and `Owner.ID`, then read its phrases:
+
+```sh
+selected_phrases=$(semrush keyword-list-keywords --basket-id 123 --owner-id 456 \
+  --page-size 20 --json |
+  jq -ce '[.data.Keywords[].Phrase] | unique | select(length > 0)')
+printf '%s\n' "$selected_phrases"
+```
+
+Replace both IDs with the returned values. Builder IDs are safe JSON integers.
+A filtered list read selects only that page. Use `--filters` when selecting
+builder keywords by tags, intent, volume or other supported fields.
+
+To select from Saved Keywords instead:
+
+```sh
+selected_phrases=$(semrush saved-keywords --list-id 123 --limit 20 --json |
+  jq -ce '[.data.keywords[].phrase] | unique | select(length > 0)')
+```
+
+## Add the selection to tracking
+
+Discover your target with `position-campaigns` or `position-targets`. A campaign
+ID has two parts, such as `456_789`. Review the target and selection first:
+
+```sh
+semrush position-info --campaign-id 456_789 --json
+semrush position-keywords-add --campaign-id 456_789 \
+  --keywords "$selected_phrases" --tags '["research"]' --dry-run
+semrush position-keywords-add --campaign-id 456_789 \
+  --keywords "$selected_phrases" --tags '["research"]' --confirm
+semrush position-keywords --campaign-id 456_789 --json
+```
+
+Replace the example campaign ID. Adding keywords consumes tracking allowance and
+starts monitoring them. It preserves the target's existing keywords and does not
+buy more capacity. Each call accepts up to 1,500 distinct phrases. Account
+allowance can impose a lower limit. See the [tracking guide](/docs/position-tracking).
+
+MCP clients use the same flow: read a bounded report, select phrase values, call
+`saved_keywords_import` or `position_keywords_add` with `confirm:true`, then read
+the destination to check the result. No command implicitly chains these writes.

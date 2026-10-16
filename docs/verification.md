@@ -5,6 +5,44 @@ locally, including real Chromium, Galleton and stateful HTTP fixtures. Live resp
 outside the repository. Evidence below distinguishes local fixtures, native CI
 and real account execution.
 
+## Keyword selection workflow verification
+
+Two Keyword Magic phrases were imported with tags into an owned Saved Keywords
+collection. The same collection appeared through Keyword Strategy Builder;
+its keyword read returned the same phrases. Those builder selections were
+added to the owned tracking target and read back with their tags intact.
+
+Two Keyword Gap results were then imported into that collection and selected
+through its Saved Keywords read. Adding them to tracking preserved the original
+tracked keyword and the prior Magic selections. Each write used the existing
+confirmed destination command. No duplicate selection API was added. The docs
+show each report's actual phrase field and explicit destination identifiers.
+The four published CLI read recipes also passed their exact `jq` expressions: two
+phrases from each research page and four from each saved/builder read. The owned
+collection was absent from both APIs after deletion. The owned project and all
+recorded target IDs were absent after cleanup. Existing account resources were
+preserved.
+
+## Version 0.14.0 published artifacts
+
+The public npm archive matches the tested runtime and release archive:
+SHA-256 `9322cd6ef3ea01b1ed0ea17c929bac0d0e9ce2bba1351cf98f31b4d58e123a0e`.
+The [CI run](https://github.com/Microck/semrush-cli/actions/runs/38828856242)
+passed all five source, docs and platform-installation jobs at commit
+`86d902cefe2715d51dcee5d26c972bf6b75f25bc`. Fresh packed and public-registry
+MCP processes advertised 209 tools and passed authenticated research, list,
+notes, native CSV, engine-specific location and complete tracked keyword reads.
+The installed global command reported 0.14.0 and passed authenticated doctor.
+The [GitHub release](https://github.com/Microck/semrush-cli/releases/tag/v0.14.0)
+includes matching archive and checksum assets.
+
+The tracking and coverage pages passed production mobile checks. The first
+coverage navigation failed with `ERR_NETWORK_CHANGED`; both pages passed the
+recheck. The local docs build was stopped after more than 18 minutes; exact-commit
+CI and the Vercel production build passed. Registry propagation initially returned
+404/ETARGET, then both registry metadata representations and a refreshed npm
+installation returned 0.14.0. These transient failures remain in private evidence.
+
 ## Version 0.14.0 tracking targets verification
 
 Native replacements changed the owned Google target to mobile/Spanish, then to
