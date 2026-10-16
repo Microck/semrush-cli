@@ -457,6 +457,180 @@
         "showDiff": true,
         "withDomains": true
       }
+    },
+    {
+      "name": "backlink_audit_target_pages",
+      "input": {
+        "audit_id": 456
+      },
+      "method": "backlinks.GetTargetPagesCompound",
+      "params": {
+        "userDomainId": 456,
+        "sort": "-active",
+        "query": "",
+        "queryMode": null,
+        "collapse": "d",
+        "targetUrlError": null,
+        "userTags": [],
+        "isNew": false,
+        "page": 0,
+        "pageSize": 50
+      }
+    },
+    {
+      "name": "backlink_audit_target_pages_count",
+      "input": {
+        "audit_id": 456
+      },
+      "method": "backlinks.CountTargetPagesCompound",
+      "params": {
+        "userDomainId": 456,
+        "query": "",
+        "queryMode": null,
+        "collapse": "d",
+        "targetUrlError": null,
+        "userTags": [],
+        "isNew": false
+      }
+    },
+    {
+      "name": "backlink_audit_tags",
+      "input": {
+        "audit_id": 456
+      },
+      "method": "usertags.Get",
+      "params": {
+        "userDomainId": 456
+      }
+    },
+    {
+      "name": "backlink_audit_tag_counts",
+      "input": {
+        "audit_id": 456
+      },
+      "method": "usertags.TargetPagesCounters",
+      "params": {
+        "userDomainId": 456
+      }
+    },
+    {
+      "name": "backlink_audit_export",
+      "input": {
+        "audit_id": 456,
+        "query": "https://example.net/link",
+        "query_mode": "url",
+        "by_domain": false
+      },
+      "method": "backlinks.StartBacklinksCSVExport",
+      "params": {
+        "userDomainId": 456,
+        "search": {
+          "aScoreMin": null,
+          "aScoreMax": null,
+          "anchorTypes": [],
+          "categoryId": null,
+          "isNew": null,
+          "isTargetError": null,
+          "linkType": null,
+          "query": "https://example.net/link",
+          "queryMode": "url",
+          "rel": null,
+          "toxicMarkerIds": [],
+          "toxicType": null,
+          "mode": "for-review",
+          "collapse": null,
+          "src": null,
+          "targetUrlHash": null,
+          "targetUrlPath": null
+        }
+      }
+    },
+    {
+      "name": "backlink_audit_comments",
+      "input": {
+        "audit_id": 456,
+        "ids": [
+          321
+        ]
+      },
+      "method": "comments.GetByIds",
+      "params": {
+        "userDomainId": 456,
+        "ids": [
+          321
+        ]
+      }
+    },
+    {
+      "name": "backlink_audit_comment_save",
+      "input": {
+        "audit_id": 456,
+        "domain": "example.net",
+        "comment": "review café",
+        "dry_run": true
+      },
+      "method": "comments.Save",
+      "params": {
+        "userDomainId": 456,
+        "domain": "example.net",
+        "comment": "review café"
+      }
+    },
+    {
+      "name": "backlink_audit_comment_delete",
+      "input": {
+        "audit_id": 456,
+        "comment_id": 321,
+        "dry_run": true
+      },
+      "method": "comments.Delete",
+      "params": {
+        "userDomainId": 456,
+        "id": 321
+      }
+    },
+    {
+      "name": "backlink_audit_target_tag_add",
+      "input": {
+        "audit_id": 456,
+        "label": "review",
+        "target_url": "https://example.com/",
+        "dry_run": true
+      },
+      "method": "usertags.AddTargetUrlTag",
+      "params": {
+        "userDomainId": 456,
+        "label": "review",
+        "targetUrl": "https://example.com/"
+      }
+    },
+    {
+      "name": "backlink_audit_target_tag_remove",
+      "input": {
+        "audit_id": 456,
+        "label": "review",
+        "target_url": "https://example.com/",
+        "dry_run": true
+      },
+      "method": "usertags.RemoveTargetUrlTag",
+      "params": {
+        "userDomainId": 456,
+        "label": "review",
+        "targetUrl": "https://example.com/"
+      }
+    },
+    {
+      "name": "backlink_audit_tag_delete",
+      "input": {
+        "audit_id": 456,
+        "label": "review",
+        "dry_run": true
+      },
+      "method": "usertags.Delete",
+      "params": {
+        "userDomainId": 456,
+        "label": "review"
+      }
     }
   ]
 }

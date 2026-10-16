@@ -5,6 +5,54 @@ tests in CI, including real Chromium, Galleton and stateful HTTP fixtures.
 Live responses and credentials remain outside the repository. Evidence below
 distinguishes local fixtures, native CI and real account execution.
 
+## Unreleased Guru Backlink Audit extensions
+
+The source catalog contains 261 operations, 177 reads and 84 confirmed writes.
+This batch adds six reads and six writes: target-page tables/counts, labels and
+counts, numeric comment reads, native CSV, comment lifecycle, target-label
+association/removal, campaign-label deletion and rerun control.
+
+A disposable campaign completed with 579 checked links and 26 target-page
+groups. All six reads passed live source MCP calls. Comments passed
+create/read/update/delete with a stable numeric ID and Unicode text. Labels
+passed two associations, selected removal with the sibling retained, filtering
+and campaign-wide deletion. These test comments and labels were removed.
+
+The account confirms Guru SEO entitlement alongside an active trial. The UI
+CSV button's subscription dialog did not predict backend access: native
+`backlinks.StartBacklinksCSVExport` returned a filename and the header-authenticated
+download returned HTTP 200. The source MCP resource matched the provider's
+647-byte, filtered CSV exactly. Fixtures additionally verify pending HTTP 202
+polling, a UTF-8 BOM, an attachment-free text response and HTTP 403 refusal.
+No job creation is retried, and MCP marks this read as non-idempotent.
+
+Scope replacement remains unexposed. Native `domains.ApplySettingsScope`
+created a fresh audit and reset manual scheduling to two weeks with email
+notifications enabled. The owned fixture's manual settings were restored.
+`domains.AddByProjectId` accepts manual settings atomically but also starts a
+fresh audit for an existing scope; the original audit ID subsequently returned
+404. A settings-preserving scope-change workflow has not been verified.
+The native rerun returned `true` for the ready owned audit and preserved manual
+scheduling and disabled notifications. A following source MCP call encountered
+`isLocked:true` while status remained 1 and settings were unlocked; Semrush
+rejected the write with HTTP 409. The rerun preflight now checks the separate
+audit lock, and its fixture verifies refusal without sending the write.
+Release checks are pending.
+
+TypeScript, Oxlint, generated-reference checks and all 29 workflow-parameter
+tests passed locally. A broader local integration run passed 57 of 59 tests;
+the two export failures coincided with full host swap. An isolated debug run
+passed the HTTP denial case. The cancellation trace showed browser setup using
+about 28.5 seconds of the test's 30-second deadline, followed by successful
+cancellation and an account read after the deadline. Assertions and deadlines
+were not weakened. A healthy CI full-suite run remains required.
+
+Three independent simplification reviewers found one redundant fixture scope
+field, which was removed, and no reuse issues. The efficiency reviewer noted
+that the shared export pipeline buffers GET responses as browser Blobs. A native
+download alternative was not applied because preserving response validation,
+header authentication and job polling requires a separately verified redesign.
+
 ## Version 0.16.0 Backlink Audit
 
 Version 0.16.0 adds 39 Backlink Audit operations: 29 reads and ten
@@ -17,8 +65,8 @@ and was stopped; CI is the required complete release check.
 
 The same signed-in account confirms Guru SEO entitlement and an active trial.
 Backlink Audit's CSV button opens a subscription dialog saying that free and
-trial users can export only a disavow file. CSV remains unsupported. Guru
-status does not establish that this particular export is available.
+trial users can export only a disavow file. At that release, CSV had not been verified and remained unsupported. The
+unreleased pass above establishes native CSV access for the same Guru account.
 
 An owned `httpbingo.org` campaign finished with 581 checked links. All 29 reads
 passed authenticated CLI/MCP calls. Nondefault authority, category, anchor,

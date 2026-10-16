@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { Config, Effect, Layer, Option, Semaphore, Schema, Predicate } from 'effect';
-import { chromium, type BrowserContext, type Download, type Page, type Response } from 'patchright';
+import { Config, Effect, Layer, Option, Semaphore, Schema, Predicate, Schedule } from 'effect';
+import { chromium, type BrowserContext, type Download, type Page } from 'patchright';
 import JSONbig from 'json-bigint';
 import { Semrush } from './browser-service.js';
 import { Sessions } from './session-service.js';
@@ -11,6 +11,9 @@ import type { ReportRequest } from './validation.js';
 import { Exports } from './exports.js';
 
 interface ExportState { download?: Download; cancel: () => void; }
+type ExportDownload = { readonly request: WebRequest; readonly headers: Record<string, string> } & (
+  { readonly kind: 'file' } | { readonly kind: 'job'; readonly filename: string }
+);
 
 const transportPaths = new Map([['domain', '/dpa/rpc'], ['direct', '/dpa/rpc'], ['magic', '/kmtgw/v2/webapi'], ['keyword', '/kwogw/v2/webapi'], ['kwm', '/kwm/rpc'], ['ksb', '/ksb/rpc'], ['bla', '/backlink_audit/rpc/']]);
 const exportMimeTypes = { csv: 'text/csv', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', txt: 'text/plain' };
@@ -124,6 +127,15 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     Object.assign(settings, params.params);
     return { ...params, params: settings };
   });
+  /** Reruns require native readiness and the current incremental-import allowance. */
+  const checkBacklinkAuditControl = Effect.fn('Semrush.checkBacklinkAuditControl')(function* (query: Query) {
+    const current = yield* Schema.decodeUnknownEffect(Schema.Struct({
+      domain: Schema.Struct({ statusId: Schema.Number, isLocked: Schema.Boolean, isLockedSettings: Schema.Boolean }), incImportAvailable: Schema.Boolean,
+    }))(yield* rpc('domains.GetStatus', { userDomainId: query.audit_id ?? null, background: false }, 'bla'))
+      .pipe(Effect.mapError(() => new ReportError({ message: 'Backlink Audit state is unavailable. No campaign change was sent.' })));
+    if (current.domain.statusId !== 1 || current.domain.isLocked || current.domain.isLockedSettings) return yield* Effect.fail(new ReportError({ message: 'Backlink Audit is not ready for campaign changes. Read backlink-audit-status; require statusId:1, isLocked:false and isLockedSettings:false.' }));
+    if (!current.incImportAvailable) return yield* Effect.fail(new ReportError({ message: 'Semrush currently disallows another audit rerun. Read backlink-audit-status and wait for incImportAvailable:true.' }));
+  });
   /** Use the native campaign file endpoints without exposing account query parameters or keys. */
   const backlinkAuditFile = Effect.fn('Semrush.backlinkAuditFile')(function* (query: Query, planned: WebRequest) {
     const current = yield* Schema.decodeUnknownEffect(Schema.Struct({ domain: Schema.Struct({ statusId: Schema.Number, isLockedSettings: Schema.Boolean }) }))(
@@ -160,13 +172,26 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       if (objectValue(current) && !current.authEnabled && query.auth_enabled === true && !query.auth_password) return yield* Effect.fail(new ReportError({ message: 'Enabling HTTP authentication requires both auth_username and auth_password. Supply the password through --auth-password-file.' }));
     }
   });
-  const downloadExport = Effect.fn('Semrush.downloadExport')(function* (request: ReturnType<typeof webRequest>, format: Schema.Json | undefined) {
+  /** Native CSV jobs return a filename; endpoint account metadata stays inside the adapter. */
+  const backlinkAuditCSV = Effect.fn('Semrush.backlinkAuditCSV')(function* (query: Query, params: Query): Effect.fn.Return<ExportDownload, ReportError> {
+    const endpoints = yield* Schema.decodeUnknownEffect(Schema.Struct({ backlinksDownload: Schema.String }))(
+      yield* rpc('domains.GetEndpoints', { userDomainId: query.audit_id ?? null }, 'bla'),
+    ).pipe(Effect.mapError(() => new ReportError({ message: 'Backlink Audit CSV endpoint metadata is unavailable. No export job was started.' })));
+    const address = yield* Effect.try({ try: () => new URL('/backlink_audit' + endpoints.backlinksDownload, browserOrigin), catch: () => new ReportError({ message: 'Backlink Audit returned an invalid CSV endpoint.' }) });
+    if (address.origin !== browserOrigin || address.pathname !== '/backlink_audit/files/backlinks/download/' + query.audit_id) return yield* Effect.fail(new ReportError({ message: 'Backlink Audit returned an unexpected CSV endpoint. No export job was started.' }));
+    const job = yield* Schema.decodeUnknownEffect(Schema.Struct({ filename: Schema.String }))(
+      yield* rpc('backlinks.StartBacklinksCSVExport', params, 'bla'),
+    ).pipe(Effect.mapError(() => new ReportError({ message: 'Backlink Audit did not return an export filename. Inspect the audit before starting another job.' })));
+    address.searchParams.set('filename', job.filename);
+    return { kind: 'job', request: { method: 'GET', path: address.href, body: {} }, headers: { Authorization: auth.apiKey }, filename: job.filename };
+  });
+  const downloadExport = Effect.fn('Semrush.downloadExport')(function* (downloadRequest: ExportDownload, format: Schema.Json | undefined) {
+    const { request, headers } = downloadRequest;
     const extension = format === 'xlsx' ? 'xlsx' : format === 'txt' ? 'txt' : 'csv';
     const address = new URL(request.path, browserOrigin);
     if (request.method === 'GET') {
       for (const [key, value] of Object.entries(request.body ?? {})) address.searchParams.set(key, String(value));
     }
-    // Own a separate page so a GET error or redirect cannot navigate the report page.
     const state = yield* Effect.acquireRelease(Effect.sync(() => {
       const state: ExportState = { cancel: () => {} };
       return state;
@@ -178,80 +203,51 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
         yield* browserCall(() => download.delete()).pipe(Effect.ignore);
       }
     }));
+    // The page owns the native Blob and aborts its fetch when the caller cancels.
     const exportPage = yield* Effect.acquireRelease(browserCall(() => context.newPage()), page => browserCall(() => page.close()).pipe(Effect.ignore));
-    let file = { url: address.href, filename: '' };
-    if (request.method !== 'GET') {
-      // JSON POSTs need the web origin. Closing this page aborts fetch and revokes its Blob URL.
-      yield* browserCall(() => exportPage.goto(browserOrigin + '/robots.txt', { waitUntil: 'domcontentloaded', timeout: 45000 }));
-      const attachment = yield* browserCall(() => exportPage.evaluate(async ({ address, body, extension, encoding }) => {
-        const options: RequestInit = { method: 'POST', credentials: 'include', signal: AbortSignal.timeout(45000) };
+    yield* browserCall(() => exportPage.goto(browserOrigin + '/robots.txt', { waitUntil: 'domcontentloaded', timeout: 45000 }));
+    const fetchFile = browserCall(() => exportPage.evaluate(async ({ address, method, body, extension, encoding, headers, filename }) => {
+      const options: RequestInit = { method, credentials: 'include', headers, signal: AbortSignal.timeout(45000) };
+      if (method !== 'GET') {
         if (encoding === 'multipart') {
           const form = new FormData();
           for (const [key, value] of Object.entries(body ?? {})) form.append(key, String(value));
           options.body = form;
         } else {
-          options.headers = { 'Content-Type': encoding === 'form' ? 'application/x-www-form-urlencoded' : 'application/json' };
+          options.headers = { 'Content-Type': encoding === 'form' ? 'application/x-www-form-urlencoded' : 'application/json', ...headers };
           options.body = encoding === 'form' ? new URLSearchParams(Object.entries(body ?? {}).map(([key, value]) => [key, String(value)])) : JSON.stringify(body);
         }
-        const response = await fetch(address, options);
-        const contentType = response.headers.get('content-type') ?? '';
-        if (!response.ok || /text\/html|application\/(?:[^;]+\+)?json/i.test(contentType)) return { status: response.status, url: '', filename: '' };
-        const disposition = response.headers.get('content-disposition') ?? '';
-        const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
-        const filename = encoded ? decodeURIComponent(encoded) : (disposition.match(/filename="([^"]+)"|filename=([^;]+)/i)?.slice(1).find(Boolean)?.trim() ?? 'semrush-export.' + extension);
-        return { status: response.status, url: URL.createObjectURL(await response.blob()), filename };
-      }, { address: address.href, body: request.body, extension, encoding: 'encoding' in request ? request.encoding : 'json' }));
-      if (!attachment.url) return yield* Effect.fail(new ReportError({ message: `Semrush did not return an export file (HTTP ${attachment.status}). Check your session, export permissions and selected resource.` }));
-      file = attachment;
-    }
+      }
+      const response = await fetch(address, options);
+      if (response.status === 202) { await response.body?.cancel(); return { status: 202, url: '', filename: '' }; }
+      const contentType = response.headers.get('content-type') ?? '';
+      if (!response.ok || /text\/html|application\/(?:[^;]+\+)?json/i.test(contentType)) return { status: response.status, url: '', filename: '' };
+      const disposition = response.headers.get('content-disposition') ?? '';
+      const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+      const nativeFilename = filename ?? (encoded ? decodeURIComponent(encoded) : (disposition.match(/filename="([^"]+)"|filename=([^;]+)/i)?.slice(1).find(Boolean)?.trim() ?? 'semrush-export.' + extension));
+      return { status: response.status, url: URL.createObjectURL(await response.blob()), filename: nativeFilename };
+    }, { address: address.href, method: request.method, body: request.body, extension, encoding: request.encoding ?? 'json', headers, filename: downloadRequest.kind === 'job' ? downloadRequest.filename : undefined }));
+    const file = yield* downloadRequest.kind === 'job' ? fetchFile.pipe(
+      Effect.repeat({ schedule: Schedule.spaced('2 seconds'), until: response => response.status !== 202 }),
+      Effect.timeoutOrElse({ duration: '5 minutes', orElse: () => Effect.fail(new ReportError({ message: 'Semrush CSV export did not finish within five minutes. Inspect the audit before starting another export.' })) }),
+    ) : fetchFile;
+    if (!file.url) return yield* Effect.fail(new ReportError({ message: 'Semrush did not return an export file (HTTP ' + file.status + '). Check your session, export permissions and selected resource.' }));
     const download = yield* Effect.tryPromise({ try: signal => new Promise<Download>((resolve, reject) => {
       let triggerSettled = false;
-      let responseSeen = request.method !== 'GET';
-      let responseFailure: ReportError | undefined;
-      const cleanup = () => { clearTimeout(timer); exportPage.off('download', onDownload); exportPage.off('response', onResponse); signal.removeEventListener('abort', cancel); };
+      const cleanup = () => { clearTimeout(timer); exportPage.off('download', onDownload); signal.removeEventListener('abort', cancel); };
       const fail = (error: Error) => { cleanup(); reject(error); };
       const cancel = () => fail(new Error('Export cancelled'));
-      const complete = () => {
-        if (!triggerSettled) return;
-        if (responseFailure) { fail(responseFailure); return; }
-        if (state.download && responseSeen) { cleanup(); resolve(state.download); }
-      };
+      const complete = () => { if (triggerSettled && state.download) { cleanup(); resolve(state.download); } };
       const onDownload = (download: Download) => { state.download = download; complete(); };
-      const onResponse = (response: Response) => {
-        let root = response.request();
-        let previous = root.redirectedFrom();
-        while (previous) { root = previous; previous = root.redirectedFrom(); }
-        if (root.url() !== address.href || response.status() >= 300 && response.status() < 400) return;
-        const contentType = response.headers()['content-type'] ?? '';
-        if (response.status() < 200 || response.status() >= 300 || /text\/html|application\/(?:[^;]+\+)?json/i.test(contentType)) {
-          responseFailure = new ReportError({ message: `Semrush did not return an export file (HTTP ${response.status()}). Check your session, export permissions and selected resource.` }); complete(); return;
-        }
-        responseSeen = true; complete();
-      };
       const timer = setTimeout(() => fail(new Error('Export timed out')), 45000);
       state.cancel = cancel;
       signal.addEventListener('abort', cancel, { once: true });
       exportPage.on('download', onDownload);
-      if (request.method === 'GET') exportPage.on('response', onResponse);
-      if (request.method === 'GET') {
-        // Native navigation settles before cleanup; the driver signals attachment navigation this way.
-        exportPage.goto(file.url, { waitUntil: 'domcontentloaded', timeout: 45000 }).then(response => {
-          triggerSettled = true;
-          responseFailure ??= new ReportError({ message: `Semrush did not return an export file (HTTP ${response?.status() ?? 'unknown'}). Check your session and export permissions.` });
-          complete();
-        }, error => {
-          triggerSettled = true;
-          if (error instanceof Error && error.message.includes('Download is starting')) complete();
-          else fail(error);
-        });
-      } else {
-        exportPage.evaluate(({ url, filename }) => {
-          const link = document.createElement('a'); link.href = url; link.download = filename;
-          document.body.appendChild(link); link.click(); link.remove();
-        }, file).then(() => { triggerSettled = true; complete(); }, fail);
-      }
-    }), catch: error => error instanceof ReportError ? error : new ReportError({ message: 'Semrush did not produce an export download. Check your session and export permissions.' }) });
-
+      exportPage.evaluate(({ url, filename }) => {
+        const link = document.createElement('a'); link.href = url; link.download = filename;
+        document.body.appendChild(link); link.click(); link.remove();
+      }, file).then(() => { triggerSettled = true; complete(); }, fail);
+    }), catch: () => new ReportError({ message: 'Semrush did not produce an export download. Check your session and export permissions.' }) });
     const filename = download.suggestedFilename().replaceAll(auth.apiKey, '[redacted]');
     return yield* exports.create(filename, exportMimeTypes[extension], destination => download.saveAs(destination));
   });
@@ -355,23 +351,30 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     const family = definition.transport;
     const planned = ['project_web', 'audit_web', 'tracking_web', 'saved_web', 'notes_web', 'bla_file'].includes(family) ? webRequest(definition, query) : undefined;
     const params = planned ? {} : reportParameters(definition, query);
+    if (name === 'backlink_audit_export') {
+      const prepared = yield* backlinkAuditCSV(query, params);
+      const artifact = yield* Effect.scoped(downloadExport(prepared, query.format));
+      yield* captureCookies(context, sessions.capture, browserOrigin);
+      return { authenticated: true as const, report: name, data: null, artifact };
+    }
     let reportData: Schema.Json | undefined;
     let requestSecret = "";
     if (planned) {
       const prepared = yield* prepareWebRequest({ name, definition, query }, planned);
       if (objectValue(prepared.body) && 'display_hash' in prepared.body && Predicate.isString(prepared.body.display_hash)) requestSecret = prepared.body.display_hash;
       if ('response_type' in definition && definition.response_type === 'download') {
-        const artifact = yield* Effect.scoped(downloadExport(prepared, query.format));
+        const artifact = yield* Effect.scoped(downloadExport({ kind: 'file', request: prepared, headers: prepared.headers }, query.format));
         yield* captureCookies(context, sessions.capture, browserOrigin);
         return { authenticated: true as const, report: name, data: null, artifact };
       }
       const responseType = 'response_type' in definition && definition.response_type === 'empty' ? 'empty' : 'json';
       reportData = yield* request(prepared.path, prepared.body, prepared.method, prepared.headers, responseType, prepared.file);
     } else if (['keyword', 'domain', 'direct', 'magic', 'kwm', 'ksb', 'bla'].includes(family)) {
+      if (name === 'backlink_audit_rerun') yield* checkBacklinkAuditControl(query);
       reportData = yield* rpc(definition.method, name === 'backlink_audit_create' ? yield* createBacklinkAudit(params) : params, family, definition.web_report);
       if ('response_type' in definition && ['download_url', 'export_id'].includes(definition.response_type)) {
         const href = yield* nativeExportURL(definition.response_type, reportData, browserOrigin, auth);
-        const artifact = yield* Effect.scoped(downloadExport({ method: 'GET', path: href, body: {} }, query.format));
+        const artifact = yield* Effect.scoped(downloadExport({ kind: 'file', request: { method: 'GET', path: href, body: {} }, headers: {} }, query.format));
         yield* captureCookies(context, sessions.capture, browserOrigin);
         return { authenticated: true as const, report: name, data: null, artifact };
       }
@@ -393,6 +396,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       } else if (path.startsWith('/siteaudit/')) params.key = auth.apiKey;
       reportData = yield* request(path, params, ['post', 'gap', 'projects'].includes(family) ? 'POST' : 'GET', extra);
     }
+    if ('response_type' in definition && definition.response_type === 'boolean' && reportData !== true) return yield* Effect.fail(new ReportError({ message: 'Semrush did not apply the label change. Read labels and target pages before retrying.' }));
     if (definition.total_method) {
       const totalParams = name === 'domain_position_changes' ? Object.fromEntries(Object.entries(params).filter(([key]) => key !== 'display')) : params;
       const total = yield* rpc(definition.total_method, totalParams, 'domain', definition.web_report);

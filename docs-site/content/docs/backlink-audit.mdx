@@ -108,6 +108,49 @@ Semrush; it does not upload to Google.
 Table reads also accept `all`, `new`, `broken` and `lost` modes. New, broken and
 lost accept `--range-days`. Use the command reference for filter codes.
 
+## Inspect target pages
+
+```sh
+semrush backlink-audit-target-pages --audit-id 789
+semrush backlink-audit-target-pages-count --audit-id 789
+semrush backlink-audit-target-pages --audit-id 789 \
+  --query /docs --query-mode targetUrl --sort-field lost --descending false
+```
+
+Rows contain URL variants and parallel metric arrays. Use a value from `urls`
+when labeling a target page. Pagination starts at zero. The default metrics
+count referring domains; `--by-domain false` counts individual backlinks.
+Google Analytics fields remain empty without a connected account.
+
+## Label target pages
+
+```sh
+semrush backlink-audit-target-tag-add --audit-id 789 \
+  --target-url https://example.com/ --label review --confirm
+semrush backlink-audit-target-pages --audit-id 789 --labels '["review"]'
+semrush backlink-audit-tags --audit-id 789
+semrush backlink-audit-tag-counts --audit-id 789
+```
+
+Replace the example URL with a native target URL. Remove one association with
+`backlink-audit-target-tag-remove`, using the same URL and label. Other
+associations remain. `backlink-audit-tag-delete --label review --confirm`
+deletes that label across the campaign. Both commands also need `--audit-id`.
+
+## Add domain comments
+
+```sh
+semrush backlink-audit-comment-save --audit-id 789 \
+  --domain example.net --comment 'check this domain' --confirm
+semrush backlink-audit-comments --audit-id 789 --ids '[321]'
+semrush backlink-audit-comment-delete --audit-id 789 --comment-id 321 --confirm
+```
+
+Use the backlink row's `source` value for the referring domain. Save returns a
+numeric comment ID; replace `321` with that ID. Saving again for the same domain
+replaces its text. The editor limit is 500 characters. Deletion clears the
+comment's association with the domain.
+
 ## Change selected settings
 
 ```sh
@@ -122,6 +165,25 @@ settings and integrations remain intact. An empty array explicitly clears the
 selected field. Semrush omits `params.brands` when it is empty.
 `backlink-audit-categories` and `backlink-audit-countries` return
 the provider's category IDs and country codes.
+
+## Rerun an audit
+
+```sh
+semrush backlink-audit-rerun --audit-id 789 --confirm
+semrush backlink-audit-status --audit-id 789
+```
+
+Rerun requires `statusId:1`, `isLocked:false`, `isLockedSettings:false` and
+`incImportAvailable:true`. Status 1 alone does not mean incremental import is
+unlocked.
+It starts native analysis while preserving recurring settings. Poll the status
+to observe processing and completion.
+
+Scope discovery and selection when creating an audit work. Changing an existing
+audit's scope is not exposed: the native operation creates a new audit ID and
+resets scheduling to every two weeks with notifications enabled. Creating another
+audit does not preserve the existing audit's history. The CLI does not perform
+that reset followed by a separate settings write.
 
 ## Import an existing disavow file
 
@@ -182,9 +244,21 @@ The CLI refuses an existing output file. MCP returns a file artifact that you
 can read through the [export resource](/docs/mcp). This command does not upload
 the file to Google or send outreach.
 
-## CSV export access
+## Export backlinks as CSV
 
-The same Guru account used for verification also reports an active trial.
-Its Backlink Audit CSV button opens a subscription dialog stating that free
-and trial users can export only a disavow file. CSV export remains unsupported;
-the native TXT import and export above have live execution evidence.
+```sh
+semrush backlink-audit-export --audit-id 789 --output backlinks.csv
+semrush backlink-audit-export --audit-id 789 --by-domain false \
+  --query example.net --query-mode url --output selected-backlinks.csv
+```
+
+CSV export uses the audit table's filters and exports all matching rows,
+rather than the current page. It creates one native export job, polls pending
+downloads every two seconds and waits up to five minutes. It saves the native
+bytes and refuses an existing destination. MCP returns an export resource URI.
+Allow a request timeout of at least five minutes in clients that enforce one.
+
+The verification account confirms Guru and also reports an active trial.
+Its CSV button opens a trial upgrade dialog. The native CSV API permits export
+with that same session, and the CLI uses the verified API workflow. No
+subscription change is required for the tested account.

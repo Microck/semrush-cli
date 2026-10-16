@@ -50,8 +50,11 @@ function backlinkAuditParameters(definition: Report, query: Query): Query {
   if (method === 'domains.ApplySettings') return { userDomainId: query.audit_id ?? null, params: backlinkAuditSettings(query) };
   const parameters: Query = { userDomainId: query.audit_id ?? null };
   if (['backlinks.MoveDomains', 'backlinks.MoveUrls', 'backlinks.MoveLinkNetworks', 'disavow.Move', 'disavow.Delete', 'disavow.Clear'].includes(method)) return backlinkAuditListParameters(method, query);
+  if (['comments.GetByIds', 'comments.Save', 'comments.Delete', 'usertags.Get', 'usertags.TargetPagesCounters', 'usertags.AddTargetUrlTag', 'usertags.RemoveTargetUrlTag', 'usertags.Delete'].includes(method)) return backlinkAuditAnnotationParameters(method, query);
+  if (['backlinks.GetTargetPagesCompound', 'backlinks.CountTargetPagesCompound'].includes(method)) return backlinkAuditTargetParameters(method, query);
   if (method === 'domains.GetStatus') return { ...parameters, background: query.background ?? false };
-  if (method === 'backlinks.Get' || method === 'backlinks.Count') return backlinkAuditTableParameters(query);
+  if (['backlinks.Get', 'backlinks.Count'].includes(method)) return backlinkAuditTableParameters(query);
+  if (method === 'backlinks.StartBacklinksCSVExport') { const table = backlinkAuditTableParameters(query); return { userDomainId: table.userDomainId, search: table.search }; }
   if (method === 'disavow.Get' || method === 'disavow.Count') {
     parameters.search = { query: query.query ?? null, status: query.status ?? null, source: query.source ?? null, type: query.type ?? null };
     if (method === 'disavow.Get') Object.assign(parameters, { sort: { field: 'statusId', type: query.descending === false ? 'ASC' : 'DESC' }, pageSize: query.page_size ?? 50, page: query.page ?? 0 });
@@ -78,6 +81,27 @@ function backlinkAuditListParameters(method: string, query: Query): Query {
   return parameters;
 }
 
+/** Domain comments and target-page labels use their own native keys. */
+function backlinkAuditAnnotationParameters(method: string, query: Query): Query {
+  const parameters: Query = { userDomainId: query.audit_id ?? null };
+  if (method === 'comments.GetByIds') return { ...parameters, ids: query.ids ?? [] };
+  if (method === 'comments.Save') return { ...parameters, domain: query.domain ?? null, comment: query.comment ?? null };
+  if (method === 'comments.Delete') return { ...parameters, id: query.comment_id ?? null };
+  if (query.label !== undefined) parameters.label = query.label;
+  if (query.target_url !== undefined) parameters.targetUrl = query.target_url;
+  return parameters;
+}
+
+/** Target Pages has flat filters rather than the audit table's search object. */
+function backlinkAuditTargetParameters(method: string, query: Query): Query {
+  const parameters: Query = { userDomainId: query.audit_id ?? null, query: query.query ?? '', queryMode: query.query_mode ?? null,
+    collapse: query.by_domain === false ? null : 'd', targetUrlError: query.target_error ?? null, userTags: query.labels ?? [], isNew: query.is_new ?? false };
+  if (method === 'backlinks.GetTargetPagesCompound') Object.assign(parameters, {
+    sort: (query.descending === false ? '+' : '-') + String(query.sort_field ?? 'active'), page: query.page ?? 0, pageSize: query.page_size ?? 50,
+  });
+  return parameters;
+}
+
 /** Native settings are partial; category IDs use the web client's string encoding. */
 function backlinkAuditSettings(query: Query): Query {
   const settings: Query = {};
@@ -90,7 +114,7 @@ function backlinkAuditSettings(query: Query): Query {
 }
 
 /** Table filters use schema defaults; the native field names differ from CLI flags. */
-function backlinkAuditTableParameters(query: Query): Query {
+function backlinkAuditTableParameters(query: Query): Query & { userDomainId: Schema.Json; search: Query } {
   const fields = [['authority_min', 'aScoreMin'], ['authority_max', 'aScoreMax'], ['anchor_types', 'anchorTypes'],
     ['category_id', 'categoryId'], ['is_new', 'isNew'], ['target_error', 'isTargetError'], ['link_type', 'linkType'],
     ['query', 'query'], ['query_mode', 'queryMode'], ['rel', 'rel'], ['toxic_markers', 'toxicMarkerIds'],

@@ -25,7 +25,7 @@
 
 if you already pay for semrush, you should be able to use it from the terminal too. this cli uses your existing web session, so there is no developer api key to buy or configure. look up a keyword, save the result, compare a few domains, or let an agent do it through mcp.
 
-your plan's permissions and limits still apply. this doesn't cover the whole semrush suite. full ads research, ai prompt workflows, local, social and connected content tools remain outside verified coverage because the current account plan blocks them. the [coverage page](https://semrush.micr.dev/docs/coverage) lists what works and what still needs the web ui.
+your plan's permissions and limits still apply. this doesn't cover the whole semrush suite. full ads research, ai prompt workflows, local, social and connected content tools remain outside verified coverage. the [coverage page](https://semrush.micr.dev/docs/coverage) lists what works, what is blocked and what still needs the web ui.
 
 ## quickstart
 
@@ -79,7 +79,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 
 ## command surface
 
-249 operations, available as cli commands and mcp tools. 171 reads and 78 writes that need explicit confirmation.
+261 operations, available as cli commands and mcp tools. 177 reads and 84 writes that need explicit confirmation.
 
 | command | what it does |
 | --- | --- |
@@ -93,6 +93,11 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 | `backlink-audit-campaigns`, `backlink-audit-info`, `backlink-audit-status`, `backlink-audit-configure` | find campaigns, read progress and change selected settings |
 | `backlink-audit-links-summary`, `backlink-audit-links-history`, `backlink-audit-authority-distribution` | inspect profile totals, history and distributions |
 | `backlink-audit-links`, `backlink-audit-links-count` | filter audit rows or count matching backlinks |
+| `backlink-audit-target-pages`, `backlink-audit-target-pages-count` | inspect linked target pages and their counts |
+| `backlink-audit-tags`, `backlink-audit-tag-counts` | read target-page labels and their counts |
+| `backlink-audit-target-tag-add`, `backlink-audit-target-tag-remove`, `backlink-audit-tag-delete` | label a target page, remove one association or delete a label |
+| `backlink-audit-comments`, `backlink-audit-comment-save`, `backlink-audit-comment-delete` | read, write or delete referring-domain comments |
+| `backlink-audit-export` | download filtered audit rows as native csv |
 | `backlink-audit-move-domains`, `backlink-audit-move-links`, `backlink-audit-move-networks` | move selections between review, whitelist, remove and disavow lists |
 | `backlink-audit-disavow`, `backlink-audit-disavow-count`, `backlink-audit-disavow-counters` | inspect disavow entries and workflow totals |
 | `backlink-audit-disavow-import`, `backlink-audit-disavow-export` | import or export native disavow txt files |
@@ -228,7 +233,43 @@ export requires a ready, unlocked audit and refuses an existing output file. it 
 
 `backlink-audit-disavow-move` and `backlink-audit-disavow-delete` take a numeric `--item-id` from the disavow list. move also needs `--list for-review`, `whitelist` or `to-remove`. `backlink-audit-disavow-clear` requires an explicit source selection with `--with-manual true`, `--with-file true` or `--with-gdt true`. these writes need `--confirm`; use `--dry-run` to preview them.
 
-these commands change lists in semrush. they do not contact website owners or upload to google. csv export remains outside verified coverage; the web ui shows an upgrade gate on the current guru account with an active trial. see [backlink audit](https://semrush.micr.dev/docs/backlink-audit) for filters, scope choices and disavow behavior.
+these commands change lists in semrush. they do not contact website owners or upload to google.
+
+inspect target pages and label a url returned in a row's `urls` array:
+
+```bash
+semrush backlink-audit-target-pages --audit-id 789
+semrush backlink-audit-target-tag-add --audit-id 789 \
+  --target-url https://example.com/ --label review --confirm
+semrush backlink-audit-target-pages --audit-id 789 --labels '["review"]'
+semrush backlink-audit-tags --audit-id 789
+semrush backlink-audit-tag-counts --audit-id 789
+```
+
+replace the example url with one from your results. `backlink-audit-target-tag-remove` removes one url's label; `backlink-audit-tag-delete` deletes the label across the campaign. both need `--audit-id`, `--label` and `--confirm`; removal also needs `--target-url`.
+
+save a comment using a backlink row's `source` domain, then read or delete it with the returned numeric comment id:
+
+```bash
+semrush backlink-audit-comment-save --audit-id 789 \
+  --domain example.net --comment 'check this domain' --confirm
+semrush backlink-audit-comments --audit-id 789 --ids '[321]'
+semrush backlink-audit-comment-delete --audit-id 789 --comment-id 321 --confirm
+```
+
+replace `321` with your comment id. saving again for the same domain replaces the text.
+
+export the audit table as csv, with the same filters used for link reads:
+
+```bash
+semrush backlink-audit-export --audit-id 789 --output backlinks.csv
+semrush backlink-audit-export --audit-id 789 \
+  --query example.net --query-mode url --output selected-backlinks.csv
+```
+
+csv export downloads all matching rows, waits up to five minutes for semrush to prepare the file and refuses an existing destination. it works with the verified guru session even though that account's web ui shows a trial upgrade dialog. it does not need `--confirm`. mcp returns an artifact resource.
+
+scope changes on an existing audit remain outside cli coverage because semrush resets scheduling and creates a new audit id. see [backlink audit](https://semrush.micr.dev/docs/backlink-audit) for filters, scope choices and disavow behavior.
 
 ### projects
 

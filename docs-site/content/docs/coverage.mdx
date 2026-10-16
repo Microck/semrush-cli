@@ -3,7 +3,7 @@ title: Web UI coverage
 description: Supported web workflows, evidence and remaining gaps.
 ---
 
-The CLI has 249 fixed operations: 171 reads and 78 confirmed writes.
+The CLI has 261 fixed operations: 177 reads and 84 confirmed writes.
 It uses your web session and the current web UI's request contracts. Account
 permissions and quotas apply to both interfaces. This is not full Semrush suite
 parity. The table distinguishes implemented workflows from remaining gaps.
@@ -16,8 +16,8 @@ parity. The table distinguishes implemented workflows from remaining gaps.
 | Historical and mobile research | Database and snapshot selection, subject to account access | UI comparisons not represented by available report filters |
 | Paid research | Paid keyword and competitor overview samples | Full advertising research workflows |
 | Keyword Gap | Paginated results, overlap and opportunity totals for 2-5 domains; save selected phrases through list import | UI visualization |
-| Backlink Analytics | Links, domains, anchors, pages, outbound links, history, country/category and authority metrics | UI exports returned access denials with the verification session |
-| Backlink Audit | Scope discovery, campaign creation, partial settings, overview/history/distributions, filtered tables and counts, domain/link/network list moves, disavow list management, explicit source clearing and native TXT import/export | CSV/PDF exports, reruns, target-page tables, comments, backlink imports and connected services |
+| Backlink Analytics | Links, domains, anchors, pages, outbound links, history, country/category and authority metrics | UI exports not yet verified with Guru |
+| Backlink Audit | Scope discovery, campaign creation, partial settings, overview/history/distributions, filtered tables and counts, domain/link/network list moves, disavow list management, explicit source clearing, native TXT import/export, native filtered CSV, target-page tables, comments, labels and rerun control | Scope replacement, PDF reports, backlink imports and connected services |
 | Backlink Gap | Paginated prospects, filters, sorting and profile comparisons | Link Building outreach |
 | AI visibility | Domain visibility, mentions, countries, citation sources and account access | Prompt tracking and full AI Toolkit configuration |
 | Projects | Create, inspect, rename, add first domain, delete, leave, tags and pinning | Sharing invitations and account administration |
@@ -36,10 +36,10 @@ for Magic, Gap, Saved Keywords and the builder.
 
 ## Verification
 
-The source suite has 166 tests, including real Chromium, a private Galleton
+The source suite has 175 tests, including real Chromium, a private Galleton
 daemon and stateful HTTP fixtures. All 48 original research mappings also have
 differential tests against the Python reference. Across versioned live passes,
-all 171 reads have execution evidence. The write checks combine native UI/API execution and real CLI/MCP calls; the versioned record identifies each pass. Shared-project leave
+all 177 reads have execution evidence. The write checks combine native UI/API execution and real CLI/MCP calls; the versioned record identifies each pass. Shared-project leave
 has request-contract coverage but no shared-account fixture.
 
 Live checks covered project lifecycle, bounded Site Audit crawls and stop
@@ -76,7 +76,7 @@ file-source bulk clearing passed the native API. Partial settings edits preserve
 omitted values, nonempty category/country selection passed, and explicit clearing
 and restoration passed. See the [Backlink Audit guide](/docs/backlink-audit).
 
-Each completed pass deleted its owned fixtures and checked their absence.
+Completed release passes deleted their owned fixtures and checked their absence.
 Existing account resources were preserved. Credentials and detailed responses
 stay outside the repository. [Versioned verification evidence](https://github.com/Microck/semrush-cli/blob/main/docs/verification.md)
 records the tested releases and their public artifacts.
@@ -104,10 +104,16 @@ The Backlink Analytics export menu displays "Export is limited" and offers
 but no Backlink Analytics export was executed with this account. These exports
 remain unsupported.
 
-The Backlink Audit CSV button opens "Subscribe to use all Backlink Audit
-features" and says free and trial users can export only a disavow file. That
-specific UI restriction coexists with the account's Guru entitlement. Native
-TXT exports work; CSV exports remain unsupported.
+The Backlink Audit CSV button opens a trial-related subscription dialog, but
+its native job API and download endpoint both accepted this Guru session. The
+CLI supports native CSV and disavow TXT exports. The live MCP resource matched
+the provider's CSV bytes exactly. UI trial flags alone do not establish access.
+
+Backlink Audit scope replacement remains unexposed. The native operation reset
+manual settings to a two-week schedule with notifications enabled. Atomic audit
+creation accepts explicit manual settings but starts a fresh audit instead of
+preserving the existing history. Neither observed flow meets a scope edit's
+settings-preservation requirements.
 
 Position Tracking retained old brands after an empty brand-list write, so the
 CLI rejects that tracking request. Backlink Audit supports clearing its brands. Notes also have a native URL-validation quirk documented

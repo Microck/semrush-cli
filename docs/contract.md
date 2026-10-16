@@ -544,3 +544,75 @@ Semrush list. This destructive confirmed operation makes no change to Google.
 Creation acknowledges explicit false recurring-notification and Majestic flags.
 A fresh `domains.GetByProjectId` read omits those false flags while retaining
 `recrawl:"never"`. Preserve the native response rather than inserting boolean fields into report JSON.
+
+### Target pages, comments, labels and audit controls
+
+The native Target Pages saga uses `backlinks.GetTargetPagesCompound` with
+`{userDomainId, sort, query, queryMode, collapse, targetUrlError, page, pageSize,
+userTags, isNew}`. Its matching count omits sort and pagination. The initial
+sort is `-active`, query is empty, query mode and target-error filter are null,
+collapse is `d`, page is zero, page size is 50, labels are empty and isNew is
+false. Individual-backlink counts use null collapse. Native sort fields are
+`active`, `new`, `broken`, `lost`, `ga_users`, `ga_users_perc`, `ga_new_users` and
+`ga_new_users_perc`. GA values require a connected account. Both target-page methods returned empty preliminary results during processing.
+After completion, the native table and count returned 26 target-page groups;
+rows contain URL variants and parallel metric arrays.
+
+Comments use `comments.GetByIds` with numeric `ids`, `comments.Save` with
+`{domain, comment}`, and `comments.Delete` with numeric `id`. Each native helper
+adds `userDomainId`. Save returns a numeric ID and creates or replaces a referring-domain comment.
+A native create/read/update/delete pass retained the ID on update and removed
+the backlink association on deletion. The
+native editor limits text to 500 characters and deletes an existing comment
+when its text is cleared. The CLI exposes deletion explicitly rather than
+sending an empty save.
+
+Target-page labels use `usertags.Get` and `usertags.TargetPagesCounters` with
+only `userDomainId`. Add/remove send `{label, targetUrl}` to
+`usertags.AddTargetUrlTag` and `usertags.RemoveTargetUrlTag`. `usertags.Delete`
+sends `{label}` and removes that label across the campaign. The target-page
+filter's `userTags` contains label strings. The add and remove responses are
+native booleans; a false result must not be reported as a successful change.
+
+Rerun uses `domains.PushIncImport` with only `userDomainId`. It requires a ready,
+unlocked campaign (`isLocked:false`, `isLockedSettings:false`) and
+`incImportAvailable:true`. A completed status alone does not imply an unlocked
+campaign: native incremental import kept `statusId:1` while `isLocked:true`.
+
+Scope replacement is not exposed. A native `domains.ApplySettingsScope` call
+created a new audit ID and reset manual scheduling to `recrawl:"2weeks"` with
+`recrawlNotify:true`. `domains.AddByProjectId` accepts manual settings atomically,
+but starts a fresh audit even for an existing scope. Neither observed contract
+provides a scope edit that preserves the current audit and notification settings.
+Do not emulate it with an unsafe reset followed by a separate settings write.
+
+Primary sources are the native target-page saga and table columns in
+`bla_app.5d2833627b8d6106dd60.js`, comment handlers/editor in
+`app-components-backlink.c5fe44a97b87c771db90.js`, and captured native API
+responses. UI CSV access additionally checks the user's trial flag; the
+campaign API's separate `isPaid` and `isExportLimited` flags can disagree with
+that UI check. CSV support must follow an executed API result, not an assumed
+plan inferred from either flag alone.
+
+A bounded native CSV probe matched one backlink. With the current Guru session,
+`backlinks.StartBacklinksCSVExport` accepted `{userDomainId, search}` and returned
+`{filename}`. The download URL comes from `backlinksDownload` in
+`domains.GetEndpoints`; the client merges the filename into its query and sends
+runtime `Authorization`. The response was HTTP 200, `text/plain; charset=utf-8`,
+647 bytes, and contained the selected backlink. The API permits export even
+though the UI's separate trial selector opens an upgrade dialog.
+
+The native CSV client polls HTTP 202 at two-second intervals with a five-minute
+deadline. Starting a job is never retried by the download loop. The CLI exposes
+one export operation, saves the native bytes, and MCP returns its existing file
+artifact. Binary downloads use one scoped browser-fetch path for GET and POST,
+including runtime headers and provider filenames. The browser owns the fetched
+blob until scoped cleanup; MCP continues to transfer file chunks separately.
+
+A native label pass added the same label to two target pages. Its counter was
+two, the label-filtered table returned two groups, and removing one association
+left one. Deleting the label removed it. All three writes returned boolean true.
+
+CSV job generation is read-only with respect to campaign settings, but a tool
+call creates a new job. MCP therefore advertises this export as non-idempotent.
+Only pending downloads repeat automatically; job creation does not.

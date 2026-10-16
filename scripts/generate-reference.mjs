@@ -13,7 +13,7 @@ for (const [name, definition] of Object.entries(catalog)) {
   const command = name.replaceAll('_', '-');
   lines.push(`## ${command}`, '', definition.description, '', '```sh', `semrush ${command} --help`, '```', '');
   if (definition.mutation) lines.push('Requires `--confirm`. Use `--dry-run` to inspect the request without sending it.', '');
-  if (definition.response_type === 'download') lines.push('CLI requires `--output <path>` and refuses existing files. MCP returns an export artifact URI readable through `resources/read`.', '');
+  if (['download', 'download_url', 'export_id', 'download_job'].includes(definition.response_type)) lines.push('CLI requires `--output <path>` and refuses existing files. MCP returns an export artifact URI readable through `resources/read`.', '');
   const properties = Object.entries(definition.schema.properties);
   if (!properties.length) continue;
   lines.push('| Flag | Type | Default | Required |', '| --- | --- | --- | --- |');

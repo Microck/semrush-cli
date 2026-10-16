@@ -67,7 +67,7 @@ async function parseCliInput(properties: Record<string, Property>, options: Reco
 
 for (const [name, definition] of Object.entries(reports)) {
   const report = cli.command(name.replaceAll('_', '-')).description(definition.description);
-  if ('response_type' in definition && ['download', 'download_url', 'export_id'].includes(definition.response_type)) report.requiredOption('--output <path>', 'Save the export file; refuses an existing destination');
+  if ('response_type' in definition && ['download', 'download_url', 'export_id', 'download_job'].includes(definition.response_type)) report.requiredOption('--output <path>', 'Save the export file; refuses an existing destination');
   const schema: { properties: Record<string, Property>; required?: string[] } = definition.schema;
   for (const [key, property] of Object.entries(schema.properties)) {
     const flag = key.replaceAll('_', '-');

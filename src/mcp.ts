@@ -19,7 +19,7 @@ export async function serveMcp(): Promise<void> {
   const runtime = ManagedRuntime.make(appLayer);
   let runtimeReady = false;
   const server = new Server({ name: 'semrush-cli', version }, { capabilities: { tools: {}, resources: {} } });
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: Object.entries(reports).map(([name, report]) => ({ name, description: report.description, inputSchema: report.schema, annotations: { readOnlyHint: !report.mutation, destructiveHint: report.destructive, idempotentHint: !report.mutation, openWorldHint: true } })) }));
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: Object.entries(reports).map(([name, report]) => ({ name, description: report.description, inputSchema: report.schema, annotations: { readOnlyHint: !report.mutation, destructiveHint: report.destructive, idempotentHint: !report.mutation && !('response_type' in report && report.response_type === 'download_job'), openWorldHint: true } })) }));
   server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
     const program = Effect.gen(function* () {
       const parsed = yield* parseReport(request.params.name, yield* Schema.decodeUnknownEffect(Schema.JsonObject)(request.params.arguments ?? {}).pipe(Effect.mapError(() => new UsageError({ message: 'Tool arguments must be a JSON object.' }))));

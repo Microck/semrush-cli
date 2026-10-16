@@ -861,7 +861,7 @@ test('Backlink Audit uses native RPC auth, recommended creation defaults and par
     const semrush = yield* Semrush;
     const run = (name: string, query: Query) => parseReport(name, query).pipe(Effect.flatMap(request => semrush.report(request)));
     const scope = yield* run('backlink_audit_scopes', { project_id: 789 });
-    expect(scope.data).toMatchObject([{ scope: 'root', allowed: true }]);
+    expect(scope.data).toMatchObject([{ scope: 'root', available: true, allowed: true }, { scope: 'both', available: true, allowed: true }, { scope: 'www', available: false, allowed: true }]);
     const created = yield* run('backlink_audit_create', { project_id: 789, confirm: true });
     expect(created.data).toMatchObject({ userDomainId: 456, params: { brands: ['example'], geo: ['us'], recrawl: 'never', recrawlNotify: false } });
     const writesBefore = backlinkAuditFixture.calls.filter(call => call.method === 'domains.AddByProjectId').length;
@@ -950,5 +950,98 @@ test('Backlink Audit moves native domain, URL and network selections between lis
       } else yield* run('backlink_audit_' + operation, { audit_id: 456, ids: [...ids], list: 'for-review', confirm: true });
       expect((yield* run('backlink_audit_links', { audit_id: 456 })).data).toMatchObject([{ list: 'for-review' }]);
     }
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+
+test('Backlink Audit target pages share filters between counts and pagination', async () => {
+  backlinkAuditFixture.reset();
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const semrush = yield* Semrush;
+    const run = (name: string, query: Query) => parseReport(name, query).pipe(Effect.flatMap(request => semrush.report(request)));
+    expect((yield* run('backlink_audit_target_pages_count', { audit_id: 456 })).data).toBe(2);
+    expect((yield* run('backlink_audit_target_pages', { audit_id: 456, page: 1, page_size: 1, by_domain: false })).data).toMatchObject([{ urls: ['https://example.com/docs'], active: [3] }]);
+    expect((yield* run('backlink_audit_target_pages_count', { audit_id: 456, query: '/docs', query_mode: 'targetUrl' })).data).toBe(1);
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+test('Backlink Audit comment lifecycle retains its native domain association', async () => {
+  backlinkAuditFixture.reset();
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const semrush = yield* Semrush;
+    const run = (name: string, query: Query) => parseReport(name, query).pipe(Effect.flatMap(request => semrush.report(request)));
+    expect((yield* run('backlink_audit_comment_save', { audit_id: 456, domain: 'example.net', comment: 'Inspect', confirm: true })).data).toBe(321);
+    expect((yield* run('backlink_audit_comments', { audit_id: 456, ids: [321] })).data).toMatchObject([{ id: 321, domain: 'example.net', comment: 'Inspect' }]);
+    expect((yield* run('backlink_audit_links', { audit_id: 456 })).data).toMatchObject([{ userCommentId: 321 }]);
+    expect((yield* run('backlink_audit_comment_save', { audit_id: 456, domain: 'example.net', comment: 'Checked', confirm: true })).data).toBe(321);
+    expect((yield* run('backlink_audit_comments', { audit_id: 456, ids: [321] })).data).toMatchObject([{ comment: 'Checked' }]);
+    yield* run('backlink_audit_comment_delete', { audit_id: 456, comment_id: 321, confirm: true });
+    expect((yield* run('backlink_audit_links', { audit_id: 456 })).data).toMatchObject([{ userCommentId: null }]);
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+test('Backlink Audit label changes preserve sibling associations and reject native false replies', async () => {
+  backlinkAuditFixture.reset();
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const semrush = yield* Semrush;
+    const run = (name: string, query: Query) => parseReport(name, query).pipe(Effect.flatMap(request => semrush.report(request)));
+    for (const target of ['https://example.com/', 'https://example.com/docs']) yield* run('backlink_audit_target_tag_add', { audit_id: 456, label: 'review', target_url: target, confirm: true });
+    yield* run('backlink_audit_target_tag_add', { audit_id: 456, label: 'keep', target_url: 'https://example.com/', confirm: true });
+    expect((yield* run('backlink_audit_tag_counts', { audit_id: 456 })).data).toEqual({ review: 2, keep: 1 });
+    yield* run('backlink_audit_target_tag_remove', { audit_id: 456, label: 'review', target_url: 'https://example.com/', confirm: true });
+    expect((yield* run('backlink_audit_target_pages', { audit_id: 456, labels: ['review'] })).data).toMatchObject([{ urls: ['https://example.com/docs'] }]);
+    yield* run('backlink_audit_tag_delete', { audit_id: 456, label: 'review', confirm: true });
+    expect((yield* run('backlink_audit_tags', { audit_id: 456 })).data).toEqual([{ label: 'keep' }]);
+    expect((yield* run('backlink_audit_tag_counts', { audit_id: 456 })).data).toEqual({ keep: 1 });
+    backlinkAuditFixture.state.rejectTagChanges = true;
+    const refused = yield* run('backlink_audit_target_tag_add', { audit_id: 456, label: 'refused', target_url: 'https://example.com/', confirm: true }).pipe(Effect.flip);
+    expect(refused.message).toContain('did not apply the label change');
+    expect((yield* run('backlink_audit_tag_counts', { audit_id: 456 })).data).toEqual({ keep: 1 });
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+test('Backlink Audit reruns enforce readiness and the incremental-import allowance', async () => {
+  backlinkAuditFixture.reset();
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const semrush = yield* Semrush;
+    const run = (name: string, query: Query) => parseReport(name, query).pipe(Effect.flatMap(request => semrush.report(request)));
+    yield* run('backlink_audit_create', { project_id: 789, confirm: true });
+    backlinkAuditFixture.state.processing = true;
+    expect((yield* run('backlink_audit_rerun', { audit_id: 456, confirm: true }).pipe(Effect.flip)).message).toContain('not ready for campaign changes');
+    backlinkAuditFixture.state.processing = false; backlinkAuditFixture.state.incImportAvailable = false;
+    expect((yield* run('backlink_audit_rerun', { audit_id: 456, confirm: true }).pipe(Effect.flip)).message).toContain('incImportAvailable:true');
+    expect(backlinkAuditFixture.state.reruns).toBe(0);
+    backlinkAuditFixture.state.incImportAvailable = true; backlinkAuditFixture.state.lockedAudit = true;
+    expect((yield* run('backlink_audit_rerun', { audit_id: 456, confirm: true }).pipe(Effect.flip)).message).toContain('isLocked:false');
+    expect(backlinkAuditFixture.state.reruns).toBe(0);
+    backlinkAuditFixture.state.lockedAudit = false;
+    yield* run('backlink_audit_rerun', { audit_id: 456, confirm: true });
+    expect(backlinkAuditFixture.state.reruns).toBe(1);
+    expect((yield* run('backlink_audit_status', { audit_id: 456 })).data).toMatchObject({ domain: { statusId: 2 } });
+
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+
+test('Backlink Audit CSV jobs use header auth, poll pending files and preserve native bytes', async () => {
+  backlinkAuditFixture.reset();
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const semrush = yield* Semrush;
+    const files = yield* Exports;
+    const run = (name: string, query: Query) => parseReport(name, query).pipe(Effect.flatMap(request => semrush.report(request)));
+    backlinkAuditFixture.state.foreignEndpoint = true;
+    expect((yield* run('backlink_audit_export', { audit_id: 456 }).pipe(Effect.flip)).message).toContain('unexpected CSV endpoint');
+    expect(backlinkAuditFixture.state.csvJobs).toBe(0);
+    backlinkAuditFixture.state.foreignEndpoint = false;
+    const result = yield* run('backlink_audit_export', { audit_id: 456 });
+    if (!result.artifact) throw new Error('Missing CSV artifact');
+    expect(result.artifact).toMatchObject({ filename: 'fixture-backlinks.csv', mime_type: 'text/csv' });
+    const content = yield* files.read(result.artifact.uri);
+    expect(Buffer.from(content.blob, 'base64').toString('utf8')).toBe('\ufeffSource URL,Target URL\nhttps://example.net/link,https://example.com/\n');
+    expect(backlinkAuditFixture.state.csvJobs).toBe(1); expect(backlinkAuditFixture.state.csvPolls).toBe(2);
+    backlinkAuditFixture.state.csvDenied = true;
+    expect((yield* run('backlink_audit_export', { audit_id: 456 }).pipe(Effect.flip)).message).toContain('HTTP 403');
+    expect(yield* files.list()).toHaveLength(1);
+    expect(backlinkAuditFixture.state.csvJobs).toBe(2); expect(backlinkAuditFixture.state.csvPolls).toBe(3);
   }).pipe(Effect.provide(fixtureLayer()))));
 }, 30000);

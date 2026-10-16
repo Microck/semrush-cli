@@ -13780,5 +13780,818 @@
         }
       ]
     }
+  },
+  "backlink_audit_target_pages": {
+    "method": "backlinks.GetTargetPagesCompound",
+    "description": "Read the native Target Pages table, including active/new/broken/lost counts and connected GA metrics.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "query": {
+          "type": "string",
+          "default": ""
+        },
+        "query_mode": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "url",
+                "targetUrl",
+                "title",
+                "targetTitle",
+                "anchor",
+                "comment"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "by_domain": {
+          "type": "boolean",
+          "default": true,
+          "description": "Count backlinks grouped by referring domain; false counts individual backlinks."
+        },
+        "target_error": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "labels": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "is_new": {
+          "type": "boolean",
+          "default": false
+        },
+        "sort_field": {
+          "type": "string",
+          "enum": [
+            "active",
+            "new",
+            "broken",
+            "lost",
+            "ga_users",
+            "ga_users_perc",
+            "ga_new_users",
+            "ga_new_users_perc"
+          ],
+          "default": "active"
+        },
+        "descending": {
+          "type": "boolean",
+          "default": true
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "page_size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 50
+        }
+      },
+      "required": [
+        "audit_id"
+      ]
+    }
+  },
+  "backlink_audit_target_pages_count": {
+    "method": "backlinks.CountTargetPagesCompound",
+    "description": "Count Target Pages matching the same native filters.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "query": {
+          "type": "string",
+          "default": ""
+        },
+        "query_mode": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "url",
+                "targetUrl",
+                "title",
+                "targetTitle",
+                "anchor",
+                "comment"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "by_domain": {
+          "type": "boolean",
+          "default": true,
+          "description": "Count backlinks grouped by referring domain; false counts individual backlinks."
+        },
+        "target_error": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "labels": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "is_new": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "audit_id"
+      ]
+    }
+  },
+  "backlink_audit_tags": {
+    "method": "usertags.Get",
+    "description": "Read campaign target-page labels.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        }
+      },
+      "required": [
+        "audit_id"
+      ]
+    }
+  },
+  "backlink_audit_tag_counts": {
+    "method": "usertags.TargetPagesCounters",
+    "description": "Read target-page counts for each campaign label.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        }
+      },
+      "required": [
+        "audit_id"
+      ]
+    }
+  },
+  "backlink_audit_target_tag_add": {
+    "method": "usertags.AddTargetUrlTag",
+    "description": "Add a label to a target URL in this campaign.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_url": {
+          "type": "string",
+          "pattern": "^https?://",
+          "description": "Native target URL from the Target Pages table."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "audit_id",
+        "label",
+        "target_url"
+      ]
+    },
+    "response_type": "boolean"
+  },
+  "backlink_audit_target_tag_remove": {
+    "method": "usertags.RemoveTargetUrlTag",
+    "description": "Remove a label from a selected target URL, preserving other label associations.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_url": {
+          "type": "string",
+          "pattern": "^https?://",
+          "description": "Native target URL from the Target Pages table."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "audit_id",
+        "label",
+        "target_url"
+      ]
+    },
+    "response_type": "boolean"
+  },
+  "backlink_audit_tag_delete": {
+    "method": "usertags.Delete",
+    "description": "Delete a label and all its associations in this campaign.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "audit_id",
+        "label"
+      ]
+    },
+    "response_type": "boolean"
+  },
+  "backlink_audit_comments": {
+    "method": "comments.GetByIds",
+    "description": "Read referring-domain comments by native numeric comment IDs.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "audit_id",
+        "ids"
+      ]
+    }
+  },
+  "backlink_audit_comment_save": {
+    "method": "comments.Save",
+    "description": "Create or replace a referring-domain comment in this campaign.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253,
+          "description": "Native referring-domain source value, not its backlink row ID."
+        },
+        "comment": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "description": "Comment text; use comment-delete to clear a saved comment."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "audit_id",
+        "domain",
+        "comment"
+      ]
+    }
+  },
+  "backlink_audit_comment_delete": {
+    "method": "comments.Delete",
+    "description": "Delete a selected referring-domain comment.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "comment_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "audit_id",
+        "comment_id"
+      ]
+    }
+  },
+  "backlink_audit_rerun": {
+    "method": "domains.PushIncImport",
+    "description": "Rerun a ready audit when the native account allowance permits it; preserves recurring settings.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "audit_id"
+      ]
+    }
+  },
+  "backlink_audit_export": {
+    "method": "backlinks.StartBacklinksCSVExport",
+    "description": "Export the filtered current backlink table as native CSV. Starts one job and waits for its file; uses your existing account access.",
+    "transport": "bla",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Backlink Audit userDomainId returned by backlink-audit-info."
+        },
+        "target_url_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "target_url_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "authority_min": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "authority_max": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "anchor_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "category_id": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "is_new": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "target_error": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "link_type": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "a",
+                "form",
+                "img",
+                "iframe"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "query": {
+          "type": "string",
+          "default": ""
+        },
+        "query_mode": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "rel": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "follow",
+                "noFollow",
+                "ugc",
+                "sponsored"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "toxic_markers": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "toxic_type": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "toxic",
+                "potentially-toxic",
+                "non-toxic",
+                "ignored",
+                "disavow"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "all",
+            "for-review",
+            "whitelist",
+            "to-remove",
+            "disavow",
+            "new",
+            "broken",
+            "lost"
+          ],
+          "default": "for-review"
+        },
+        "by_domain": {
+          "type": "boolean",
+          "default": true
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "range_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3650
+        },
+        "completely": {
+          "type": "boolean",
+          "default": false
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "csv"
+          ],
+          "default": "csv"
+        }
+      },
+      "required": [
+        "audit_id"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "range_days"
+            ]
+          },
+          "then": {
+            "properties": {
+              "mode": {
+                "enum": [
+                  "new",
+                  "broken",
+                  "lost"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "completely"
+            ],
+            "properties": {
+              "completely": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "mode": {
+                "enum": [
+                  "new",
+                  "broken",
+                  "lost"
+                ]
+              },
+              "by_domain": {
+                "const": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "response_type": "download_job"
   }
 }

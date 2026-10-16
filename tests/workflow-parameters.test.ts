@@ -309,3 +309,38 @@ test('Disavow bulk clearing requires an explicit source selection and consent', 
   await expect(preview('backlink_audit_disavow_clear', { audit_id: 456, with_file: true })).rejects.toThrow('--confirm');
   expect((await preview('backlink_audit_disavow_clear', { audit_id: 456, with_file: true, dry_run: true })).body).toEqual({ id: 1, jsonrpc: '2.0', method: 'disavow.Clear', params: { userDomainId: 456, withManual: false, withFile: true, withGDT: false } });
 });
+
+
+test('Backlink Audit target-page filters preserve native flat fields and sorting', async () => {
+  const filters = { audit_id: 456, query: '/docs', query_mode: 'targetUrl', by_domain: false, target_error: true, labels: ['review'], is_new: true };
+  const native = { userDomainId: 456, query: '/docs', queryMode: 'targetUrl', collapse: null, targetUrlError: true, userTags: ['review'], isNew: true };
+  expect((await preview('backlink_audit_target_pages', { ...filters, page: 2, page_size: 10, sort_field: 'lost', descending: false })).body).toMatchObject({ params: { ...native, sort: '+lost', page: 2, pageSize: 10 } });
+  expect((await preview('backlink_audit_target_pages_count', filters)).body).toMatchObject({ params: native });
+});
+
+test('Backlink Audit annotation writes use native fields and require explicit consent', async () => {
+  const cases: [string, Query, string, Query][] = [
+    ['comment_save', { domain: 'example.net', comment: 'Check this domain' }, 'comments.Save', { domain: 'example.net', comment: 'Check this domain' }],
+    ['comment_delete', { comment_id: 321 }, 'comments.Delete', { id: 321 }],
+    ['target_tag_add', { label: 'review', target_url: 'https://example.com/' }, 'usertags.AddTargetUrlTag', { label: 'review', targetUrl: 'https://example.com/' }],
+    ['target_tag_remove', { label: 'review', target_url: 'https://example.com/' }, 'usertags.RemoveTargetUrlTag', { label: 'review', targetUrl: 'https://example.com/' }],
+    ['tag_delete', { label: 'review' }, 'usertags.Delete', { label: 'review' }],
+  ];
+  for (const [operation, input, method, params] of cases) {
+    await expect(preview('backlink_audit_' + operation, { audit_id: 456, ...input })).rejects.toThrow('--confirm');
+    expect((await preview('backlink_audit_' + operation, { audit_id: 456, ...input, dry_run: true })).body).toEqual({ id: 1, jsonrpc: '2.0', method, params: { userDomainId: 456, ...params } });
+  }
+  await expect(preview('backlink_audit_comment_save', { audit_id: 456, domain: 'example.net', comment: 'x'.repeat(501), dry_run: true })).rejects.toThrow('500');
+});
+
+test('Backlink Audit reruns have explicit native plans', async () => {
+  await expect(preview('backlink_audit_rerun', { audit_id: 456 })).rejects.toThrow('--confirm');
+  expect((await preview('backlink_audit_rerun', { audit_id: 456, dry_run: true })).body).toMatchObject({ method: 'domains.PushIncImport', params: { userDomainId: 456 } });
+});
+
+
+test('Backlink Audit CSV uses the current filtered search without table pagination', async () => {
+  const request = await preview('backlink_audit_export', { audit_id: 456, query: 'example.net', query_mode: 'url', by_domain: false });
+  expect(request.body).toMatchObject({ method: 'backlinks.StartBacklinksCSVExport', params: { userDomainId: 456, search: { query: 'example.net', queryMode: 'url', collapse: null } } });
+  expect(request.body).not.toHaveProperty('params.page'); expect(request.body).not.toHaveProperty('params.pageSize');
+});
