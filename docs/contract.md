@@ -855,3 +855,29 @@ CLI requires a fresh `--output` destination. MCP returns `data:null` and one
 artifact with MIME type `image/png` or `image/jpeg`; existing resource chunking
 applies. The renderer page and its browser download close after success, failure
 or cancellation. Runtime-owned export files follow the existing scoped lifetime.
+
+## My Reports discovery
+
+`reporting-overview` reads reporting access, native quota counters, privacy
+acknowledgment state, Essential/Premium capabilities, system templates and the
+first 30 reports ordered by last update descending. Each report includes its
+saved schedule and one ready task's metadata. `reports.totalCount` can exceed
+the returned page; this overview is not a complete paginated report listing.
+Task filenames are metadata, not downloaded artifacts.
+
+CLI and MCP accept no report query, URL or options. The adapter sends the fixed
+`ReportingOverview` GraphQL query to `/my_reports/graphql/` using the encrypted
+session's cookies. It returns the native `data.me` object under the usual
+authenticated envelope. GraphQL errors, including partial-data errors, and
+missing or null account data fail instead of returning an empty success.
+
+This operation does not create or save reports, generate a PDF or AI summary,
+change a schedule, send email, accept a policy or activate a trial. Reporting
+product flags describe this reporting service; generic `isPaid:false` does not
+override the account's verified SEO Guru subscription.
+
+The native My Reports grid and constructor supplied the query fields. The same
+Guru session returned 34 templates, zero reports and an Essential report limit
+of three. Both the constructor and Keyword Overview PDF dialogs require an
+explicit Privacy Policy acknowledgment before submission. It remains unset;
+report creation, saving, generation and downloads remain unsupported.

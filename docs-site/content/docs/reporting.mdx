@@ -1,0 +1,56 @@
+---
+title: My Reports
+description: Inspect reporting access, templates and saved report metadata.
+---
+
+```sh
+semrush reporting-overview --json
+```
+
+The command reads your My Reports account with the same encrypted web session
+as other commands. It takes no options beyond the standard output flags.
+MCP exposes `reporting_overview` with empty arguments.
+
+## Read the result
+
+| Native field | Meaning |
+| --- | --- |
+| `hasProduct`, `productTier`, `isPaid` | Reporting service account metadata |
+| `availableActions` | Actions the reporting service currently offers |
+| `newReportProperties` | Default report state and capabilities |
+| `isCommonPrivacyAccepted` | Current reporting Privacy Policy acknowledgment |
+| `limits` | Essential/Premium report counters, upgrades, AI summary and trial allowances |
+| `systemTemplates` | Native template types, titles, groups and data sources |
+| `reports.totalCount` | Total reports visible to your account |
+| `reports.nodes` | Up to 30 reports, ordered by latest update first |
+
+```sh
+semrush reporting-overview --json > reporting.json
+jq '.data.limits.reports_essential' reporting.json
+jq '.data.systemTemplates[] | {type, title, isPremium}' reporting.json
+```
+
+Report rows preserve their native IDs, names, states, timestamps, available
+actions and schedule settings. `readyTasks` contains at most one ready task per
+report. Its filename is metadata; this command does not download that PDF.
+
+The overview returns the first report page. If `reports.totalCount` exceeds
+`reports.nodes.length`, further reports exist. Complete paginated listing and
+report downloads remain unsupported.
+
+## Account access and PDF limits
+
+Reporting flags describe this service. `isPaid:false` alone does not mean your
+SEO Guru subscription is missing. Inspect the native actions and quota counters
+for reporting access.
+
+The verification account returned 34 system templates, zero saved reports and
+three available Essential report slots. Both its Keyword Overview export dialog
+and My Reports constructor require an explicit Privacy Policy acknowledgment
+before submission. It was left unset. Editing a new draft's title stayed local
+and did not create a saved report.
+
+Report creation, saving, PDF generation and downloads remain unsupported. The
+overview does not accept policies, activate trials, change schedules, generate
+AI summaries or send email. GraphQL failures and partial-data errors remain
+errors rather than successful empty results.

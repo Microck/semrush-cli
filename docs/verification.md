@@ -1,5 +1,27 @@
 # Verification
 
+## Version 0.27.0 My Reports overview
+
+The catalog contains 276 operations, 187 reads and 89 confirmed writes.
+Typecheck, Oxlint, generated-reference checks, five daemon builds and all
+214 tests passed on Raft. Three independent simplification reviewers found
+no reuse, quality or efficiency issues in the reporting changes.
+
+The fixed read-only GraphQL query returned HTTP 200 using the authorized Guru
+session: Tier 2, 34 templates, zero saved reports, three Essential report slots
+and an unaccepted reporting Privacy Policy acknowledgment. Source CLI and MCP
+matched that independent native query exactly. MCP exposes read-only annotations.
+Real HTTP fixtures cover a populated first page, pagination totals, schedule and
+ready-task metadata, cookie rotation, GraphQL partial failures and access denial.
+The live account's saved-report list was empty, so populated rows have fixture
+evidence rather than live-account evidence.
+
+Native constructor inspection used a query-only network gate. Title edits stayed
+local and the account still had zero reports afterward. Saving and PDF generation
+require an explicit policy acknowledgment, which remained unset. Creation,
+saving, PDF generation and downloads remain unsupported. No report, purchase,
+trial, email or policy acceptance was submitted.
+
 ## Version 0.26.0 Web Bot Auth
 
 The catalog remains at 275 operations, 186 reads and 89 confirmed writes.

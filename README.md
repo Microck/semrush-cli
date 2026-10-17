@@ -79,7 +79,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 
 ## command surface
 
-275 operations, available as cli commands and mcp tools. 186 reads and 89 writes that need explicit confirmation.
+276 operations, available as cli commands and mcp tools. 187 reads and 89 writes that need explicit confirmation.
 
 | command | what it does |
 | --- | --- |
@@ -159,6 +159,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 | `notes-export` | download all chart notes as native csv |
 | `note-create`, `note-update`, `note-delete` | create, edit or delete your own user notes |
 | `note-hide`, `note-show`, `note-hidden-categories-set` | change note visibility or replace hidden categories for a chart |
+| `reporting-overview` | read my reports access, quotas, templates and the first 30 saved reports |
 | `reports` | list every operation and its inputs |
 | `mcp` | run the stdio mcp server |
 | `doctor` | check the browser, session engine and semrush connection |
@@ -610,6 +611,18 @@ semrush position-trigger-delete --campaign-id 456_789 --trigger-id '<trigger_id>
 
 copy `--domain` exactly from `position-info`'s `data.campaign_settings.tracking_url`, or use a competitor url from that result. thresholds run from 1 to 100. keep trigger ids as strings. updates replace the rule, so supply its domain, condition and threshold together. writes require `--confirm`, or use `--dry-run` to preview them.
 
+### my reports
+
+read your reporting access, quotas, privacy acknowledgment status and native templates:
+
+```bash
+semrush reporting-overview
+```
+
+the result includes the first 30 saved reports, newest update first, with their schedules and at most one ready task per report. task filenames are metadata; this command does not download pdfs. mcp exposes `reporting_overview` with no arguments.
+
+live source cli and mcp checks matched the native query on a guru account with 34 templates, no saved reports and three essential report slots. the account had not accepted reporting's privacy policy. report creation, saving and pdf generation remain unsupported; the native workflow requires an explicit privacy acknowledgment. pagination beyond the first 30 reports is not available.
+
 ### chart notes
 
 read notes for a chart, then inspect a note by its returned id:
@@ -818,7 +831,7 @@ npm run check
 
 the cli uses the published [`galleton` 0.1.0 sdk](https://www.npmjs.com/package/galleton). the bundled galleton daemon is still required for sessions. building it from source requires go 1.23 or newer, `tar` and `patch`. published cli packages include the daemon for supported platforms, so npm users do not need go.
 
-the current source passed 211 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
+the current source passed 214 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
 
 ## documentation
 

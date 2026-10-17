@@ -15388,5 +15388,20 @@
       ]
     },
     "response_type": "download"
+  },
+  "reporting_overview": {
+    "method": "/my_reports/graphql/",
+    "description": "Read My Reports access, limits, privacy acknowledgment, native templates and the first 30 reports by latest update. Does not create reports, accept policies or generate PDFs.",
+    "transport": "reporting_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {}
+    }
   }
 }

@@ -1,6 +1,6 @@
 # Architecture
 
-The CLI and stdio MCP share a catalog of 275 operations, 186 reads and 89 writes,
+The CLI and stdio MCP share a catalog of 276 operations, 187 reads and 89 writes,
 and one Semrush Effect service. Input validation populates defaults before
 credential-bearing resources are acquired. The browser layer owns a transient
 Chromium context, reads page bootstrap metadata without evaluating page-owned
@@ -45,6 +45,11 @@ This is a current feature extension, not a compatibility shim or an alternate cr
 Only fixed Semrush endpoints and catalog RPC methods are exposed. Mutations require explicit confirmation or a credential-free dry run before the browser is acquired. Users cannot supply a URL, auth field, JavaScript snippet or arbitrary RPC method. The local Galleton API is authenticated and loopback-only. CDP imports accept literal loopback HTTP origins. Durable state lives outside the repository. The CLI never exports browser cookies. MCP exposes only catalog research and account tools, not login or daemon management.
 
 Provider report data can contain nested objects and provider errors. Secret fields and known secret strings are redacted before output. Raw browser and SDK failures stop at their adapters. Account limits and permission errors remain failures, never empty datasets.
+
+My Reports discovery uses one fixed cookie-authenticated GraphQL query. Its
+adapter rejects GraphQL errors even when partial data accompanies them, then
+returns the native account object. The query includes a bounded first report
+page and task metadata; it does not fetch task files or accept caller GraphQL.
 
 Site Audit settings replace the native configuration. Existing HTTP Basic and
 Web Bot Auth credentials therefore require an explicit keep or disable choice.

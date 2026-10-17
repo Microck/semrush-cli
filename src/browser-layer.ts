@@ -120,6 +120,16 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     if (!objectValue(body) || !('result' in body)) return yield* Effect.fail(new ReportError({ message: `Semrush ${method}: missing report result.` }));
     return body.result ?? null;
   });
+  /** GraphQL can return usable-looking partial data together with a failed query. */
+  const reportingAccount = Effect.fn('Semrush.reportingAccount')(function* (body: Schema.Json) {
+    const response = yield* Schema.decodeUnknownEffect(Schema.Struct({
+      data: Schema.optionalKey(Schema.Struct({ me: Schema.NullOr(Schema.Record(Schema.String, Schema.Json)) })),
+      errors: Schema.optionalKey(Schema.Array(Schema.Json)),
+    }))(body).pipe(Effect.mapError(() => new ReportError({ message: 'My Reports did not return account data. Check reporting access in the Semrush web UI.' })));
+    if (response.errors && response.errors.length > 0) return yield* Effect.fail(new ReportError({ message: `My Reports query failed: ${JSON.stringify(redact(response.errors, [auth.apiKey])).slice(0, 500)}` }));
+    if (!response.data?.me) return yield* Effect.fail(new ReportError({ message: 'My Reports did not return account data. Check reporting access in the Semrush web UI.' }));
+    return response.data.me;
+  });
   /** Fill the wizard's recommended values only for a new campaign; edits remain partial. */
   const createBacklinkAudit = Effect.fn('Semrush.createBacklinkAudit')(function* (params: Query) {
     const campaigns = yield* Schema.decodeUnknownEffect(Schema.Array(Schema.Struct({ projectId: Schema.Number, userDomainId: Schema.NullOr(Schema.Number) })))(yield* rpc('domains.GetAll', {}, 'bla'))
@@ -500,7 +510,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     }
     const family = definition.transport;
     const responseType = reportResponseType(definition);
-    const planned = ['project_web', 'audit_web', 'tracking_web', 'saved_web', 'notes_web', 'bla_file'].includes(family) ? webRequest(definition, query) : undefined;
+    const planned = ['project_web', 'audit_web', 'tracking_web', 'saved_web', 'notes_web', 'reporting_web', 'bla_file'].includes(family) ? webRequest(definition, query) : undefined;
     const params = planned ? {} : reportParameters(definition, query);
     if (name === 'backlink_audit_export') {
       const prepared = yield* backlinkAuditCSV(query, params);
@@ -525,6 +535,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       }
       const wireResponseType = responseType === 'empty' ? 'empty' : 'json';
       reportData = yield* request(prepared.path, prepared.body, prepared.method, prepared.headers, wireResponseType, prepared.file);
+      if (family === 'reporting_web') reportData = yield* reportingAccount(reportData);
     } else if (['keyword', 'domain', 'direct', 'magic', 'kwm', 'ksb', 'bla'].includes(family)) {
       if (name === 'backlink_audit_rerun') yield* checkBacklinkAuditControl(query);
       reportData = yield* rpc(definition.method, name === 'backlink_audit_create' ? yield* createBacklinkAudit(params) : params, family, definition.web_report);

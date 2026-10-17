@@ -26,6 +26,7 @@ import { makeAuditArchiveFixture, archivePaths } from './audit-archive-fixture.j
 import { unzipSync } from 'fflate';
 import { makeMindmapFixture } from './mindmap-fixture.js';
 import { makeWebBotAuthFixture, auditAuthPath } from './web-bot-auth-fixture.js';
+import { makeReportingFixture } from './reporting-fixture.js';
 
 const exec = promisify(execFile);
 const binary = resolve(`dist/daemon/galleton-${process.platform}-${process.arch}${process.platform === 'win32' ? '.exe' : ''}`);
@@ -65,7 +66,8 @@ const backlinkAuditFixture = makeBacklinkAuditFixture();
 const auditArchiveFixture = makeAuditArchiveFixture();
 const mindmapFixture = makeMindmapFixture();
 const webBotAuthFixture = makeWebBotAuthFixture();
-const fixtureHandlers = new Map([...archivePaths.map(path => [path, auditArchiveFixture.serve] as const), [folderPath, serveProjectFixture], [savedPath, serveSavedFixture], ['/notes/api/', serveNotesFixture], ['/siteaudit/api/campaigns/789/js-impact/', serveJSImpactFixture], ['/siteaudit/export/js-impact/', serveJSImpactFixture], ['/analytics/keywordmanager/list', mindmapFixture.serve], ['/mindmap-download', mindmapFixture.serve], [auditAuthPath, webBotAuthFixture.serve]]);
+const reportingFixture = makeReportingFixture();
+const fixtureHandlers = new Map([...archivePaths.map(path => [path, auditArchiveFixture.serve] as const), [folderPath, serveProjectFixture], [savedPath, serveSavedFixture], ['/notes/api/', serveNotesFixture], ['/siteaudit/api/campaigns/789/js-impact/', serveJSImpactFixture], ['/siteaudit/export/js-impact/', serveJSImpactFixture], ['/analytics/keywordmanager/list', mindmapFixture.serve], ['/mindmap-download', mindmapFixture.serve], [auditAuthPath, webBotAuthFixture.serve], ['/my_reports/graphql/', reportingFixture.serve]]);
 /** Serve the native authentication checks separately from report fixtures. */
 function serveAuthenticationFixture(request: IncomingMessage, response: ServerResponse, url: URL): boolean {
   if (url.pathname === '/robots.txt') { response.end('User-agent: *\nDisallow: /'); return true; }
@@ -424,6 +426,41 @@ test('real multipart uploads and protected audit edits preserve credentials and 
     auditUsername = ''; auditPassword = ''; auditRejectPassword = false; auditOtherConnection = null;
   }
 }, 30000);
+
+test('My Reports overview preserves native limits, first-page metadata and cookie rotation without downloading tasks', async () => {
+  reportingFixture.use('complete');
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const semrush = yield* Semrush;
+      const response = yield* semrush.report(yield* parseReport('reporting_overview', {}));
+      expect(response.data).toMatchObject({ productTier: 'Tier2', isPaid: false, isCommonPrivacyAccepted: false,
+        limits: { reports_essential: { limit: 3 } }, reports: { totalCount: 38, nodes: expect.any(Array) } });
+      expect(response.artifact).toBeUndefined();
+      expect(response.data).toHaveProperty('reports.nodes.length', 30);
+      expect(response.data).toHaveProperty('reports.nodes.0.readyTasks.0.filename', 'report-1.pdf');
+      expect(response.data).toHaveProperty('reports.nodes.0.schedule.isScheduled', true);
+      reportingFixture.use('empty');
+      expect((yield* semrush.report(yield* parseReport('reporting_overview', {}))).data).toMatchObject({ reports: { totalCount: 0, nodes: [] } });
+    }).pipe(Effect.provide(fixtureLayer()))));
+    expect((await sdk.headers('test', fixtureURL)).Cookie).toContain('reporting_rotation=retained');
+  } finally { reportingFixture.use('complete'); }
+});
+
+test('My Reports fails on partial GraphQL errors, missing account data and denied access while preserving later reads', async () => {
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const semrush = yield* Semrush;
+      for (const [scenario, expected] of [['partial', 'My Reports query failed'], ['errors', 'My Reports query failed'],
+        ['missing', 'did not return account data'], ['malformed-errors', 'did not return account data'], ['denied', 'HTTP 403']] as const) {
+        reportingFixture.use(scenario);
+        const error = yield* semrush.report(yield* parseReport('reporting_overview', {})).pipe(Effect.flip);
+        expect(error.message).toContain(expected); expect(error.message).not.toContain('fixture-secret');
+      }
+      reportingFixture.use('complete');
+      expect((yield* semrush.report(yield* parseReport('reporting_overview', {}))).data).toHaveProperty('reports.totalCount', 38);
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { reportingFixture.use('complete'); }
+});
 
 test('Web Bot Auth creation, retention, replacement and disabling preserve protected audit state', async () => {
   webBotAuthFixture.reset();

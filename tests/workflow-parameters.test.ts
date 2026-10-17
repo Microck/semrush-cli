@@ -12,6 +12,18 @@ const preview = async (name: string, input: Query) => {
   return webRequest(parsed.definition, parsed.query);
 };
 
+test('My Reports discovery is one fixed read-only query and rejects caller GraphQL and control flags', async () => {
+  const parsed = await Effect.runPromise(parseReport('reporting_overview', {}));
+  expect(parsed.definition).toMatchObject({ mutation: false, destructive: false });
+  const request = webRequest(parsed.definition, parsed.query);
+  expect(request).toMatchObject({ method: 'POST', path: '/my_reports/graphql/', body: { operationName: 'ReportingOverview' } });
+  expect(request.body).toHaveProperty('query', expect.stringContaining('isCommonPrivacyAccepted'));
+  const invalidInputs: Query[] = [{ query: 'mutation { createReport }' }, { url: 'https://example.com/' }, { limit: 100 }, { confirm: true }, { dry_run: true }];
+  for (const input of invalidInputs) {
+    await expect(preview('reporting_overview', input)).rejects.toThrow('Invalid reporting_overview');
+  }
+});
+
 test('protected audit credentials match the native settings payload and disappear from previews', async () => {
   const input = { campaign_id: 123, domain: 'example.com', page_limit: 1, auth_enabled: true, auth_username: 'private-user', auth_password: ' private-password ', dry_run: true };
   const parsed = await Effect.runPromise(parseReport('audit_create', input));
