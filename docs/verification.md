@@ -42,6 +42,24 @@ Issues, Compare Crawls and All reports. It offers no Crawled Links selection.
 The JavaScript bundle retains a links-download URL constant, but its earlier
 CSV and XLSX probes returned 404; the CLI does not expose it as a working feature.
 
+[CI run 38999163460](https://github.com/Microck/semrush-cli/actions/runs/38999163460)
+passed all five jobs, including package installation and setup on Linux, macOS
+and Windows. The final fixture mirrors the native recommendation groups and
+oldest-first per-URL history; all 55 browser integration tests also passed on Raft.
+The public GitHub archive matches CI byte for byte; its SHA-256 is
+`02d900e1373d376a5e6cfb2dd7d90dbc1c4f84d8965c59d2e0cec253511e4342`.
+
+A fresh installation of those public release bytes passed the same nine native
+CLI/MCP comparisons and both owned-audit settings replacements. Authenticated
+doctor passed. The installed local command reports 0.29.0. Production coverage,
+Core Web Vitals, command-reference and Site Audit pages passed mobile checks
+without page errors or horizontal overflow.
+
+Cleanup verified the owned folder and audit both return 404 and the original
+project remains available. The remote session was forgotten, its daemon stopped,
+and its vault and native account captures removed. No original audit settings,
+schedules, subscriptions or policy acknowledgments were changed.
+
 ## Version 0.28.0 My Reports pagination and filters
 
 The existing reporting overview now accepts native offset pagination and combined
