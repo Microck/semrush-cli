@@ -1,8 +1,8 @@
 # Verification
 
-## Version 0.35.0 candidate
+## Version 0.35.0 Organic Research comparisons
 
-The candidate adds explicit daily/monthly Organic Research comparison ranges,
+The release adds explicit daily/monthly Organic Research comparison ranges,
 organic/SERP-feature selection, change types, preset totals and daily/monthly
 change trends. The catalog has 336 operations, 235 reads and 101 confirmed
 writes. Seventeen independent native selections returned positive daily,
@@ -15,8 +15,25 @@ builds passed. All three code reviews found no changes to make. Source CLI and
 MCP matched 20 complete independent native selections, including filtered
 row/count pairs, daily/monthly/mobile ranges, position types, presets and trends.
 The verification helper records the binary hash and rejects cross-build resumes.
-The production documentation build also passed on Raft. Public artifact
-verification is continuing.
+The production documentation build also passed on Raft.
+
+[Source CI](https://github.com/Microck/semrush-cli/actions/runs/39024359750)
+passed all five jobs, including package installation and setup on Linux, macOS
+and Windows. Its 38-entry archive includes all five daemon targets. A clean
+installation of that exact archive on Raft matched all 20 native selections
+through CLI and MCP. No account writes were made in this comparison pass.
+The release archive SHA-256 is
+`9989922268b2397265723d93df4a9592ebc9f559c8f5238795a21a2d32a73a56`.
+The npm, GitHub and CI archives match byte for byte. npm latest is 0.35.0.
+A clean registry installation passed authenticated doctor, and the main host
+installed the prebuilt archive with scripts disabled and reports 0.35.0. The
+original project remained available.
+
+The production coverage, keyword guide, command reference, Organic Research,
+MCP and On Page pages passed Chromium checks at 390px without page errors or
+horizontal overflow. Search finds the new preset command, and `/llms.txt`
+advertises 336 operations. Full Semrush suite parity remains incomplete;
+the coverage page records native restrictions and fixture-only cases.
 
 ## Version 0.34.0 Keyword Magic personalization and grouping
 
