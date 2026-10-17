@@ -1,6 +1,6 @@
 # Verification
 
-## Version 0.31.0 On Page SEO Checker candidate
+## Version 0.31.0 On Page SEO Checker
 
 The catalog contains 314 operations, 215 reads and 99 confirmed writes.
 Twenty-two operations cover native campaign setup, settings, location, explicit
@@ -27,8 +27,8 @@ the product does not reorder them. Other selected reports matched complete
 native responses, including zeros, booleans, empty arrays and snapshot details.
 
 Both source CLI and MCP passed all nine new write operations, with 12
-journaled writes per interface and independent native readbacks. Setup and assignment changes did not start
-analysis. Partial settings preserved omitted values; location used the native
+journaled writes per interface and independent native readbacks. Setup and
+assignment changes did not start analysis. Partial settings preserved omitted values; location used the native
 mobile device spelling. Keyword reassignment removed the old empty landing.
 JSON DELETE removed only selected owned pages. Page and campaign analyses
 finished on the bounded example.com fixture.
@@ -36,8 +36,19 @@ finished on the bounded example.com fixture.
 Lost creation/settings/page responses, invalid empty acknowledgments, stale
 snapshots, missing metadata, permission and business errors have real HTTP
 fixture coverage. These failure cases were not induced on the live account.
-Public artifact verification and temporary-project cleanup remain pending for
-this candidate. PDF and Google connections remain outside verified coverage.
+[CI run 39012076947](https://github.com/Microck/semrush-cli/actions/runs/39012076947)
+passed all five jobs, including Linux, macOS and Windows package setup.
+The CI, GitHub and public npm archives have identical SHA-256
+`5c77e709ef4415dc43bfcbc5a1649048dff2bd67badef95ce74f57173b60d790`.
+
+The exact release bytes passed the same 20 CLI/MCP native read selections and
+all nine writes through MCP. Public CLI partial settings edits and restoration
+also passed readback. Authenticated doctor passed. The installed main command
+reports 0.31.0. Production coverage, the On Page guide, reference and Site Audit
+passed mobile browser checks without page errors or horizontal overflow.
+
+All four owned temporary On Page projects were deleted. The original project
+remained available. PDF and Google connections remain outside verified coverage.
 
 ## Version 0.30.0 Keyword Overview and Bulk Analysis
 
