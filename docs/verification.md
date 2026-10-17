@@ -39,6 +39,13 @@ passed. No runtime retries or export initializer replays were added.
 verified commit `c8cf97c89534b115acb33fefacf2b41b7d8e21d5`. The archive SHA-256
 is `9e015369d97e28364076fcef1da91d10c139ad752e37b9d72eb9933181bc3736`.
 
+A separate current-client Organic Research check confirmed the existing
+`mobile-` database selector. Its CSV/XLSX export menu displayed "Export is
+limited" and "Upgrade to Guru" with the same Guru session. One bounded
+three-row `export.Get` CSV request returned native -32099 Auth error, with no
+job identifier or file. The initializer was not repeated, and no export
+command was added.
+
 ## Version 0.33.0 domain personalization and keyword AI
 
 The catalog contains 330 operations, 229 reads and 101 confirmed

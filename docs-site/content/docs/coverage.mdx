@@ -12,7 +12,7 @@ parity. The table distinguishes implemented workflows from remaining gaps.
 | --- | --- | --- |
 | Keyword Overview and Bulk Analysis | Metrics, country rows, intent, trends, device and monthly snapshots, currency, bulk and personalized metrics, explicit root-domain preparation and job status, AI model volumes and topic samples, SERPs and URL/domain enrichment, ads and Product Listing Ads, related ideas and clusters; location lookup, cached local metrics/SERPs/URL counts, confirmed metric refresh and status; native bulk, national and local SERP CSV/semicolon CSV/XLSX downloads | Native PDF, separate chart-image downloads and full AI-topic exports |
 | Keyword Magic | Pagination, sorting, filters, questions, prepared-domain metrics, topic/word groups, count/volume group ordering, keyword/group totals, topic suggestions and native access limits; save selected phrases through list import | Native selected export returned a job ID but its first wait failed with code -32603; file downloads remain unsupported |
-| Organic Research | Rankings, pages, subdomains, competitors, position changes, topics, trends | Chart rendering and UI-specific exports |
+| Organic Research | Rankings, pages, subdomains, competitors, position changes, topics, trends | Chart rendering; native CSV/XLSX exports display an export limit and the bounded CSV API probe returned an auth error |
 | Historical and mobile research | Database and snapshot selection, subject to account access | UI comparisons not represented by available report filters |
 | Paid research | Paid keyword and competitor overview samples | Full advertising research workflows |
 | Keyword Gap | Paginated results, overlap and opportunity totals for 2-5 domains; save selected phrases through list import | UI visualization |
@@ -187,6 +187,12 @@ Content commands remain unsupported.
 The verification account has no prompt-tracking allowance. The Advertising
 Toolkit displays a paywall, and full paid-position research returned an access
 denial. Those products are not verified as working.
+
+Organic Research's CSV/XLSX export menu displayed "Export is limited" and
+"Upgrade to Guru" with that same Guru session. A bounded three-row native CSV
+export request returned `-32099 Auth error`. No job identifier or file was
+returned, and the initializer was not repeated. Those downloads remain
+unsupported; the prompt does not change the verified account identity.
 
 The Position Tracking export menu says it requires a paid subscription. Its matching
 request returned HTTP 403 with error code 1001, "action is not allowed". Tracking
