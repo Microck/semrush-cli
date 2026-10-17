@@ -715,7 +715,7 @@ semrush audit-configure --campaign-id 456 --domain example.com --page-limit 100 
 
 when editing an audit that already uses web bot auth, pass `--web-bot-auth-enabled true` without a file to retain the stored credentials, or `false` to disable it. retention fails before saving if the current header metadata is missing. enabling or replacing credentials requires all three header values together and `true`.
 
-live source cli and mcp checks on raft verified enabling, retaining, replacing and disabling web bot auth. a five-page test crawl reached a protected endpoint that verified the signature; missing or invalid signatures returned http 401.
+live checks on raft verified both the source and a fresh npm install of v0.26.0. cli and mcp checks covered enabling, retaining, replacing and disabling web bot auth. a five-page test crawl reached a protected endpoint that verified the signature; missing or invalid signatures returned http 401.
 
 `audit-configure` replaces settings; include everything else you want to retain. google analytics connections still block settings replacement. editing settings does not start a crawl. see the [site audit guide](https://semrush.micr.dev/docs/site-audit) for the full settings.
 

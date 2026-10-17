@@ -26,6 +26,23 @@ title was `web bot auth signature verified`.
 Source MCP replacement and re-enabling, CLI disabling, false/true settings
 readbacks and authenticated doctor also passed.
 
+[CI run 38989040473](https://github.com/Microck/semrush-cli/actions/runs/38989040473)
+passed all five jobs, including docs and package installation on Linux, macOS
+and Windows. The public npm and GitHub release archives match the CI archive
+exactly. Its SHA-256 is
+`4b3b380d1bae6c95fd05a3fd26fcb75d4abe4608b0a5f532854a64c5fd3b0264`.
+Registry publication initially returned HTTP 202 and then cached 404 responses.
+The normal version-based installation passed after propagation completed.
+
+Fresh public npm CLI and MCP repeated enabling, retention, native header
+readback and the five-page protected crawl. Replacement, disabling, re-enabling,
+settings readbacks and authenticated doctor passed. The release is installed
+locally as `semrush` v0.26.0. The owned project returned HTTP 404 after deletion,
+its audit disappeared from campaign discovery and the original project remained
+available. The temporary signed-site project and endpoint also returned 404.
+The remote session, vault, signing key, credential file and session-bearing
+native HTML/wire captures were removed.
+
 ## Version 0.25.0 native mind-map images
 
 The catalog contains 275 operations, 186 reads and 89 confirmed writes.
