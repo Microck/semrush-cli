@@ -441,12 +441,13 @@ test('Core Web Vitals reads retain native measurements, signed URL IDs, history 
     }
     for (const url_id of [negativeURLId, positiveURLId]) {
       const history = yield* semrush.report(yield* parseReport('audit_web_vitals_history', { campaign_id: 793, url_id }));
-      expect(history.data).toHaveProperty('lcpData.values.0.date', 2000);
+      expect(history.data).toHaveProperty('lcpData.values.0.date', 1000);
       const recommendation = yield* semrush.report(yield* parseReport('audit_web_vitals_recommendations', { campaign_id: 793, url_id }));
-      expect(recommendation.data).toHaveProperty('recommendations.0.id', 'render-blocking-resources');
+      expect(recommendation.data).toHaveProperty('recommendations.lcpData.improvements.items.0.auditId', 'render-blocking-resources');
     }
     webVitalsFixture.use('empty');
     expect((yield* semrush.report(yield* parseReport('audit_web_vitals_pages', { campaign_id: 793 }))).data).toHaveProperty('pageMetricsValues', []);
+    expect((yield* semrush.report(yield* parseReport('audit_web_vitals_recommendations', { campaign_id: 793, url_id: negativeURLId }))).data).toHaveProperty('recommendations.lcpData.improvements.items', []);
   }).pipe(Effect.provide(fixtureLayer()))));
   expect((await sdk.headers('test', fixtureURL)).Cookie).toContain('web_vitals_rotation=retained');
   webVitalsFixture.reset();

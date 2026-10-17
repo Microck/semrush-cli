@@ -47,8 +47,8 @@ export function makeWebVitalsFixture() {
       response.setHeader('Set-Cookie', 'web_vitals_rotation=retained; Path=/; HttpOnly; SameSite=Lax');
       if (path === 'settings') { response.end(JSON.stringify({ urls, changed: writes > 0 })); return; }
       for (const id of [negativeURLId, positiveURLId]) {
-        if (path === 'web-vitals/history/' + id) { response.end(JSON.stringify({ score: 'good', auditUrl: page.url, lcpData: { values: [{ date: 2000, value: 1800 }, { date: 1000, value: 2200 }] }, tbtData: {}, clsData: {} })); return; }
-        if (path === 'lighthouse-audits/recommendations/' + id) { response.end(JSON.stringify({ campaignId: 793, auditUrl: page.url, recommendations: scenario === 'empty' ? [] : [{ id: 'render-blocking-resources', type: 'warning', title: 'Eliminate render-blocking resources' }] })); return; }
+        if (path === 'web-vitals/history/' + id) { response.end(JSON.stringify({ score: 'good', auditUrl: page.url, lcpData: { score: 'good', scales: [2500, 4000], values: [{ date: 1000, value: 2200 }, { date: 2000, value: 1800 }] }, tbtData: {}, clsData: {} })); return; }
+        if (path === 'lighthouse-audits/recommendations/' + id) { response.end(JSON.stringify({ campaignId: 793, auditUrl: page.url, recommendations: { lcpData: { details: { difference: 0, items: [], previousItems: [] }, improvements: { difference: 0, items: scenario === 'empty' ? [] : [{ auditId: 'render-blocking-resources', recommendationMode: 'warning', isNew: false, isFixed: false }] } }, tbtData: {}, clsData: {} } })); return; }
       }
       const data = responses.get(path);
       expect(data, 'Unexpected Core Web Vitals fixture path ' + path).toBeDefined();
