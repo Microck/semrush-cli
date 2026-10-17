@@ -439,6 +439,127 @@ test('real multipart uploads and protected audit edits preserve credentials and 
 }, 30000);
 
 
+test('domain preparation normalizes once and advances only through explicit status reads', async () => {
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const service = yield* Semrush;
+      const call = (name: string, query: Query = {}) => parseReport(name, query).pipe(Effect.flatMap(request => service.report(request)));
+      keywordResearchFixture.use();
+      expect((yield* call('keyword_domain_suggestions')).data).toEqual({ history: ['example.com'], projects: ['project.example'], competitors: ['competitor.example'] });
+      expect((yield* call('keyword_domain_root', { domain: 'www.example.com' })).data).toEqual({ site_root_domain: 'example.com' });
+      expect(keywordResearchFixture.preparations).toBe(0);
+      expect((yield* call('keyword_domain_prepare', { domain: 'www.example.com', confirm: true })).data).toEqual({ domain: 'example.com', preparation: { id: '', status: 2, native_extra: false } });
+      expect(keywordResearchFixture.observed.slice(-2)).toEqual([{ method: 'domains.GetSiteRoot', params: { domain: 'www.example.com' } }, { method: 'domains.GetStatus', params: { domain: 'example.com' } }]);
+      expect(keywordResearchFixture.preparations).toBe(1); expect(keywordResearchFixture.domainStatusReads).toBe(0);
+      keywordResearchFixture.use('domain-ready-absent-id');
+      expect((yield* call('keyword_domain_prepare', { domain: 'example.com', confirm: true })).data).toEqual({ domain: 'example.com', preparation: { status: 2, native_extra: 0 } });
+      keywordResearchFixture.use('domain-pending');
+      expect((yield* call('keyword_domain_prepare', { domain: 'www.example.com', confirm: true })).data).toEqual({ domain: 'example.com', preparation: { id: 'native-domain-job-id', status: 1, native_extra: false } });
+      expect(keywordResearchFixture.domainStatusReads).toBe(0);
+      for (const status of [1, 2]) expect((yield* call('keyword_domain_status', { domain: 'example.com', job_id: 'native-domain-job-id' })).data).toEqual({ id: status === 1 ? 'native-domain-job-id' : '', status, native_extra: false });
+      expect(keywordResearchFixture.preparations).toBe(1); expect(keywordResearchFixture.domainStatusReads).toBe(2);
+      for (const observed of keywordResearchFixture.observed.slice(-2)) expect(observed).toEqual({ method: 'domains.GetStatus', params: { domain: 'example.com', id: 'native-domain-job-id' } });
+    }).pipe(Effect.provide(fixtureLayer()))));
+    expect((await sdk.headers('test', fixtureURL)).Cookie).toContain('keyword_personal_rotation=retained');
+  } finally { keywordResearchFixture.use(); }
+});
+
+test('invalid native root replies stop domain preparation before initialization', async () => {
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const service = yield* Semrush;
+      for (const scenario of ['domain-missing-root', 'domain-empty-root', 'domain-bad-root'] as const) {
+        keywordResearchFixture.use(scenario);
+        const failure = yield* service.report(yield* parseReport('keyword_domain_prepare', { domain: 'example.com', confirm: true })).pipe(Effect.flip);
+        expect(failure.message).toContain('No preparation was started');
+        expect(keywordResearchFixture.preparations).toBe(0);
+        expect(keywordResearchFixture.observed.map(call => call.method)).toEqual(['domains.GetSiteRoot']);
+      }
+      keywordResearchFixture.use();
+      expect((yield* service.report(yield* parseReport('keyword_domain_root', { domain: 'example.com' }))).data).toEqual({ site_root_domain: 'example.com' });
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { keywordResearchFixture.use(); }
+});
+
+test('lost and invalid domain preparation receipts never replay a committed initialization', async () => {
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const service = yield* Semrush;
+      for (const scenario of ['domain-lost-init', 'domain-missing-id', 'domain-unknown-state'] as const) {
+        keywordResearchFixture.use(scenario);
+        const failure = yield* service.report(yield* parseReport('keyword_domain_prepare', { domain: 'example.com', confirm: true })).pipe(Effect.flip);
+        expect(failure.message).toContain('before another preparation'); expect(failure.message).not.toContain('fixture-secret');
+        expect(keywordResearchFixture.preparations).toBe(1); expect(keywordResearchFixture.domainStatusReads).toBe(0);
+        expect(keywordResearchFixture.observed.map(call => call.method)).toEqual(['domains.GetSiteRoot', 'domains.GetStatus']);
+        expect((yield* service.report(yield* parseReport('keyword_domain_suggestions', {}))).data).toHaveProperty('history');
+      }
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { keywordResearchFixture.use(); }
+});
+
+test('failed domain status and native permission errors do not initialize a replacement job', async () => {
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const service = yield* Semrush;
+      const call = (name: string, query: Query) => parseReport(name, query).pipe(Effect.flatMap(request => service.report(request)));
+      keywordResearchFixture.use();
+      const missing = yield* call('keyword_domain_status', { domain: 'example.com', job_id: 'nonexistent-verification-job' }).pipe(Effect.flip);
+      expect(missing).toMatchObject({ _tag: 'ReportError', providerCode: -10401 });
+      expect(keywordResearchFixture.preparations).toBe(0); expect(keywordResearchFixture.domainStatusReads).toBe(1);
+      expect(keywordResearchFixture.observed).toEqual([{ method: 'domains.GetStatus', params: { domain: 'example.com', id: 'nonexistent-verification-job' } }]);
+      for (const [scenario, providerCode] of [['denied', -32002], ['rate-limited', -32003]] as const) {
+        keywordResearchFixture.use(scenario);
+        const failure = yield* call('keyword_domain_prepare', { domain: 'example.com', confirm: true }).pipe(Effect.flip);
+        expect(failure).toMatchObject({ _tag: 'ReportError', providerCode }); expect(failure.message).not.toContain('fixture-secret');
+        expect(keywordResearchFixture.preparations).toBe(1); expect(keywordResearchFixture.domainStatusReads).toBe(0);
+      }
+      keywordResearchFixture.use('domain-lost-status');
+      yield* call('keyword_domain_prepare', { domain: 'example.com', confirm: true });
+      yield* call('keyword_domain_status', { domain: 'example.com', job_id: 'native-domain-job-id' }).pipe(Effect.flip);
+      expect(keywordResearchFixture.preparations).toBe(1); expect(keywordResearchFixture.domainStatusReads).toBe(1);
+      expect((yield* call('keyword_domain_root', { domain: 'example.com' })).data).toHaveProperty('site_root_domain');
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { keywordResearchFixture.use(); }
+});
+
+test('prepared-domain research preserves zero metrics and all 106 native SERP rows without initialization', async () => {
+  keywordResearchFixture.use();
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const service = yield* Semrush, selected = { keyword: keywordFixturePhrase, domain: 'example.com' };
+    const call = (name: string, extra: Query = {}) => parseReport(name, { ...selected, ...extra }).pipe(Effect.flatMap(request => service.report(request)));
+    expect((yield* call('keyword_overview', { device: 'mobile' })).data).toMatchObject({ domain_difficulty: 0, domain_traffic: 123 });
+    expect((yield* call('keyword_countries')).data).toMatchObject([{ domain_difficulty: 0 }, { domain_difficulty: 0 }]);
+    expect((yield* call('keyword_ideas')).data).toMatchObject([{ domain_difficulty: 0 }]);
+    expect((yield* call('keyword_ideas_summary')).data).toEqual({ total: 30, total_volume: 0 });
+    expect((yield* call('keyword_clusters')).data).toEqual([{ name: 'TypeScript libraries', intents: [0] }]);
+    const serp = (yield* call('keyword_serp', { limit: 1000 })).data;
+    expect(serp).toHaveLength(106); expect(serp).toMatchObject(expect.arrayContaining([{ position: 100, domain: 'example.com', url: 'https://example.com/result/105', kind: 4, features: [] }]));
+    expect((yield* call('keyword_serp', { limit: 1 })).data).toEqual([{ position: 1, domain: 'example.com', url: 'https://example.com/result/0', kind: 0, features: [] }]);
+    for (const observed of keywordResearchFixture.observed) { expect(observed.params.domain).toBe('example.com'); expect(observed.params).not.toHaveProperty('limit'); }
+    expect(keywordResearchFixture.preparations).toBe(0); expect(keywordResearchFixture.refreshes).toBe(0);
+  }).pipe(Effect.provide(fixtureLayer()))));
+});
+
+test('keyword AI reads preserve native countries, zero volumes and sample counts without database fallback', async () => {
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const service = yield* Semrush;
+      const call = (name: string, query: Query = {}) => parseReport(name, query).pipe(Effect.flatMap(request => service.report(request)));
+      keywordResearchFixture.use();
+      expect((yield* call('keyword_ai_databases')).data).toEqual(['us', 'uk', 'es']);
+      expect((yield* call('keyword_ai_summary', { keyword: keywordFixturePhrase })).data).toEqual({ volume_by_llm: [{ volume: 0, llm: 'aio' }, { volume: 1209244, llm: 'gpt' }], topics_count: 1000 });
+      expect((yield* call('keyword_ai_topics', { keyword: keywordFixturePhrase, domain: 'example.com' })).data).toEqual([{ topic: 'Running Shoes and Reviews', volume: 0 }]);
+      expect(keywordResearchFixture.observed.at(-1)?.params.domain).toBe('example.com');
+      const before = keywordResearchFixture.observed.length;
+      const failure = yield* call('keyword_ai_summary', { keyword: keywordFixturePhrase, database: 'zz' }).pipe(Effect.flip);
+      expect(failure.message).toContain('HTTP 403'); expect(failure.message).not.toContain('fixture-secret');
+      expect(keywordResearchFixture.observed.slice(before)).toEqual([{ method: 'aiSeo.GetTopicsSummary', params: { phrase: keywordFixturePhrase, database: 'zz', device: 0, date: '', location: 0, currency: 'USD' } }]);
+      expect((yield* call('keyword_ai_topics', { keyword: keywordFixturePhrase })).data).toHaveLength(1);
+      expect(keywordResearchFixture.preparations).toBe(0); expect(keywordResearchFixture.refreshes).toBe(0);
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { keywordResearchFixture.use(); }
+});
+
 test('local keyword reads preserve cached metrics, native location shapes, SERP ordering and domain values without refresh', async () => {
   keywordResearchFixture.use();
   await Effect.runPromise(Effect.scoped(Effect.gen(function* () {

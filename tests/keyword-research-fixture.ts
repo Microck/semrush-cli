@@ -11,8 +11,8 @@ type RefreshPhrase = Schema.Schema.Type<typeof refreshPhrase>;
 const jobId = 'private-keyword-export-token';
 const exportFilenames = new Map([['keywords.Export', 'semrush-keyword-bulk'], ['serp.ExportURLs', 'semrush-keyword-serp'], ['serp.ExportDomains', 'semrush-keyword-serp-domains'], ['serp.ExportURLsLocal', 'semrush-keyword-local-serp']]);
 const exports = new Set(exportFilenames.keys());
-const methods = new Set(['keywords.GetBulk', 'pla.GetCopies', 'serp.GetURLsOrganicMetrics', 'serp.GetURLsBacklinksMetrics', 'export.Wait', 'locations.Get', 'keywords.GetLocalInfo', 'serp.GetURLsOrganicMetricsLocal', 'serp.GetDomainsOrganicMetrics', 'serp.GetDomainsBacklinksMetrics', 'updates.RequestUpdates', 'updates.GetKeywords', ...exports]);
-type Scenario = 'complete' | 'pending' | 'forever' | 'denied' | 'rate-limited' | 'missing-id' | 'lost-init' | 'slow-download' | 'empty' | 'read-failed' | 'countries-malformed' | 'lost-refresh' | 'missing-refresh-receipt';
+const methods = new Set(['keywords.GetBulk', 'pla.GetCopies', 'serp.GetURLsOrganicMetrics', 'serp.GetURLsBacklinksMetrics', 'export.Wait', 'locations.Get', 'keywords.GetLocalInfo', 'serp.GetURLsOrganicMetricsLocal', 'serp.GetDomainsOrganicMetrics', 'serp.GetDomainsBacklinksMetrics', 'updates.RequestUpdates', 'updates.GetKeywords', 'domains.GetSuggestions', 'domains.GetSiteRoot', 'domains.GetStatus', 'aiSeo.GetDatabases', 'aiSeo.GetTopicsSummary', 'aiSeo.GetTopics', ...exports]);
+type Scenario = 'complete' | 'pending' | 'forever' | 'denied' | 'rate-limited' | 'missing-id' | 'lost-init' | 'slow-download' | 'empty' | 'read-failed' | 'countries-malformed' | 'lost-refresh' | 'missing-refresh-receipt' | 'domain-pending' | 'domain-lost-init' | 'domain-empty-root' | 'domain-missing-root' | 'domain-bad-root' | 'domain-missing-id' | 'domain-unknown-state' | 'domain-ready-absent-id' | 'domain-lost-status';
 // A real, small XLSX workbook keeps binary/resource tests independent of an office suite.
 const xlsx = Buffer.from(zipSync(Object.fromEntries(Object.entries({
   '[Content_Types].xml': '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>',
@@ -42,15 +42,52 @@ export function makeKeywordResearchFixture() {
     for (const phrase of Schema.decodeUnknownSync(Schema.Array(Schema.Record(Schema.String, Schema.Json)))(params.phrases)) expect(phrase.status_updated_at).toBeTypeOf('number');
     reply(refreshSelection.filter(selected => phrases.some(phrase => phrase.phrase === selected.phrase && phrase.database === selected.database && phrase.location === selected.location)).map(phrase => ({ ...phrase, update_status: statusReads > 1 ? 2 : 1, status_updated_at: 1792221173, results: null, serp_id: 's-d-99-1017-13394082193748469000' }))); return true;
   };
+  let preparations = 0, domainStatusReads = 0; let activeDomain = false;
+  const domainJob = 'native-domain-job-id';
+  const servePersonal = (method: string, params: Schema.JsonObject, response: ServerResponse, reply: (result: Schema.Json) => void): boolean => {
+    if (method.startsWith('domains.') || method.startsWith('aiSeo.')) response.setHeader('Set-Cookie', 'keyword_personal_rotation=retained; Path=/; HttpOnly; SameSite=Lax');
+    if (method === 'domains.GetSuggestions') { expect(params).toEqual({}); reply({ history: ['example.com'], projects: ['project.example'], competitors: ['competitor.example'] }); return true; }
+    if (method === 'domains.GetSiteRoot') {
+      expect(params).not.toHaveProperty('id');
+      reply(scenario === 'domain-missing-root' ? {} : { site_root_domain: scenario === 'domain-empty-root' ? '' : scenario === 'domain-bad-root' ? 'https://example.com/' : 'example.com' }); return true;
+    }
+    if (method === 'domains.GetStatus') {
+      const initializing = params.id === undefined;
+      if (initializing) preparations++; else { domainStatusReads++; expect(params.id).not.toBe(''); }
+      if (scenario === 'denied' || scenario === 'rate-limited') { response.end(JSON.stringify({ error: { code: scenario === 'denied' ? -32002 : -32003, message: 'fixture-secret domain access denied' } })); return true; }
+      if (params.domain !== 'example.com' || !initializing && (params.id !== domainJob || !activeDomain)) { response.end(JSON.stringify({ error: { code: -10401, message: 'fixture-secret Domain fail' } })); return true; }
+      if (initializing) {
+        expect(params).toEqual({ domain: 'example.com' }); activeDomain = true;
+        if (scenario === 'domain-lost-init') { response.socket?.destroy(); return true; }
+        if (scenario === 'domain-missing-id') { reply({ id: '', status: 1 }); return true; }
+        if (scenario === 'domain-unknown-state') { reply({ id: domainJob, status: 3 }); return true; }
+        if (scenario === 'domain-ready-absent-id') { reply({ status: 2, native_extra: 0 }); return true; }
+        reply(scenario === 'domain-pending' || scenario === 'domain-lost-status' ? { id: domainJob, status: 1, native_extra: false } : { id: '', status: 2, native_extra: false }); return true;
+      }
+      if (scenario === 'domain-lost-status') { response.socket?.destroy(); return true; }
+      reply({ id: domainStatusReads > 1 ? '' : domainJob, status: domainStatusReads > 1 ? 2 : 1, native_extra: false }); return true;
+    }
+    if (method === 'serp.GetURLs' && params.domain) { reply(Array.from({ length: 106 }, (_, index) => ({ position: Math.min(index + 1, 100), domain: 'example.com', url: 'https://example.com/result/' + index, kind: index < 100 ? 0 : 4, features: [] }))); return true; }
+    if (method === 'ideas.GetKeywordsSummary' && params.domain) { reply({ total: 30, total_volume: 0 }); return true; }
+    if (method === 'clusters.Get') { reply([{ name: 'TypeScript libraries', intents: [0] }]); return true; }
+    if (method === 'aiSeo.GetDatabases') { expect(params).toEqual({}); reply(['us', 'uk', 'es']); return true; }
+    if (method === 'aiSeo.GetTopicsSummary' || method === 'aiSeo.GetTopics') {
+      expect(params).toMatchObject({ device: 0, date: '', location: 0, currency: 'USD' });
+      if (scenario === 'read-failed' || params.database === 'zz') { response.writeHead(403); response.end('{"error":"fixture-secret AI access denied"}'); return true; }
+      reply(method === 'aiSeo.GetTopicsSummary' ? { volume_by_llm: [{ volume: 0, llm: 'aio' }, { volume: 1209244, llm: 'gpt' }], topics_count: 1000 } : [{ topic: 'Running Shoes and Reviews', volume: 0 }]); return true;
+    }
+    return false;
+  };
   const observed: { method: string; params: Schema.JsonObject }[] = [];
   const bytes = (code: number) => code === 0 ? xlsx : Buffer.from(code === 2 ? 'Keyword;Volume\r\ncafé;33\r\n' : 'Keyword,Volume\r\ncafé,33\r\n');
   return {
     observed, bytes,
+    get preparations() { return preparations; }, get domainStatusReads() { return domainStatusReads; },
     get refreshes() { return refreshes; }, get statusReads() { return statusReads; },
     get initializations() { return initializations; }, get waits() { return waits; }, get downloads() { return downloads; },
     waiting: () => waiting, downloading: () => downloading, disconnected: () => closed,
     use(value: Scenario = 'complete') {
-      scenario = value; refreshes = 0; statusReads = 0; refreshSelection = []; format = 1; initializations = 0; waits = 0; downloads = 0; observed.length = 0;
+      scenario = value; preparations = 0; domainStatusReads = 0; activeDomain = false; refreshes = 0; statusReads = 0; refreshSelection = []; format = 1; initializations = 0; waits = 0; downloads = 0; observed.length = 0;
       waiting = new Promise<void>(resolve => { waitStarted = resolve; });
       downloading = new Promise<void>(resolve => { downloadStarted = resolve; });
       closed = new Promise<void>(resolve => { disconnected = resolve; });
@@ -63,6 +100,7 @@ export function makeKeywordResearchFixture() {
       observed.push({ method, params });
       response.setHeader('Content-Type', 'application/json');
       const reply = (result: Schema.Json) => response.end(JSON.stringify({ jsonrpc: '2.0', id: 1, result }));
+      if (servePersonal(method, params, response, reply)) return true;
       if (serveRefresh(method, params, response, reply)) return true;
       if (exports.has(method)) {
         initializations++; expect(params.format).toBeTypeOf('number'); expect([0, 1, 2]).toContain(params.format);

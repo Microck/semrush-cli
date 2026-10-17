@@ -1,5 +1,28 @@
 # Verification
 
+## Version 0.33.0 candidate
+
+The candidate catalog contains 330 operations, 229 reads and 101 confirmed
+writes. Domain discovery, root resolution, explicit preparation and job status
+follow the current native Keyword Overview client. Six existing keyword reads
+accept an already prepared root. AI discovery, summary and topic samples use
+fixed current national request contexts. Native Guru probes confirmed current
+mobile personalization, rejected monthly personalization, returned 32 AI
+databases and positive model volumes, and returned 106 personalized SERP rows.
+An invalid existing job ID returned native code -10401 without initialization.
+
+The full Raft check passed strict types, lint, generated-reference checks, all
+five daemon builds and 273 tests, including 82 real-browser integration tests.
+The three independent simplification reviews found no changes to make. Source CLI and MCP matched 15 independent native read selections, including
+all AI reads, current mobile personalization and all 106 native SERP rows.
+Both interfaces retained native code -10401 for an invalid existing job ID.
+Each interface also prepared the resolved example.com root once and returned
+ready status 2; no account projects or lists changed. Package verification
+is in progress. A native ready
+preparation returned status 2 with an empty ID. Pending lifecycle and interrupted
+initialization remain stateful fixture cases until a native pending job occurs.
+
+
 ## Version 0.32.0 local keyword research
 
 The catalog contains 323 operations, 223 reads and 100 confirmed writes.

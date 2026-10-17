@@ -56,13 +56,36 @@
           "default": "USD",
           "pattern": "^[A-Z]{3}(?![\\s\\S])",
           "description": "Three-letter currency code supported by Semrush."
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253,
+          "pattern": "^[^\\s/:?#]+(?![\\s\\S])",
+          "description": "Bare root domain for already prepared native personalized data. Does not start preparation."
         }
       },
       "required": [
         "keyword"
       ],
       "title": "KeywordQuery",
-      "type": "object"
+      "type": "object",
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "domain"
+            ]
+          },
+          "then": {
+            "properties": {
+              "date": {
+                "const": ""
+              }
+            }
+          }
+        }
+      ]
     },
     "mutation": false,
     "destructive": false,
@@ -121,13 +144,36 @@
           "default": "USD",
           "pattern": "^[A-Z]{3}(?![\\s\\S])",
           "description": "Three-letter currency code supported by Semrush."
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253,
+          "pattern": "^[^\\s/:?#]+(?![\\s\\S])",
+          "description": "Bare root domain for already prepared native personalized data. Does not start preparation."
         }
       },
       "required": [
         "keyword"
       ],
       "title": "IdeasQuery",
-      "type": "object"
+      "type": "object",
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "domain"
+            ]
+          },
+          "then": {
+            "properties": {
+              "date": {
+                "const": ""
+              }
+            }
+          }
+        }
+      ]
     },
     "mutation": false,
     "destructive": false,
@@ -179,13 +225,36 @@
           "default": "USD",
           "pattern": "^[A-Z]{3}(?![\\s\\S])",
           "description": "Three-letter currency code supported by Semrush."
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253,
+          "pattern": "^[^\\s/:?#]+(?![\\s\\S])",
+          "description": "Bare root domain for already prepared native personalized data. Does not start preparation."
         }
       },
       "required": [
         "keyword"
       ],
       "title": "IdeasSummaryQuery",
-      "type": "object"
+      "type": "object",
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "domain"
+            ]
+          },
+          "then": {
+            "properties": {
+              "date": {
+                "const": ""
+              }
+            }
+          }
+        }
+      ]
     },
     "mutation": false,
     "destructive": false,
@@ -214,7 +283,7 @@
         },
         "limit": {
           "default": 10,
-          "maximum": 100,
+          "maximum": 1000,
           "minimum": 1,
           "title": "Limit",
           "type": "integer"
@@ -239,13 +308,36 @@
           "default": "USD",
           "pattern": "^[A-Z]{3}(?![\\s\\S])",
           "description": "Three-letter currency code supported by Semrush."
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253,
+          "pattern": "^[^\\s/:?#]+(?![\\s\\S])",
+          "description": "Bare root domain for already prepared native personalized data. Does not start preparation."
         }
       },
       "required": [
         "keyword"
       ],
       "title": "KeywordListQuery",
-      "type": "object"
+      "type": "object",
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "domain"
+            ]
+          },
+          "then": {
+            "properties": {
+              "date": {
+                "const": ""
+              }
+            }
+          }
+        }
+      ]
     },
     "mutation": false,
     "destructive": false,
@@ -331,6 +423,13 @@
           "pattern": "^[a-z]{2}$",
           "title": "Database",
           "type": "string"
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253,
+          "pattern": "^[^\\s/:?#]+(?![\\s\\S])",
+          "description": "Bare root domain for already prepared native personalized data. Does not start preparation."
         }
       },
       "required": [
@@ -15835,10 +15934,33 @@
           "default": "USD",
           "pattern": "^[A-Z]{3}(?![\\s\\S])",
           "description": "Three-letter currency code supported by Semrush."
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253,
+          "pattern": "^[^\\s/:?#]+(?![\\s\\S])",
+          "description": "Bare root domain for already prepared native personalized data. Does not start preparation."
         }
       },
       "required": [
         "keyword"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "domain"
+            ]
+          },
+          "then": {
+            "properties": {
+              "date": {
+                "const": ""
+              }
+            }
+          }
+        }
       ]
     }
   },
@@ -17788,6 +17910,210 @@
             }
           }
         }
+      ]
+    }
+  },
+  "keyword_domain_suggestions": {
+    "method": "domains.GetSuggestions",
+    "description": "Read native recent, project and competitor domain suggestions.",
+    "transport": "keyword",
+    "total_method": "",
+    "web_report": "keyword-overview",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    }
+  },
+  "keyword_domain_root": {
+    "method": "domains.GetSiteRoot",
+    "description": "Read the native root domain for a bare input hostname.",
+    "transport": "keyword",
+    "total_method": "",
+    "web_report": "keyword-overview",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253,
+          "pattern": "^[^\\s/:?#]+(?![\\s\\S])",
+          "description": "Bare input hostname for native root-domain lookup."
+        }
+      },
+      "required": [
+        "domain"
+      ]
+    }
+  },
+  "keyword_domain_prepare": {
+    "method": "domains.GetStatus",
+    "description": "Normalize a domain and request native personalized keyword preparation once. Returns job state without polling.",
+    "transport": "keyword",
+    "total_method": "",
+    "web_report": "keyword-overview",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253,
+          "pattern": "^[^\\s/:?#]+(?![\\s\\S])",
+          "description": "Bare input hostname. Semrush resolves and prepares its root domain after confirmation."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "domain"
+      ]
+    }
+  },
+  "keyword_domain_status": {
+    "method": "domains.GetStatus",
+    "description": "Read native personalized-domain preparation state using a nonempty pending job ID. Never starts a new job.",
+    "transport": "keyword",
+    "total_method": "",
+    "web_report": "keyword-overview",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253,
+          "pattern": "^[^\\s/:?#]+(?![\\s\\S])",
+          "description": "Normalized root domain from the preparation result."
+        },
+        "job_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^[^\\s\\u0000]+(?![\\s\\S])",
+          "description": "Nonempty native ID from a pending keyword-domain-prepare receipt."
+        }
+      },
+      "required": [
+        "domain",
+        "job_id"
+      ]
+    }
+  },
+  "keyword_ai_databases": {
+    "method": "aiSeo.GetDatabases",
+    "description": "Read the native databases available for Keyword Overview AI topic data.",
+    "transport": "keyword",
+    "total_method": "",
+    "web_report": "keyword-overview",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    }
+  },
+  "keyword_ai_summary": {
+    "method": "aiSeo.GetTopicsSummary",
+    "description": "Read native Keyword Overview AI LLM volumes and total topic count.",
+    "transport": "keyword",
+    "total_method": "",
+    "web_report": "keyword-overview",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "keyword": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Keyword",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^[a-z]{2}(?![\\s\\S])",
+          "title": "Database",
+          "type": "string"
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253,
+          "pattern": "^[^\\s/:?#]+(?![\\s\\S])",
+          "description": "Bare root domain for already prepared native personalized data. Does not start preparation."
+        }
+      },
+      "required": [
+        "keyword"
+      ]
+    }
+  },
+  "keyword_ai_topics": {
+    "method": "aiSeo.GetTopics",
+    "description": "Read native Keyword Overview AI top topic samples with native volumes.",
+    "transport": "keyword",
+    "total_method": "",
+    "web_report": "keyword-overview",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "keyword": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Keyword",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^[a-z]{2}(?![\\s\\S])",
+          "title": "Database",
+          "type": "string"
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253,
+          "pattern": "^[^\\s/:?#]+(?![\\s\\S])",
+          "description": "Bare root domain for already prepared native personalized data. Does not start preparation."
+        }
+      },
+      "required": [
+        "keyword"
       ]
     }
   }

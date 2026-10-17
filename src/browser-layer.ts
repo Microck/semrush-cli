@@ -41,6 +41,12 @@ function reportFailure(detail: Schema.Json, secrets: readonly string[]): ReportE
   return new ReportError({ ...providerCode, message: `Semrush report failed: ${JSON.stringify(redact(detail, secrets)).slice(0, 500)}` });
 }
 
+/** Confirmed keyword writes keep provider codes when adding native readback advice. */
+function keywordWriteError(error: ReportError, advice: string): ReportError {
+  const message = error.message + advice;
+  return error.providerCode === undefined ? new ReportError({ message }) : new ReportError({ message, providerCode: error.providerCode });
+}
+
 /** Resolve the two native export contracts without exposing credential-bearing capabilities. */
 const nativeExportURL = Effect.fn('Semrush.nativeExportURL')(function* (kind: string, value: Schema.Json | undefined, browserOrigin: string, auth: BootstrapAuth) {
   if (kind === 'export_id') {
@@ -363,14 +369,21 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
   /** A refresh can consume allowance before a lost response; never replay it. */
   const keywordRefresh = Effect.fn('Semrush.keywordRefresh')(function* (params: Query) {
     const readback = ' Read keyword-refresh-status before requesting another refresh; the request may have committed and was not retried.';
-    const receipt = yield* rpc('updates.RequestUpdates', params).pipe(Effect.mapError(error => error.providerCode === undefined
-      ? new ReportError({ message: error.message + readback })
-      : new ReportError({ message: error.message + readback, providerCode: error.providerCode })));
+    const receipt = yield* rpc('updates.RequestUpdates', params).pipe(Effect.mapError(error => keywordWriteError(error, readback)));
     yield* Schema.decodeUnknownEffect(Schema.Struct({
       change: Schema.Struct({ before: Schema.Int, delta: Schema.Int, limit: Schema.Int }),
       phrases: Schema.Array(Schema.Struct({ phrase: Schema.String, database: Schema.String, location: Schema.Int, update_status: Schema.Int })).check(Schema.isMinLength(1)),
     }))(receipt).pipe(Effect.mapError(() => new ReportError({ message: 'Semrush returned an invalid keyword refresh receipt.' + readback })));
     return receipt;
+  });
+  /** Native preparation normalizes the root first; only a nonempty job ID permits later reads. */
+  const keywordDomainPrepare = Effect.fn('Semrush.keywordDomainPrepare')(function* (params: Query) {
+    const root = yield* Schema.decodeUnknownEffect(Schema.Struct({ site_root_domain: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(253), Schema.isPattern(/^[^\s/:?#]+(?![\s\S])/)) }))(
+      yield* rpc('domains.GetSiteRoot', params),
+    ).pipe(Effect.mapError(() => new ReportError({ message: 'Semrush did not resolve a root domain. Read keyword-domain-root before preparing it. No preparation was started.' })));
+    const receipt = yield* rpc('domains.GetStatus', { domain: root.site_root_domain }).pipe(Effect.mapError(error => keywordWriteError(error,
+      ' Domain preparation may have started and was not retried. Inspect its state in Semrush before another preparation request.')));
+    return { domain: root.site_root_domain, preparation: yield* keywordDomainReceipt(receipt) };
   });
   /** Export creation never retries. Only native code 0 from the idempotent wait means pending. */
   const keywordExport = Effect.fn('Semrush.keywordExport')(function* (method: string, params: Query, format: Schema.Json | undefined) {
@@ -635,8 +648,10 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       if (name === 'audit_web_vitals_settings_set') reportData = yield* webVitalsSettingsReceipt(reportData, Array.isArray(query.urls) ? query.urls.length : 0);
     } else if (['keyword', 'domain', 'direct', 'magic', 'kwm', 'ksb', 'bla'].includes(family)) {
       if (name === 'backlink_audit_rerun') yield* checkBacklinkAuditControl(query);
-      reportData = name === 'keyword_refresh' ? yield* keywordRefresh(params)
-        : yield* rpc(definition.method, name === 'backlink_audit_create' ? yield* createBacklinkAudit(params) : params, family, definition.web_report);
+      if (name === 'keyword_refresh') reportData = yield* keywordRefresh(params);
+      else if (name === 'keyword_domain_prepare') reportData = yield* keywordDomainPrepare(params);
+      else reportData = yield* rpc(definition.method, name === 'backlink_audit_create' ? yield* createBacklinkAudit(params) : params, family, definition.web_report);
+      if (name === 'keyword_domain_status') reportData = yield* keywordDomainReceipt(reportData);
       if (responseType === 'download_url' || responseType === 'export_id') {
         const href = yield* nativeExportURL(responseType, reportData, browserOrigin, auth);
         const artifact = yield* Effect.scoped(downloadExport({ kind: 'file', request: { method: 'GET', path: href, body: {} }, headers: {} }, query.format, exports));
@@ -680,6 +695,15 @@ const keywordInfoResult = Effect.fn('Semrush.keywordInfoResult')(function* (name
   const selected = Array.isArray(rows) ? rows.find(item => objectValue(item) && item.database === query.database) : undefined;
   if (!selected) return yield* Effect.fail(new ReportError({ message: 'No keyword data for the selected database.' }));
   return selected;
+});
+
+/** Status reads require an existing job ID so they cannot repeat native initialization. */
+const keywordDomainReceipt = Effect.fn('Semrush.keywordDomainReceipt')(function* (receipt: Schema.Json) {
+  yield* Schema.decodeUnknownEffect(Schema.Union([
+    Schema.Struct({ status: Schema.Literal(1), id: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(512), Schema.isPattern(/^\S+(?![\s\S])/), Schema.makeFilter((id: string) => !id.includes(String.fromCharCode(0)))) }),
+    Schema.Struct({ status: Schema.Literal(2), id: Schema.optionalKey(Schema.String) }),
+  ]))(receipt).pipe(Effect.mapError(() => new ReportError({ message: 'Semrush returned an invalid domain preparation receipt. Inspect its state in Semrush before another preparation request; initialization was not retried.' })));
+  return receipt;
 });
 
 interface BootstrapAuth { readonly apiKey: string; readonly userId: string | number; }

@@ -6,7 +6,8 @@ description: Select keyword snapshots, enrich SERP URLs and download native expo
 These commands use your existing Semrush session. Sign in with the
 [authentication guide](/docs/authentication) first. They read research data and
 create download jobs without saving keywords or changing account settings.
-Only the explicit `keyword-refresh` command requests a metric refresh.
+The explicit `keyword-refresh` command requests a metric refresh. Domain
+preparation is a separate confirmed action.
 
 ## Select a keyword snapshot
 
@@ -28,6 +29,59 @@ Account access and native snapshot availability still apply.
 Country metrics return Semrush's country rows, without calculating a global
 total. Empty ads and unavailable measurements stay as returned by Semrush.
 Keyword clusters does not accept these snapshot or device controls.
+
+## Prepare a domain for personalized research
+
+```sh
+semrush keyword-domain-suggestions --json
+semrush keyword-domain-root --domain www.example.com --json
+semrush keyword-domain-prepare --domain www.example.com --dry-run
+semrush keyword-domain-prepare --domain www.example.com --confirm --json
+```
+
+Preparation resolves the native root domain, then starts preparation once.
+The result contains `domain` and the unchanged native `preparation` receipt.
+Status `2` is ready and can have an empty or absent ID. Status `1` is pending
+and includes a nonempty ID. Read that job explicitly using both returned values:
+
+```sh
+semrush keyword-domain-status --domain example.com --job-id '<returned-id>' --json
+```
+
+A status read never initializes another job or polls. If preparation loses its
+response, inspect its state in Semrush before another request. The adapter does
+not replay initialization. Do not pass an empty job ID for a ready domain.
+
+```sh
+semrush keyword-overview --keyword typescript --domain github.com --device mobile --json
+semrush keyword-countries --keyword typescript --domain github.com --json
+semrush keyword-ideas --keyword typescript --domain github.com --json
+semrush keyword-ideas-summary --keyword typescript --domain github.com --json
+semrush keyword-clusters --keyword typescript --domain github.com --json
+semrush keyword-serp --keyword typescript --domain github.com --limit 1000 --json
+```
+
+These six reads accept an already prepared root domain. They do not start
+preparation. Current desktop and mobile research support personalization;
+historical snapshots reject a domain. Clusters has no device selector. Zero
+personalized difficulty and other native values remain unchanged. The SERP
+limit defaults to ten and accepts up to 1,000 rows, including native feature rows.
+
+## Read keyword AI topics
+
+```sh
+semrush keyword-ai-databases --json
+semrush keyword-ai-summary --keyword 'running shoes' --database us --json
+semrush keyword-ai-topics --keyword 'running shoes' --database us --domain github.com --json
+```
+
+Choose a database returned by the discovery command. Summary retains native
+volumes by model and the topic count. Topics returns the native sample, which
+can be shorter than that count. These commands use current national desktop
+data and USD. They accept an optional prepared domain, but no device, date,
+currency or location override. Unsupported databases and account restrictions
+remain errors. The adapter does not switch to the US database automatically.
+Full topic exports and prompt tracking are separate unverified workflows.
 
 ## Analyze a batch
 

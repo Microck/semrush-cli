@@ -277,12 +277,18 @@ function keywordExportParameters(method: string, q: Query): Query {
 
 function keywordParameters(definition: Report, q: Query): Query {
   const method = definition.method;
+  if (method === 'domains.GetSiteRoot' || method === 'domains.GetStatus') {
+    const selection: Query = { domain: q.domain ?? '' };
+    if (q.job_id !== undefined) selection.id = q.job_id;
+    return selection;
+  }
   if (method === 'locations.Get') return { database: q.database ?? 'us', input: q.input ?? '' };
   if (method === 'updates.RequestUpdates' || method === 'updates.GetKeywords') return keywordRefreshParameters(method, q);
   if (method === 'keywords.GetBulk') return { ...keywordBulkParameters(q), date: '' };
   if (method === 'keywords.Export' || method === 'serp.ExportURLs' || method === 'serp.ExportDomains' || method === 'serp.ExportURLsLocal') return keywordExportParameters(method, q);
   if (!('keyword' in q)) return {};
   const params: Query = { phrase: (q.keyword ?? null), database: (q.database ?? null), device: q.device === 'mobile' ? 1 : 0, currency: q.currency ?? 'USD', location: q.location_id ?? 0, date: q.date ?? '' };
+  if (q.domain) params.domain = q.domain;
   if (method.startsWith('ideas.')) Object.assign(params, { mode: 0, questions_only: (q.questions_only ?? null) });
   if (method === 'serp.GetURLsOrganicMetrics' || method === 'serp.GetURLsBacklinksMetrics' || method === 'serp.GetURLsOrganicMetricsLocal') params.urls = q.urls ?? [];
   if (method === 'serp.GetDomainsOrganicMetrics' || method === 'serp.GetDomainsBacklinksMetrics') params.domains = Array.isArray(q.domains) ? q.domains.toSorted() : [];

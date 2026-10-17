@@ -18,6 +18,51 @@ const keywordParameters = async (name: string, input: Query) => {
   return reportParameters(parsed.definition, parsed.query);
 };
 
+test('domain discovery, preparation and status use distinct native request shapes and offline previews', async () => {
+  expect(await keywordParameters('keyword_domain_suggestions', {})).toEqual({});
+  expect(await keywordParameters('keyword_domain_root', { domain: 'www.example.com' })).toEqual({ domain: 'www.example.com' });
+  expect(await keywordParameters('keyword_domain_prepare', { domain: 'www.example.com', confirm: true })).toEqual({ domain: 'www.example.com' });
+  expect(await keywordParameters('keyword_domain_status', { domain: 'example.com', job_id: 'native-domain-job-id' })).toEqual({ domain: 'example.com', id: 'native-domain-job-id' });
+  const parsed = await Effect.runPromise(parseReport('keyword_domain_prepare', { domain: 'www.example.com', dry_run: true }));
+  expect(previewMutation(parsed.name, parsed.definition, parsed.query)).toEqual({ dry_run: true, report: 'keyword_domain_prepare', request: { method: 'POST', path: '/kwogw/v2/webapi', body: { id: 1, jsonrpc: '2.0', method: 'domains.GetStatus', params: { domain: 'www.example.com' } } } });
+});
+
+test('prepared domain reads retain current mobile support, omit absent domains and reject historical personalization', async () => {
+  for (const name of ['keyword_overview', 'keyword_countries', 'keyword_ideas', 'keyword_ideas_summary', 'keyword_serp', 'keyword_clusters']) {
+    const current = { keyword: 'typescript', domain: 'github.com' };
+    expect(await keywordParameters(name, current)).toMatchObject({ phrase: 'typescript', domain: 'github.com', device: 0, date: '', location: 0 });
+    expect(await keywordParameters(name, { keyword: 'typescript' })).not.toHaveProperty('domain');
+    await expect(keywordParameters(name, { ...current, date: '202609' })).rejects.toThrow();
+    if (name !== 'keyword_clusters') expect(await keywordParameters(name, { ...current, device: 'mobile' })).toMatchObject({ device: 1, domain: 'github.com', date: '' });
+  }
+  expect(await keywordParameters('keyword_serp', { keyword: 'typescript', limit: 1000 })).not.toHaveProperty('limit');
+  await expect(keywordParameters('keyword_serp', { keyword: 'typescript', limit: 1001 })).rejects.toThrow();
+});
+
+test('Keyword Overview AI reads retain the native current national serializer and an explicit database', async () => {
+  expect(await keywordParameters('keyword_ai_databases', {})).toEqual({});
+  for (const name of ['keyword_ai_summary', 'keyword_ai_topics']) {
+    expect(await keywordParameters(name, { keyword: 'running shoes', database: 'uk' })).toEqual({ phrase: 'running shoes', database: 'uk', device: 0, date: '', location: 0, currency: 'USD' });
+    expect(await keywordParameters(name, { keyword: 'running shoes', domain: 'example.com' })).toMatchObject({ domain: 'example.com', database: 'us' });
+  }
+});
+
+test('domain and AI boundaries reject empty job IDs, ambiguous hosts and unconfirmed initialization before authentication', async () => {
+  await expect(keywordParameters('keyword_domain_prepare', { domain: 'example.com' })).rejects.toThrow('changes your Semrush account');
+  for (const job_id of ['', ' ', 'native-id\n', '\u0000', 'x'.repeat(513)]) await expect(keywordParameters('keyword_domain_status', { domain: 'example.com', job_id })).rejects.toThrow();
+  await expect(keywordParameters('keyword_domain_status', { domain: 'example.com' })).rejects.toThrow();
+  for (const domain of ['', 'https://example.com/', 'example.com/path', 'example.com\n', 'example.com:443']) {
+    await expect(keywordParameters('keyword_domain_root', { domain })).rejects.toThrow();
+    await expect(keywordParameters('keyword_domain_prepare', { domain, dry_run: true })).rejects.toThrow();
+    await expect(keywordParameters('keyword_ai_summary', { domain, keyword: 'typescript' })).rejects.toThrow();
+  }
+  for (const name of ['keyword_ai_summary', 'keyword_ai_topics']) {
+    const unsupported: Query[] = [{ device: 'mobile' }, { date: '202609' }, { location_id: 21167 }, { database: 'us\n' }, { api_key: 'injected' }];
+    for (const query of unsupported) await expect(keywordParameters(name, { keyword: 'running shoes', ...query })).rejects.toThrow();
+  }
+  await expect(keywordParameters('keyword_domain_prepare', { domain: 'example.com', job_id: 'cannot-poll-through-start', dry_run: true })).rejects.toThrow();
+});
+
 test('local keyword research uses native locations and current desktop serializers without implicit refresh', async () => {
   expect(await keywordParameters('keyword_locations', {})).toEqual({ database: 'us', input: '' });
   expect(await keywordParameters('keyword_locations', { database: 'uk', input: 'London' })).toEqual({ database: 'uk', input: 'London' });

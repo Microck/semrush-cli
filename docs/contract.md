@@ -1102,3 +1102,53 @@ requested one local keyword, changed usage from 44 to 45 of 1,000 and observed
 native update status 1 followed by 2. Native numeric statuses remain raw data.
 Only the export wait's existing pending response permits retry; refresh requests
 and status reads do not add automatic retries.
+
+## Domain personalization and keyword AI topics
+
+Seven added operations bring the catalog to 330 operations, 229 reads and 101
+confirmed writes. The same current Keyword Overview client supplied the native
+serializers. Guru probes returned domain suggestions, normalized roots, ready
+preparation state, personalized metrics and positive AI topic samples/counts.
+The retained `serp.GetDomainsPosition` wrapper returned native method-not-found
+and has no verified active caller; it is not exposed.
+
+- `keyword-domain-suggestions` reads `domains.GetSuggestions` with an empty
+  object and retains native history, project and competitor selections.
+- `keyword-domain-root` reads `domains.GetSiteRoot` with a bare input domain and
+  returns the native root-domain receipt. An unavailable root remains native
+  empty data rather than a fabricated suffix calculation.
+- `keyword-domain-prepare` requires confirmation or an offline preview. It
+  resolves the root through `domains.GetSiteRoot` once, refuses an empty root,
+  and calls `domains.GetStatus` once with that root and no job ID. The public
+  result contains `domain` and the unchanged native `preparation` receipt.
+  Status 1 means pending and requires a nonempty ID; status 2 means ready and
+  can carry an empty or absent ID. It never polls or replays initialization.
+- `keyword-domain-status` reads `domains.GetStatus` with the normalized root
+  and a required nonempty native `job_id` mapped to `id`. Empty IDs are rejected
+  before credentials are acquired because that native shape starts preparation.
+  It returns the native receipt once. Unknown or malformed state remains an
+  error; it never falls back to an initial request or resolves another root.
+- `keyword-ai-databases`, `keyword-ai-summary` and `keyword-ai-topics` read
+  `aiSeo.GetDatabases`, `aiSeo.GetTopicsSummary` and `aiSeo.GetTopics`. The latter
+  two use the current national report serializer with keyword, database,
+  desktop 0, USD, location 0, current date and optional prepared domain.
+  Unsupported database and access errors do not fall back to the US.
+
+Preparation and status receipts get one boundary validation, while native extra
+fields remain output. Lost or invalid preparation responses require inspecting
+native state before another confirmed request. No background job, automatic
+retry, account preference or new session storage path is introduced.
+
+Keyword Overview, country metrics, ideas, idea totals, SERPs and clusters accept
+an optional prepared root domain. Reads omit an absent domain and never prepare
+it automatically. Current mobile personalization passed natively; monthly
+personalization returned invalid-params, so the relevant schemas reject a
+nonempty date with a domain before authentication. Bulk Analysis keeps its
+existing current desktop domain contract. National SERP client limits now allow
+up to 1,000 rows so native feature rows beyond the first 100 remain accessible;
+the default stays 10 and native requests do not acquire a server-side limit.
+
+Native AI country discovery returned 32 databases. The running-shoes summary
+returned four LLM volume rows and `topics_count:1000`; the topic endpoint returned
+five sample rows with zero volumes. These are native Keyword Overview topic
+samples, not a full AI Toolkit prompt-management or 1,000-topic export contract.

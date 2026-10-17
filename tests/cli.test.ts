@@ -104,6 +104,17 @@ test('keyword refresh previews stay offline, require consent and reject unsuppor
   await expect(cli(['keyword-local-serp-export', '--keyword', 'typescript', '--location-id', '21167'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('--output') });
 });
 
+test('domain preparation previews stay offline and unsupported personalization controls fail before authentication', async () => {
+  const preview = JSON.parse((await cli(['keyword-domain-prepare', '--domain', 'www.example.com', '--dry-run', '--json'])).stdout);
+  expect(preview.request).toEqual({ method: 'POST', path: '/kwogw/v2/webapi', body: { id: 1, jsonrpc: '2.0', method: 'domains.GetStatus', params: { domain: 'www.example.com' } } });
+  await expect(cli(['keyword-domain-prepare', '--domain', 'example.com'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('--confirm') });
+  for (const extra of [[], ['--job-id', '']]) await expect(cli(['keyword-domain-status', '--domain', 'example.com', ...extra])).rejects.toMatchObject({ code: 2, stdout: '' });
+  await expect(cli(['keyword-overview', '--keyword', 'typescript', '--domain', 'example.com', '--date', '202609'])).rejects.toMatchObject({ code: 2, stdout: '' });
+  await expect(cli(['keyword-ai-summary', '--keyword', 'typescript', '--device', 'mobile'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('unknown option') });
+  await expect(cli(['keyword-ai-topics', '--keyword', 'typescript', '--location-id', '21167'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('unknown option') });
+  await expect(cli(['keyword-serp', '--keyword', 'typescript', '--limit', '1001'])).rejects.toMatchObject({ code: 2, stdout: '' });
+});
+
 test('On Page previews stay offline and invalid assignments or unconfirmed writes fail before authentication', async () => {
   const selection = ['--campaign-id', '793', '--landings', '[{"url":"https://example.com/","keywords":["example domain"]}]'];
   const preview = JSON.parse((await cli(['onpage-create', ...selection, '--dry-run', '--json'])).stdout);
@@ -127,8 +138,8 @@ test('Core Web Vitals URL-list previews stay offline and invalid IDs or unconfir
 test('built catalog distinguishes read reports and project writes', async () => {
   const { stdout, stderr } = await cli(['reports', '--json']);
   const listed = JSON.parse(stdout);
-  expect(listed).toHaveLength(323);
-  expect(listed.filter((entry: { read_only: boolean }) => !entry.read_only)).toHaveLength(100);
+  expect(listed).toHaveLength(330);
+  expect(listed.filter((entry: { read_only: boolean }) => !entry.read_only)).toHaveLength(101);
   expect(stderr).toBe('');
 });
 test('invalid usage fails before attempting authentication', async () => {
@@ -157,7 +168,9 @@ test('MCP advertises write safety and previews without an authenticated runtime'
     expect((await client.listResourceTemplates()).resourceTemplates[0]?.uriTemplate).toBe('semrush-export://{export_id}{?offset,limit}');
     await expect(client.readResource({ uri: 'semrush-export://unknown' })).rejects.toThrow('Download an export first');
     const listed = await client.listTools();
-    expect(listed.tools).toHaveLength(323);
+    expect(listed.tools).toHaveLength(330);
+    expect(listed.tools.find(tool => tool.name === 'keyword_domain_prepare')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false, idempotentHint: false });
+    for (const name of ['keyword_domain_suggestions', 'keyword_domain_root', 'keyword_domain_status', 'keyword_ai_databases', 'keyword_ai_summary', 'keyword_ai_topics']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: true });
     expect(listed.tools.find(tool => tool.name === 'project_delete')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
     expect(listed.tools.find(tool => tool.name === 'backlink_audit_disavow_import')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
     expect(listed.tools.find(tool => tool.name === 'backlink_audit_export')?.annotations).toMatchObject({ readOnlyHint: true, idempotentHint: false });
@@ -184,6 +197,9 @@ test('MCP advertises write safety and previews without an authenticated runtime'
     const refreshPreview = await client.callTool({ name: 'keyword_refresh', arguments: { keywords: ['café'], dry_run: true } });
     expect(refreshPreview.isError).not.toBe(true);
     expect(refreshPreview.content).toEqual([{ type: 'text', text: JSON.stringify({ dry_run: true, report: 'keyword_refresh', request: { method: 'POST', path: '/kwogw/v2/webapi', body: { id: 1, jsonrpc: '2.0', method: 'updates.RequestUpdates', params: { phrases: [{ phrase: 'café', database: 'us', location: 0 }] } } } }) }]);
+    const domainPreview = await client.callTool({ name: 'keyword_domain_prepare', arguments: { domain: 'www.example.com', dry_run: true } });
+    expect(domainPreview.isError).not.toBe(true);
+    expect(domainPreview.content).toEqual([{ type: 'text', text: JSON.stringify({ dry_run: true, report: 'keyword_domain_prepare', request: { method: 'POST', path: '/kwogw/v2/webapi', body: { id: 1, jsonrpc: '2.0', method: 'domains.GetStatus', params: { domain: 'www.example.com' } } } }) }]);
     const denied = await client.callTool({ name: 'project_delete', arguments: { folder_id: '123' } });
     expect(denied.isError).toBe(true);
     expect(denied.content).toEqual([{ type: 'text', text: expect.stringContaining('confirm:true') }]);

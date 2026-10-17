@@ -79,7 +79,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 
 ## command surface
 
-323 operations, available as cli commands and mcp tools. 223 reads and 100 writes that need explicit confirmation.
+330 operations, available as cli commands and mcp tools. 229 reads and 101 writes that need explicit confirmation.
 
 | command | what it does |
 | --- | --- |
@@ -92,6 +92,8 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 | `keyword-local-serp-organic-metrics`, `keyword-local-serp-export` | enrich local result urls or download their native table |
 | `keyword-serp-domain-organic-metrics`, `keyword-serp-domain-backlink-metrics` | read organic and backlink metrics for search result domains |
 | `keyword-refresh`, `keyword-refresh-status` | request a confirmed metric refresh or read its status |
+| `keyword-domain-suggestions`, `keyword-domain-root`, `keyword-domain-prepare`, `keyword-domain-status` | discover domains, resolve their roots and prepare personalized metrics |
+| `keyword-ai-databases`, `keyword-ai-summary`, `keyword-ai-topics` | read keyword ai databases, native model volumes and topic samples |
 | `domain-overview`, `domain-keywords`, `domain-competitors` | organic rankings and competing domains |
 | `domain-pages`, `domain-subdomains`, `domain-position-changes` | pages, subdomains and ranking changes |
 | `keyword-gap`, `backlink-gap` | compare domains and find keyword or backlink opportunities |
@@ -213,7 +215,7 @@ semrush keyword-bulk --keywords '["email marketing","email automation"]' --curre
 semrush keyword-product-ads --keyword 'running shoes'
 ```
 
-`keyword-overview`, `keyword-ideas`, `keyword-ideas-summary`, `keyword-serp` and `keyword-ads` accept `--device desktop|mobile`, `--date YYYYMM` and `--currency USD`. desktop, current data and usd are the defaults; use a currency code semrush supports. countries, product ads and the two url metrics commands accept those options too. `keyword-clusters` keeps its existing inputs. bulk commands read current data only and do not accept device or date.
+`keyword-overview`, `keyword-ideas`, `keyword-ideas-summary`, `keyword-serp` and `keyword-ads` accept `--device desktop|mobile`, `--date YYYYMM` and `--currency USD`. desktop, current data and usd are the defaults; use a currency code semrush supports. countries, product ads and the two url metrics commands accept those options too. bulk commands read current data only and do not accept device or date.
 
 bulk inputs are json arrays of one to 100 unique phrases. an optional `--domain` reads personalized metrics already prepared by semrush; it does not start a domain update.
 
@@ -262,6 +264,34 @@ semrush keyword-refresh-status --keywords '["email marketing"]' --location-id 21
 ```
 
 refresh accepts one to 100 unique keywords. omit `--location-id` or use `0` for national data. the cli returns semrush's quota receipt and statuses without retrying or polling. if a refresh response is lost, read its status before submitting another request. mcp exposes these operations with underscores.
+
+prepare a domain before requesting personalized keyword metrics:
+
+```bash
+semrush keyword-domain-suggestions
+semrush keyword-domain-root --domain www.example.com
+semrush keyword-domain-prepare --domain www.example.com --dry-run
+semrush keyword-domain-prepare --domain www.example.com --confirm
+```
+
+preparation resolves the root online and returns `data.domain` plus semrush's `data.preparation` receipt. native status `1` is pending and includes a job id. status `2` is ready and may have no job id. when pending, pass the returned root and non-empty id to a separate status read:
+
+```bash
+semrush keyword-domain-status --domain example.com --job-id '<job_id>'
+semrush keyword-overview --keyword 'email marketing' --domain example.com
+```
+
+preparation and status do not poll or retry automatically. an empty job id is rejected because the native request would start preparation again. keyword overview, countries, ideas, idea totals, serp and clusters accept an optional prepared root domain without preparing it themselves. current mobile personalization is supported; combining a domain with a historical month is rejected. national `keyword-serp --limit` accepts up to 1000 rows and defaults to 10.
+
+read keyword overview's ai volumes and topic samples:
+
+```bash
+semrush keyword-ai-databases
+semrush keyword-ai-summary --keyword 'running shoes' --database us
+semrush keyword-ai-topics --keyword 'running shoes' --database us
+```
+
+these reads use current national data, with an optional prepared `--domain`. use a database from `keyword-ai-databases`. the summary can report a larger topic count than the sample returned by `keyword-ai-topics`; the native topic endpoint returns five samples. these commands do not manage ai toolkit prompts or export the full counted topic set.
 
 ### competitors and backlinks
 
@@ -975,7 +1005,7 @@ npm run check
 
 the cli uses the published [`galleton` 0.1.0 sdk](https://www.npmjs.com/package/galleton). the bundled galleton daemon is still required for sessions. building it from source requires go 1.23 or newer, `tar` and `patch`. published cli packages include the daemon for supported platforms, so npm users do not need go.
 
-the current source passed 262 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
+the current source passed 273 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
 
 ## documentation
 

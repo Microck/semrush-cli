@@ -89,3 +89,11 @@ gets one boundary validation while the original native payload remains output.
 Lost or invalid receipts require a status read; no refresh request is replayed.
 Status reads do not poll. Local SERP exports share the existing export lifecycle
 but have a distinct serializer without national device/date/currency fields.
+
+Domain personalization separates initialization from status reads even though
+both use native `domains.GetStatus`. Initialization resolves the root once and
+requires confirmation. Status reads require a nonempty existing ID and never
+normalize or initialize a replacement. Pending and ready receipts receive one
+boundary validation; output retains native extra fields. Research reads use an
+optional prepared root without implicit initialization. Keyword AI discovery,
+summary and topic samples retain native payloads and database errors.
