@@ -877,3 +877,13 @@ test('project sharing plans preserve native array bodies, explicit roles and opa
   for (const input of invalidInputs) await expect(preview('project_share', { ...input, dry_run: true })).rejects.toThrow();
   await expect(preview('project_share_revoke', { share_ids: ['123'], dry_run: true })).rejects.toThrow();
 });
+
+test('My Reports sharing uses report resources and string IDs in the native grant array', async () => {
+  expect(await preview('reporting_shares', { report_id: 71 })).toEqual({ method: 'GET', path: '/share/json/shares/report/71', body: {} });
+  expect(await preview('reporting_share', { report_id: 71, emails: ['recipient@example.com'], role: 'viewer', dry_run: true })).toEqual({ method: 'POST', path: '/share/json/share/report', body: [{ email: 'recipient@example.com', object_id: '71', role: 'viewer' }] });
+  const share_ids = ['0123456789abcdef01234568'];
+  expect(await preview('reporting_share_set_role', { share_ids, role: 'editor', dry_run: true })).toEqual({ method: 'POST', path: '/share/json/set-role/editor', body: share_ids });
+  expect(await preview('reporting_share_revoke', { share_ids, dry_run: true })).toEqual({ method: 'POST', path: '/share/json/stop-sharing', body: share_ids });
+  await expect(preview('reporting_share', { folder_id: '71', emails: ['recipient@example.com'], role: 'viewer', dry_run: true })).rejects.toThrow();
+  await expect(preview('reporting_share', { report_id: 2147483648, emails: ['recipient@example.com'], role: 'viewer', dry_run: true })).rejects.toThrow();
+});

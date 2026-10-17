@@ -31,7 +31,7 @@ import { makeKeywordResearchFixture, keywordDownloadPath, keywordFixturePhrase }
 import { makeWebVitalsFixture, webVitalsPath, negativeURLId, positiveURLId } from './web-vitals-fixture.js';
 import { makeOnpageFixture, onpagePath, onpagePageId, onpageSnapshotId } from './onpage-fixture.js';
 import { makeOrganicResearchFixture } from './organic-research-fixture.js';
-import { makeProjectSharingFixture } from './project-sharing-fixture.js';
+import { makeSharingFixture } from './sharing-fixture.js';
 
 const exec = promisify(execFile);
 const binary = resolve(`dist/daemon/galleton-${process.platform}-${process.arch}${process.platform === 'win32' ? '.exe' : ''}`);
@@ -76,7 +76,7 @@ const webVitalsFixture = makeWebVitalsFixture();
 const keywordResearchFixture = makeKeywordResearchFixture();
 const onpageFixture = makeOnpageFixture();
 const organicResearchFixture = makeOrganicResearchFixture();
-const projectSharingFixture = makeProjectSharingFixture();
+const sharingFixture = makeSharingFixture();
 const fixtureHandlers = new Map([...archivePaths.map(path => [path, auditArchiveFixture.serve] as const), [folderPath, serveProjectFixture], [savedPath, serveSavedFixture], ['/notes/api/', serveNotesFixture], ['/siteaudit/api/campaigns/789/js-impact/', serveJSImpactFixture], ['/siteaudit/export/js-impact/', serveJSImpactFixture], ['/analytics/keywordmanager/list', mindmapFixture.serve], ['/mindmap-download', mindmapFixture.serve], [auditAuthPath, webBotAuthFixture.serve], ['/my_reports/graphql/', reportingFixture.serve], ['/my_reports/api/v1/', reportingFixture.lifecycle.serve], ['/my_reports/reports/', reportingFixture.lifecycle.serve], [webVitalsPath, webVitalsFixture.serve], [keywordDownloadPath, keywordResearchFixture.serveDownload], [onpagePath, onpageFixture.serve]]);
 /** Serve the native authentication checks separately from report fixtures. */
 function serveAuthenticationFixture(request: IncomingMessage, response: ServerResponse, url: URL): boolean {
@@ -96,7 +96,7 @@ function serveAuthenticationFixture(request: IncomingMessage, response: ServerRe
 const fixture = createServer(async (request, response) => {
   const url = new URL(request.url ?? '/', fixtureURL);
   if (serveAuthenticationFixture(request, response, url)) return;
-  if (url.pathname.startsWith('/share/json/')) { await projectSharingFixture.serve(request, response, url); return; }
+  if (url.pathname.startsWith('/share/json/')) { await sharingFixture.serve(request, response, url); return; }
   const handler = [...fixtureHandlers].find(([prefix]) => url.pathname.startsWith(prefix))?.[1];
   if (handler) { await handler(request, response, url); return; }
   if (url.pathname === '/dpa/rpc') { await organicResearchFixture.serve(request, response); return; }
@@ -310,7 +310,7 @@ test('real browser and Galleton complete the stateful project lifecycle with exa
 
 
 test('real browser and Galleton grant, change and revoke exact project shares', async () => {
-  projectSharingFixture.reset();
+  sharingFixture.reset();
   await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
     const semrush = yield* Semrush;
     const folder = { folder_id: '9223372036854775807' };
@@ -323,21 +323,43 @@ test('real browser and Galleton grant, change and revoke exact project shares', 
     expect((yield* read()).data).toMatchObject({ data: { list: [{ role: 'editor' }], total: 1 } });
     yield* semrush.report(yield* parseReport('project_share_revoke', share));
     expect((yield* read()).data).toMatchObject({ data: { list: [], total: 0 } });
-    expect(projectSharingFixture.writes()).toBe(3);
+    expect(sharingFixture.writes()).toBe(3);
   }).pipe(Effect.provide(fixtureLayer()))));
 }, 30000);
 
-test('project sharing rejects denied, lost and incomplete receipts without replaying writes', async () => {
+test('sharing rejects denied, lost and incomplete receipts without replaying writes', async () => {
   await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
     const semrush = yield* Semrush;
-    for (const scenario of ['denied', 'create-lost', 'receipt-missing', 'receipt-partial']) {
-      projectSharingFixture.reset(scenario);
-      const folder = { folder_id: '9223372036854775807' };
-      const error = yield* semrush.report(yield* parseReport('project_share', { ...folder, emails: ['recipient@example.com'], role: 'viewer', confirm: true })).pipe(Effect.flip);
-      expect(error.message).toContain('project-shares');
-      expect(projectSharingFixture.writes()).toBe(1);
-      expect((yield* semrush.report(yield* parseReport('project_shares', folder))).data).toMatchObject({ data: { total: scenario === 'denied' ? 0 : 1 } });
+    for (const report of [false, true]) {
+      for (const scenario of ['denied', 'create-lost', 'receipt-missing', 'receipt-partial']) {
+        sharingFixture.reset(scenario);
+        const target: Query = report ? { report_id: 71 } : { folder_id: '9223372036854775807' };
+        const error = yield* semrush.report(yield* parseReport(report ? 'reporting_share' : 'project_share', { ...target, emails: ['recipient@example.com'], role: 'viewer', confirm: true })).pipe(Effect.flip);
+        expect(error.message).toContain(report ? 'reporting-shares' : 'project-shares');
+        expect(sharingFixture.writes()).toBe(1);
+        expect((yield* semrush.report(yield* parseReport(report ? 'reporting_shares' : 'project_shares', target))).data).toMatchObject({ data: { total: scenario === 'denied' ? 0 : 1 } });
+      }
     }
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+test('report sharing preserves project access while changing only the selected report share', async () => {
+  sharingFixture.reset();
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const semrush = yield* Semrush;
+    const grant = { emails: ['recipient@example.com'], role: 'viewer', confirm: true };
+    const project = { folder_id: '9223372036854775807' };
+    const report = { report_id: 71 };
+    yield* semrush.report(yield* parseReport('project_share', { ...project, ...grant }));
+    expect((yield* semrush.report(yield* parseReport('reporting_share', { ...report, ...grant }))).data).toMatchObject({ is_success: true, data: { list: [{ share_id: '0123456789abcdef01234568' }] } });
+    const selected = { share_ids: ['0123456789abcdef01234568'], confirm: true };
+    yield* semrush.report(yield* parseReport('reporting_share_set_role', { ...selected, role: 'editor' }));
+    expect((yield* semrush.report(yield* parseReport('reporting_shares', report))).data).toMatchObject({ data: { list: [{ role: 'editor' }], total: 1 } });
+    yield* semrush.report(yield* parseReport('reporting_share_revoke', selected));
+    expect((yield* semrush.report(yield* parseReport('reporting_shares', report))).data).toMatchObject({ data: { list: [], total: 0 } });
+    expect((yield* semrush.report(yield* parseReport('project_shares', project))).data).toMatchObject({ data: { list: [{ share_id: '0123456789abcdef01234567', role: 'viewer' }], total: 1 } });
+    yield* semrush.report(yield* parseReport('project_share_revoke', { share_ids: ['0123456789abcdef01234567'], confirm: true }));
+    expect(sharingFixture.writes()).toBe(5);
   }).pipe(Effect.provide(fixtureLayer()))));
 }, 30000);
 

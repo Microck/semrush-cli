@@ -75,6 +75,26 @@ Downloading reads an existing PDF. It does not generate another report. The
 output file must not already exist. MCP returns an artifact resource containing
 the same PDF bytes. See [file resources](/docs/mcp#file-exports-and-resources).
 
+## Share a report
+
+Sharing grants viewer or editor access and sends a notification to each recipient:
+
+```sh
+semrush reporting-shares --report-id 123 --json
+semrush reporting-share --report-id 123 --emails '["person@example.com"]' --role viewer --dry-run
+semrush reporting-share --report-id 123 --emails '["person@example.com"]' --role viewer --confirm
+```
+
+Existing share IDs are in `data.data.list[].share_id`. Replace the example below
+with an exact share ID when changing permissions or revoking access:
+
+```sh
+semrush reporting-share-set-role --share-ids '["0123456789abcdef01234567"]' --role editor --confirm
+semrush reporting-share-revoke --share-ids '["0123456789abcdef01234567"]' --confirm
+```
+
+Sharing does not generate a PDF or change the report's delivery schedule.
+
 ## Find and delete reports
 
 The overview returns up to 30 reports, newest update first. Keep filters the same

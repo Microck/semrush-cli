@@ -161,3 +161,74 @@ Use `--confirm` to send the change or `--dry-run` to preview it.
 | `--report-ids` | array |  | Required. Exact saved report IDs from reporting-overview. |
 | `--confirm` | boolean | `false` | Confirm this account mutation. |
 | `--dry-run` | boolean | `false` | Print the request without sending it. |
+
+## reporting-shares
+
+Read a report's shared access, including exact share IDs and roles.
+
+```sh
+semrush reporting-shares --help
+```
+
+MCP tool: `reporting_shares`.
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `--report-id` | integer |  | Required.  |
+
+## reporting-share
+
+Grant report access and send sharing notifications to the specified email addresses.
+
+```sh
+semrush reporting-share --help
+```
+
+MCP tool: `reporting_share`.
+
+Use `--confirm` to send the change or `--dry-run` to preview it.
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `--report-id` | integer |  | Required.  |
+| `--emails` | array |  | Required. Recipients who will receive access and sharing notifications. |
+| `--role` | string |  | Required. Explicit permission for every selected share. Values: `"viewer"`, `"editor"`. |
+| `--confirm` | boolean | `false` | Confirm this account mutation. |
+| `--dry-run` | boolean | `false` | Print the request without sending it. |
+
+## reporting-share-set-role
+
+Change viewer/editor permissions for existing report shares.
+
+```sh
+semrush reporting-share-set-role --help
+```
+
+MCP tool: `reporting_share_set_role`.
+
+Use `--confirm` to send the change or `--dry-run` to preview it.
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `--share-ids` | array |  | Required. Exact share_id strings from reporting-shares, not report IDs. |
+| `--role` | string |  | Required. Explicit permission for every selected share. Values: `"viewer"`, `"editor"`. |
+| `--confirm` | boolean | `false` | Confirm this account mutation. |
+| `--dry-run` | boolean | `false` | Print the request without sending it. |
+
+## reporting-share-revoke
+
+Revoke existing report shares and remove the recipients' access.
+
+```sh
+semrush reporting-share-revoke --help
+```
+
+MCP tool: `reporting_share_revoke`.
+
+Use `--confirm` to send the change or `--dry-run` to preview it.
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `--share-ids` | array |  | Required. Exact share_id strings from reporting-shares, not report IDs. |
+| `--confirm` | boolean | `false` | Confirm this account mutation. |
+| `--dry-run` | boolean | `false` | Print the request without sending it. |

@@ -3,11 +3,12 @@ import { text } from 'node:stream/consumers';
 import { expect } from 'vitest';
 
 interface Share { email: string; role: string; share_id: string; is_free: boolean; }
+interface StoredShare extends Share { scope: string; }
 interface SharePage { list: Omit<Share, 'role'>[]; offset: number; total: number; }
 
 /** Native SharingModal arrays and envelopes, served through authenticated HTTP. */
-export function makeProjectSharingFixture() {
-  let shares: Share[] = [];
+export function makeSharingFixture() {
+  let shares: StoredShare[] = [];
   let writes = 0;
   let scenario = '';
   const reset = (nextScenario = '') => { shares = []; writes = 0; scenario = nextScenario; };
@@ -18,32 +19,41 @@ export function makeProjectSharingFixture() {
     const denied = () => response.end(JSON.stringify({ is_success: false, errors: ['Sharing access denied'], data: null }));
     const path = url.pathname;
     if (request.method === 'GET') {
-      expect(path).toBe('/share/json/shares/project-smb/9223372036854775807');
+      expect(path).toMatch(/^\/share\/json\/shares\/(?:project-smb\/9223372036854775807|report\/71)$/);
+      const scope = path.split('/').at(-2);
+      const list = shares.filter(entry => entry.scope === scope).map(({ scope: _scope, ...entry }) => entry);
       expect([...url.searchParams]).toEqual([]);
-      send({ list: shares, offset: 0, total: shares.length }); return;
+      send({ list, offset: 0, total: list.length }); return;
     }
     expect(request.method).toBe('POST');
     expect(request.headers['content-type']).toContain('application/json');
     writes++;
     if (scenario === 'denied') { denied(); return; }
     const body: unknown = JSON.parse(await text(request));
-    if (path === '/share/json/share/project-smb') {
-      expect(body).toEqual([{ email: 'recipient@example.com', object_id: '9223372036854775807', role: 'viewer' }]);
-      shares.push({ email: 'recipient@example.com', role: 'viewer', share_id: '0123456789abcdef01234567', is_free: true });
+    if (path.startsWith('/share/json/share/')) {
+      const scope = path.split('/').at(-1) ?? '';
+      expect(['project-smb', 'report']).toContain(scope);
+      const report = scope === 'report';
+      expect(body).toEqual([{ email: 'recipient@example.com', object_id: report ? '71' : '9223372036854775807', role: 'viewer' }]);
+      const created = { scope, email: 'recipient@example.com', role: 'viewer', share_id: report ? '0123456789abcdef01234568' : '0123456789abcdef01234567', is_free: true };
+      shares.push(created);
       if (scenario === 'create-lost') { request.socket.destroy(); return; }
       if (scenario === 'receipt-missing') { response.end(JSON.stringify({ is_success: true })); return; }
       if (scenario === 'receipt-partial') { send({ list: [], offset: 0, total: 0 }); return; }
-      send({ list: shares.map(({ role: _role, ...entry }) => entry), offset: 0, total: shares.length }); return;
+      const { scope: _scope, role: _role, ...receipt } = created;
+      send({ list: [receipt], offset: 0, total: 1 }); return;
     }
-    expect(body).toEqual(['0123456789abcdef01234567']);
+    const selected = shares.filter(entry => Array.isArray(body) && body.includes(entry.share_id));
+    expect(selected).toHaveLength(1);
+    expect(body).toEqual(selected.map(entry => entry.share_id));
     if (path.startsWith('/share/json/set-role/')) {
       const role = path.split('/').at(-1);
       expect(role).toBe('editor');
-      shares = shares.map(entry => ({ ...entry, role: 'editor' }));
+      shares = shares.map(entry => selected.includes(entry) ? { ...entry, role: 'editor' } : entry);
       send(null); return;
     }
     expect(path).toBe('/share/json/stop-sharing');
-    shares = [];
+    shares = shares.filter(entry => !selected.includes(entry));
     send(null);
   };
   return { serve, reset, writes: () => writes };

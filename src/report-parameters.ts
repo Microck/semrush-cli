@@ -520,8 +520,8 @@ export function webRequest(definition: Report, query: Query): WebRequest {
   const path = definition.method.replace(/\{([a-z_]+)\}/g, (_match, key: string) => encodeURIComponent(String(identifiers[key])));
   if (definition.transport === 'sharing_web') {
     // Sharing takes arrays at the top level, unlike the folder settings API.
-    const body = definition.http_method === 'GET' ? {} : definition.method.endsWith('/share/project-smb')
-      ? (Array.isArray(query.emails) ? query.emails : []).map(email => ({ email, object_id: query.folder_id ?? null, role: query.role ?? null }))
+    const body = definition.http_method === 'GET' ? {} : 'sharing_id_field' in definition
+      ? (Array.isArray(query.emails) ? query.emails : []).map(email => ({ email, object_id: String(query[definition.sharing_id_field]), role: query.role ?? null }))
       : query.share_ids ?? [];
     return { method: definition.http_method, path, body };
   }

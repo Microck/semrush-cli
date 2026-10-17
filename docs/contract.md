@@ -924,6 +924,27 @@ acknowledgment and timezone, without reading account state or saving a document.
 
 `reporting-delete --report-ids '[123]' --confirm` permanently deletes the explicitly selected My Reports documents through the native fixed DeleteReports mutation. It requires a nonempty array of unique positive 32-bit report IDs and a literal true receipt. A missing, false or lost receipt is an error; deletion is never retried. Inspect reporting-overview before any further deletion.
 
+### Sharing
+
+The native report Share dialog uses `/share/json/objects/report` and
+`/share/json/shares/report/{report_id}`. `reporting-shares --report-id <id>` reads
+that report's access list. `reporting-share --report-id <id> --emails
+'["person@example.com"]' --role viewer|editor --confirm` posts one entry per
+recipient to `/share/json/share/report`. Entries contain `email`, the report ID
+as a string in `object_id`, and the explicit `role`. This grants access and sends
+sharing notifications. Report IDs remain positive 32-bit integers at the public
+CLI/MCP boundary, matching other reporting commands.
+
+`reporting-share-set-role --share-ids '["0123456789abcdef01234567"]' --role
+viewer|editor --confirm` and `reporting-share-revoke --share-ids
+'["0123456789abcdef01234567"]' --confirm` use the same native role/revocation
+endpoints as project sharing. They require exact 24-character `share_id` values,
+not report IDs. Responses preserve the native sharing envelope and require
+literal `is_success: true`; grants also require a distinct receipt for each
+recipient. Missing, partial or lost write receipts never cause a retry. Read
+`reporting-shares` before another write. No sharing operation generates a report,
+changes its delivery schedule or sends a PDF by email.
+
 ## Core Web Vitals
 
 Eight Site Audit operations expose the native `page-speed-metrics` service:

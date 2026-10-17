@@ -723,6 +723,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     } else if (name === 'backlink_audit_import' && planned) {
       reportData = yield* importBacklinks(query, planned);
     } else if (planned) {
+      const sharingReadback = name.startsWith('reporting_') ? 'reporting-shares' : 'project-shares';
       const prepared = yield* prepareWebRequest({ name, definition, query }, planned);
       requestSecrets = auditSecrets(prepared.body);
       if (objectValue(prepared.body) && Predicate.isString(prepared.body.display_hash)) requestSecrets.push(prepared.body.display_hash);
@@ -734,16 +735,16 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       const wireResponseType = responseType === 'empty' ? 'empty' : 'json';
       reportData = yield* request(prepared.path, prepared.body, prepared.method, prepared.headers, wireResponseType, prepared).pipe(
         Effect.mapError(error => {
-          if (family === 'sharing_web' && definition.mutation) return confirmedWriteError(error, ' Project sharing may have changed and was not retried. Inspect project-shares before another write.');
+          if (family === 'sharing_web' && definition.mutation) return confirmedWriteError(error, ` Sharing may have changed and was not retried. Inspect ${sharingReadback} before another write.`);
           if (family === 'onpage_web' && definition.mutation) return new ReportError({ message: error.message + ' This On Page write was not confirmed and may have committed. Inspect onpage-info, onpage-settings or onpage-pages before another write.' });
           return family === 'reporting_web' && definition.mutation ? confirmedWriteError(error, ' The reporting action may have committed and was not retried. Inspect reporting-overview, reporting-get and reporting-tasks before another write.') : error;
         }),
       );
       if (family === 'tracking_web') reportData = yield* successfulEnvelope(reportData, requestSecrets);
       if (family === 'sharing_web') {
-        const invalidReceipt = () => new ReportError({ message: 'Semrush did not confirm the project sharing request. Inspect project-shares before another write; the request was not retried.' });
+        const invalidReceipt = () => new ReportError({ message: `Semrush did not confirm the sharing request. Inspect ${sharingReadback} before another write; the request was not retried.` });
         yield* Schema.decodeUnknownEffect(Schema.Struct({ is_success: Schema.Literal(true) }))(reportData).pipe(Effect.mapError(invalidReceipt));
-        if (name === 'project_share') {
+        if ('sharing_id_field' in definition) {
           const receipt = yield* Schema.decodeUnknownEffect(Schema.Struct({ data: Schema.Struct({ list: Schema.Array(Schema.Struct({ share_id: Schema.String.check(Schema.isPattern(/^[0-9a-f]{24}(?![\s\S])/)) })) }) }))(reportData).pipe(Effect.mapError(invalidReceipt));
           if (receipt.data.list.length !== (Array.isArray(query.emails) ? query.emails.length : 0) || new Set(receipt.data.list.map(entry => entry.share_id)).size !== receipt.data.list.length) return yield* Effect.fail(invalidReceipt());
         }
