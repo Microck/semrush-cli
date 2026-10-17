@@ -42,9 +42,23 @@ matched. A later MCP export differed in 17 Backlinks cells; every other cell and
 non-timestamp workbook entry matched. Byte identity across separate jobs is not
 claimed for that report.
 
-The Fumadocs TypeScript check and production build passed on Raft. Public
-release verification is still pending. No account projects, lists or
-preferences were changed by this research pass.
+The Fumadocs TypeScript check and production build passed on Raft.
+[CI run 39007730731](https://github.com/Microck/semrush-cli/actions/runs/39007730731)
+passed all five jobs, including packed-package setup on Linux, macOS and
+Windows. CI, GitHub and public npm archives have identical SHA-256
+`95797a23d61fde6feba6a5ab1112b25b0cd9058f220c90bfec8a65c3734663f4`.
+
+A fresh installation of those release bytes passed the same 17 native
+CLI/MCP read comparisons, five strict export comparisons and separate CLI/MCP
+SERP domain XLSX transfer checks. A clean public-registry installation reports
+0.30.0 and passes authenticated doctor. npm serves 0.30.0 as latest; the main
+installed command also reports 0.30.0. Published coverage, keyword research,
+command reference and Site Audit pages passed mobile checks without page
+errors or horizontal overflow.
+
+No account projects, lists or preferences were changed by this research pass.
+The original project remained available. Full Semrush suite parity is still
+incomplete; the coverage page lists remaining workflows and native access gates.
 
 ## Version 0.29.0 Core Web Vitals
 
