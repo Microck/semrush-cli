@@ -84,8 +84,43 @@ replace other options with their defaults unless you supply them again.
 Passwords never appear in previews or returned credential fields. MCP accepts
 `auth_password` directly as a write-only string.
 
-Google Analytics and Web Bot Auth connections still require the web UI.
-The CLI refuses settings replacement while either connection exists.
+## Audit a site with Web Bot Auth
+
+Obtain the three header values from the service that authorizes your crawler.
+Store them in a JSON file with restricted permissions:
+
+```json
+{
+  "signature_agent": "<Signature-Agent>",
+  "signature_input": "<Signature-Input>",
+  "signature": "<Signature>"
+}
+```
+
+```sh
+semrush audit-configure --campaign-id 456 --domain example.com \
+  --page-limit 100 --web-bot-auth-enabled true \
+  --web-bot-auth-file web-bot-auth.json --confirm
+```
+
+Use `audit-create` for a fresh audit. All three nonempty, single-line values are
+required when creating, enabling or replacing credentials. Use `-` as the file
+path to read JSON from stdin. MCP accepts the same object as `web_bot_auth`.
+Previews and returned credential fields redact all three values.
+
+For an audit that already uses Web Bot Auth, explicitly pass
+`--web-bot-auth-enabled true` without a credential file to keep its saved
+headers. If Semrush cannot return the header metadata needed for retention,
+the command fails before saving. Supply all three values to replace them, or
+pass `--web-bot-auth-enabled false` to disable this authentication.
+
+The CLI does not create, renew or validate signatures. Check their expiry and
+the target site's verification rules before starting a crawl. Settings edits
+use defaults for other omitted options. HTTP Basic authentication has its own
+explicit keep/disable choice when both methods are enabled.
+
+Google Analytics connections still require the web UI. The CLI refuses settings
+replacement while that connection exists.
 
 ## Start and inspect
 
@@ -228,6 +263,12 @@ The protected-audit pass uploaded a one-URL list through both the native UI and
 the CLI/MCP request. A ten-page cap finished at six pages, including HTTP 200
 for the protected HTML page. Credential creation, replacement, retention and
 explicit disabling passed readbacks. The owned projects were deleted afterward.
+
+Web Bot Auth passed source CLI enabling, MCP retention and native settings
+readback on a new owned audit. Its ten-page crawl finished at five pages,
+including HTTP 200 for a protected page whose server verified an Ed25519
+signature. Independent unsigned and invalid-signature requests returned 401.
+MCP replacement and re-enabling, CLI disabling and settings readbacks passed.
 
 The comparison download and default snapshot order follow the current
 [native export module](https://static.semrush.com/siteaudit/review/3909.2dd2f158589125911115.js).

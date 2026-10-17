@@ -4024,7 +4024,7 @@
   },
   "audit_configure": {
     "method": "/siteaudit/api/campaigns/{campaign_id}/save",
-    "description": "Replace Site Audit settings without starting a crawl. Defaults to manual scheduling and no email. HTTP basic auth is supported; existing Web Bot Auth and Google Analytics connections require the web UI.",
+    "description": "Replace Site Audit settings without starting a crawl. Defaults to manual scheduling and no email. Supports HTTP Basic and Web Bot Auth credentials with explicit retention or disabling. Google Analytics connections require the web UI.",
     "transport": "audit_web",
     "total_method": "",
     "web_report": "",
@@ -4197,6 +4197,38 @@
           "pattern": "^[^\\r\\n]+$",
           "writeOnly": true,
           "description": "HTTP basic-auth password. CLI reads --auth-password-file PATH, or - for stdin; never a command argument value."
+        },
+        "web_bot_auth_enabled": {
+          "type": "boolean",
+          "description": "Enable Web Bot Auth. Choose true to retain existing credentials, or false to explicitly disable it on an authenticated audit."
+        },
+        "web_bot_auth": {
+          "type": "object",
+          "additionalProperties": false,
+          "writeOnly": true,
+          "description": "Complete native Signature-Agent, Signature-Input and Signature header values. CLI reads --web-bot-auth-file PATH or - for stdin. Supply all fields together when creating or replacing credentials.",
+          "properties": {
+            "signature_agent": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[^\\r\\n]+(?![\\s\\S])"
+            },
+            "signature_input": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[^\\r\\n]+(?![\\s\\S])"
+            },
+            "signature": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[^\\r\\n]+(?![\\s\\S])"
+            }
+          },
+          "required": [
+            "signature_agent",
+            "signature_input",
+            "signature"
+          ]
         }
       },
       "required": [
@@ -4254,6 +4286,23 @@
             "properties": {
               "crawl_source_url": {
                 "const": ""
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "web_bot_auth"
+            ]
+          },
+          "then": {
+            "required": [
+              "web_bot_auth_enabled"
+            ],
+            "properties": {
+              "web_bot_auth_enabled": {
+                "const": true
               }
             }
           }
@@ -4436,6 +4485,38 @@
           "pattern": "^[^\\r\\n]+$",
           "writeOnly": true,
           "description": "HTTP basic-auth password. CLI reads --auth-password-file PATH, or - for stdin; never a command argument value."
+        },
+        "web_bot_auth_enabled": {
+          "type": "boolean",
+          "description": "Enable Web Bot Auth. Choose true to retain existing credentials, or false to explicitly disable it on an authenticated audit."
+        },
+        "web_bot_auth": {
+          "type": "object",
+          "additionalProperties": false,
+          "writeOnly": true,
+          "description": "Complete native Signature-Agent, Signature-Input and Signature header values. CLI reads --web-bot-auth-file PATH or - for stdin. Supply all fields together when creating or replacing credentials.",
+          "properties": {
+            "signature_agent": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[^\\r\\n]+(?![\\s\\S])"
+            },
+            "signature_input": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[^\\r\\n]+(?![\\s\\S])"
+            },
+            "signature": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[^\\r\\n]+(?![\\s\\S])"
+            }
+          },
+          "required": [
+            "signature_agent",
+            "signature_input",
+            "signature"
+          ]
         }
       },
       "required": [
@@ -4513,6 +4594,40 @@
                 "const": ""
               }
             }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "web_bot_auth"
+            ]
+          },
+          "then": {
+            "required": [
+              "web_bot_auth_enabled"
+            ],
+            "properties": {
+              "web_bot_auth_enabled": {
+                "const": true
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "web_bot_auth_enabled"
+            ],
+            "properties": {
+              "web_bot_auth_enabled": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "web_bot_auth"
+            ]
           }
         }
       ]

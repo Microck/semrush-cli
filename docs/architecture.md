@@ -45,3 +45,12 @@ This is a current feature extension, not a compatibility shim or an alternate cr
 Only fixed Semrush endpoints and catalog RPC methods are exposed. Mutations require explicit confirmation or a credential-free dry run before the browser is acquired. Users cannot supply a URL, auth field, JavaScript snippet or arbitrary RPC method. The local Galleton API is authenticated and loopback-only. CDP imports accept literal loopback HTTP origins. Durable state lives outside the repository. The CLI never exports browser cookies. MCP exposes only catalog research and account tools, not login or daemon management.
 
 Provider report data can contain nested objects and provider errors. Secret fields and known secret strings are redacted before output. Raw browser and SDK failures stop at their adapters. Account limits and permission errors remain failures, never empty datasets.
+
+Site Audit settings replace the native configuration. Existing HTTP Basic and
+Web Bot Auth credentials therefore require an explicit keep or disable choice.
+Retaining Web Bot Auth reads current Signature-Agent and Signature-Input once;
+an empty native Signature retains the provider's masked stored signature.
+Missing authentication metadata fails before the save. Full replacements take
+all three headers through one write-only object, whose values are redacted in
+previews, responses and provider errors. Google Analytics connections remain
+guarded until their connection-preserving contract is verified.

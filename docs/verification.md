@@ -1,5 +1,31 @@
 # Verification
 
+## Version 0.26.0 Web Bot Auth
+
+The catalog remains at 275 operations, 186 reads and 89 confirmed writes.
+TypeScript, Oxlint, generated references, all five bundled daemon targets and
+211 tests passed on Raft. Three independent simplification reviewers found no
+changes needed. Stateful HTTP fixtures cover creation, retention, replacement,
+explicit disabling, independent HTTP Basic choices, missing metadata, provider
+business errors and redaction. CLI tests cover JSON files and stdin, offline
+previews and invalid input before authentication.
+
+A fresh native settings read on an owned disabled audit returned null Web Bot
+Auth header fields. The first live source configuration failed at the boundary
+before saving. The metadata schema and fixture now represent those native nulls;
+retaining enabled authentication still requires nonempty Agent/Input strings.
+The full source check passed again after this correction.
+
+An isolated owned HTTPS site verifies Ed25519 signatures and returns HTTP 401
+for unsigned or invalid requests and HTTP 200 for a valid signature. Source CLI
+enabling and MCP retention passed. Native settings readback confirmed the saved
+Agent/Input values. An omitted authentication choice failed before saving.
+With manual scheduling, notifications disabled and a ten-page cap, Semrush's
+crawl finished at five pages. The protected page returned HTTP 200 and its
+title was `web bot auth signature verified`.
+Source MCP replacement and re-enabling, CLI disabling, false/true settings
+readbacks and authenticated doctor also passed.
+
 ## Version 0.25.0 native mind-map images
 
 The catalog contains 275 operations, 186 reads and 89 confirmed writes.

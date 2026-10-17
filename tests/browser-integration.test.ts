@@ -25,6 +25,7 @@ import { makeBacklinkAuditFixture } from './backlink-audit-fixture.js';
 import { makeAuditArchiveFixture, archivePaths } from './audit-archive-fixture.js';
 import { unzipSync } from 'fflate';
 import { makeMindmapFixture } from './mindmap-fixture.js';
+import { makeWebBotAuthFixture, auditAuthPath } from './web-bot-auth-fixture.js';
 
 const exec = promisify(execFile);
 const binary = resolve(`dist/daemon/galleton-${process.platform}-${process.arch}${process.platform === 'win32' ? '.exe' : ''}`);
@@ -63,7 +64,8 @@ const serveNotesFixture = makeNotesFixture();
 const backlinkAuditFixture = makeBacklinkAuditFixture();
 const auditArchiveFixture = makeAuditArchiveFixture();
 const mindmapFixture = makeMindmapFixture();
-const fixtureHandlers = new Map([...archivePaths.map(path => [path, auditArchiveFixture.serve] as const), [folderPath, serveProjectFixture], [savedPath, serveSavedFixture], ['/notes/api/', serveNotesFixture], ['/siteaudit/api/campaigns/789/js-impact/', serveJSImpactFixture], ['/siteaudit/export/js-impact/', serveJSImpactFixture], ['/analytics/keywordmanager/list', mindmapFixture.serve], ['/mindmap-download', mindmapFixture.serve]]);
+const webBotAuthFixture = makeWebBotAuthFixture();
+const fixtureHandlers = new Map([...archivePaths.map(path => [path, auditArchiveFixture.serve] as const), [folderPath, serveProjectFixture], [savedPath, serveSavedFixture], ['/notes/api/', serveNotesFixture], ['/siteaudit/api/campaigns/789/js-impact/', serveJSImpactFixture], ['/siteaudit/export/js-impact/', serveJSImpactFixture], ['/analytics/keywordmanager/list', mindmapFixture.serve], ['/mindmap-download', mindmapFixture.serve], [auditAuthPath, webBotAuthFixture.serve]]);
 /** Serve the native authentication checks separately from report fixtures. */
 function serveAuthenticationFixture(request: IncomingMessage, response: ServerResponse, url: URL): boolean {
   if (url.pathname === '/robots.txt') { response.end('User-agent: *\nDisallow: /'); return true; }
@@ -84,7 +86,7 @@ const fixture = createServer(async (request, response) => {
   if (serveAuthenticationFixture(request, response, url)) return;
   const handler = [...fixtureHandlers].find(([prefix]) => url.pathname.startsWith(prefix))?.[1];
   if (handler) { await handler(request, response, url); return; }
-  if (url.pathname === '/siteaudit/api/campaigns/seolist') { response.setHeader('Content-Type', 'application/json'); response.end(JSON.stringify(auditConfigured ? [{ id: 789 }] : [])); return; }
+  if (url.pathname === '/siteaudit/api/campaigns/seolist') { response.setHeader('Content-Type', 'application/json'); response.end(JSON.stringify([...(auditConfigured ? [{ id: 789 }] : []), ...webBotAuthFixture.campaigns()])); return; }
   if (url.pathname.startsWith('/siteaudit/export/')) {
     expect(url.searchParams.get('key')).toBe('fixture-secret');
     expect(url.searchParams.get('export')).toBe('csv');
@@ -405,10 +407,10 @@ test('real multipart uploads and protected audit edits preserve credentials and 
       expect([auditUsername, auditPassword]).toEqual(['private-user', 'private-password']);
       const info = yield* semrush.report(yield* parseReport('audit_info', { campaign_id: 789 }));
       expect(JSON.stringify(info.data)).not.toContain('private-password');
-      for (const connection of ['ga', 'bot'] satisfies ('ga' | 'bot')[]) {
+      for (const [connection, message] of [['ga', 'web UI'], ['bot', '--web-bot-auth-enabled']] as const) {
         auditOtherConnection = connection;
         const failure = yield* semrush.report(yield* parseReport('audit_configure', { ...settings, auth_enabled: false })).pipe(Effect.flip);
-        expect(failure.message).toContain('web UI'); expect(auditProtected).toBe(true);
+        expect(failure.message).toContain(message); expect(auditProtected).toBe(true);
       }
       auditOtherConnection = null; auditRejectPassword = true;
       const failure = yield* semrush.report(yield* parseReport('audit_configure', protectedSettings)).pipe(Effect.flip);
@@ -421,6 +423,72 @@ test('real multipart uploads and protected audit edits preserve credentials and 
     auditConfigured = previous.configured; auditStarted = previous.started; auditProtected = previous.protected;
     auditUsername = ''; auditPassword = ''; auditRejectPassword = false; auditOtherConnection = null;
   }
+}, 30000);
+
+test('Web Bot Auth creation, retention, replacement and disabling preserve protected audit state', async () => {
+  webBotAuthFixture.reset();
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const semrush = yield* Semrush;
+      const settings = { campaign_id: 791, domain: 'example.com', page_limit: 10, confirm: true };
+      const original = { signature_agent: 'private-agent', signature_input: 'private-input', signature: 'private-signature' };
+      const enabled = { ...settings, web_bot_auth_enabled: true };
+      const created = yield* semrush.report(yield* parseReport('audit_create', { ...enabled, web_bot_auth: original }));
+      expect(created.data).toMatchObject({ webBotAuthEnabled: true, echo: ['[redacted]', '[redacted]', '[redacted]'] });
+      expect(webBotAuthFixture.state().headers).toEqual({ webBotAuthSignatureAgent: original.signature_agent,
+        webBotAuthSignatureInput: original.signature_input, webBotAuthSignature: original.signature });
+      const saves = webBotAuthFixture.state().saves;
+      const implicitDisable = yield* semrush.report(yield* parseReport('audit_configure', settings)).pipe(Effect.flip);
+      expect(implicitDisable.message).toContain('--web-bot-auth-enabled'); expect(webBotAuthFixture.state().saves).toBe(saves);
+      const retained = yield* semrush.report(yield* parseReport('audit_configure', enabled));
+      expect(retained.data).toMatchObject({ webBotAuthEnabled: true, echo: ['[redacted]', '[redacted]', ''] });
+      expect(webBotAuthFixture.state().headers?.webBotAuthSignature).toBe(original.signature);
+      const replacement = { signature_agent: 'replacement-agent', signature_input: 'replacement-input', signature: 'replacement-signature' };
+      yield* semrush.report(yield* parseReport('audit_configure', { ...enabled, web_bot_auth: replacement }));
+      webBotAuthFixture.metadata('headers_missing');
+      const beforeMissing = webBotAuthFixture.state().saves;
+      const missingHeaders = yield* semrush.report(yield* parseReport('audit_configure', enabled)).pipe(Effect.flip);
+      expect(missingHeaders.message).toContain('header metadata is unavailable'); expect(webBotAuthFixture.state().saves).toBe(beforeMissing);
+      // A complete replacement does not depend on retaining unreadable old headers.
+      yield* semrush.report(yield* parseReport('audit_configure', { ...enabled, web_bot_auth: replacement }));
+      webBotAuthFixture.metadata('complete'); webBotAuthFixture.basicAuth(true);
+      const beforeBasic = webBotAuthFixture.state().saves;
+      const implicitBasicDisable = yield* semrush.report(yield* parseReport('audit_configure', enabled)).pipe(Effect.flip);
+      expect(implicitBasicDisable.message).toContain('--auth-enabled'); expect(webBotAuthFixture.state().saves).toBe(beforeBasic);
+      yield* semrush.report(yield* parseReport('audit_configure', { ...enabled, auth_enabled: true }));
+      const info = yield* semrush.report(yield* parseReport('audit_info', { campaign_id: 791 }));
+      expect(info.data).toMatchObject({ webBotAuthEnabled: true, authEnabled: true, status: 'FINISHED' });
+      for (const value of [...Object.values(original), ...Object.values(replacement)]) expect(JSON.stringify(info.data)).not.toContain(value);
+      for (const key of ['webBotAuthSignatureAgent', 'webBotAuthSignatureInput', 'webBotAuthSignature']) expect(info.data).not.toHaveProperty(key);
+      yield* semrush.report(yield* parseReport('audit_configure', { ...settings, auth_enabled: true, web_bot_auth_enabled: false }));
+      expect(webBotAuthFixture.state()).toMatchObject({ basic: true, headers: undefined, saves: 6 });
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { webBotAuthFixture.reset(); }
+}, 30000);
+
+test('Web Bot Auth failures hide every header and refuse unknown authentication metadata before saving', async () => {
+  webBotAuthFixture.reset();
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const semrush = yield* Semrush;
+      const settings = { campaign_id: 791, domain: 'example.com', page_limit: 10, confirm: true };
+      yield* semrush.report(yield* parseReport('audit_create', settings));
+      const incomplete = yield* semrush.report(yield* parseReport('audit_configure', { ...settings, web_bot_auth_enabled: true })).pipe(Effect.flip);
+      expect(incomplete.message).toContain('all three header values');
+      webBotAuthFixture.rejectSave(true);
+      const credentials = { signature_agent: 'private-agent', signature_input: 'private-input', signature: 'private-signature' };
+      const selection = { ...settings, web_bot_auth_enabled: true, web_bot_auth: credentials };
+      const rejected = yield* semrush.report(yield* parseReport('audit_configure', selection)).pipe(Effect.flip);
+      expect(rejected.message).toContain('[redacted]');
+      for (const value of Object.values(credentials)) expect(rejected.message).not.toContain(value);
+      expect(webBotAuthFixture.state()).toMatchObject({ headers: undefined, saves: 1 });
+      webBotAuthFixture.metadata('auth_missing');
+      const unknown = yield* semrush.report(yield* parseReport('audit_configure', selection)).pipe(Effect.flip);
+      expect(unknown.message).toContain('authentication metadata is unavailable'); expect(webBotAuthFixture.state().saves).toBe(1);
+      webBotAuthFixture.metadata('complete');
+      expect((yield* semrush.report(yield* parseReport('audit_info', { campaign_id: 791 }))).data).toMatchObject({ webBotAuthEnabled: false });
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { webBotAuthFixture.reset(); }
 }, 30000);
 
 // The real HTTP fixture exercises cookie-only writes, legacy key queries and array payloads.

@@ -41,6 +41,29 @@ test('password input supports stdin and rejects an empty value before authentica
   expect(empty).toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('must NOT have fewer') });
 });
 
+test('Web Bot Auth JSON files and stdin keep all headers out of CLI previews', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'semrush-webbot-input-'));
+  const credentials = { signature_agent: 'private-agent', signature_input: 'private-input', signature: 'private-signature' };
+  const args = ['audit-create', '--campaign-id', '123', '--domain', 'example.com', '--page-limit', '10', '--web-bot-auth-enabled', '--web-bot-auth-file'];
+  try {
+    const file = join(directory, 'headers.json');
+    await writeFile(file, JSON.stringify(credentials) + '\n');
+    const saved = await cli([...args, file, '--dry-run', '--json']);
+    expect(JSON.parse(saved.stdout).request.body).toMatchObject({ webBotAuthEnabled: true,
+      webBotAuthSignatureAgent: '[redacted]', webBotAuthSignatureInput: '[redacted]', webBotAuthSignature: '[redacted]' });
+    for (const value of Object.values(credentials)) expect(saved.stdout + saved.stderr).not.toContain(value);
+    const fromStdin = await new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
+      const child = execFile(process.execPath, ['dist/cli.js', ...args, '-', '--dry-run', '--json'],
+        { env: { ...process.env, SEMRUSH_GALLETON_TOKEN_FILE: '/nonexistent-semrushtest-token' } },
+        (error, stdout, stderr) => error ? reject(error) : resolve({ stdout, stderr }));
+      child.stdin?.end(JSON.stringify(credentials) + '\r\n');
+    });
+    expect(JSON.parse(fromStdin.stdout)).toEqual(JSON.parse(saved.stdout));
+    await writeFile(file, '{invalid private-signature');
+    await expect(cli([...args, file, '--dry-run'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('expects valid JSON') });
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
 test('interrupting an active stdin read exits without exposing the partial password', async () => {
   const child = spawn(process.execPath, ['dist/cli.js', 'audit-create', '--campaign-id', '123', '--domain', 'example.com', '--page-limit', '1', '--auth-enabled', '--auth-username', 'user', '--auth-password-file', '-', '--dry-run'], { stdio: 'pipe' });
   const exited = once(child, 'exit');

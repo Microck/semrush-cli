@@ -330,11 +330,19 @@ export function webRequest(definition: Report, query: Query): WebRequest {
   };
 }
 
+/** Keep secret object structure so native field mapping remains accurate in offline previews. */
+const inputObject = (value: Schema.Json | undefined): value is Schema.JsonObject => Predicate.isObject(value) && !Array.isArray(value);
+function redactInput(value: Schema.Json | undefined): Schema.Json {
+  if (Array.isArray(value)) return value.map(redactInput);
+  if (inputObject(value)) return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, redactInput(item)]));
+  return '[redacted]';
+}
+
 export function previewMutation(name: string, definition: Report, query: Query) {
   if (!definition.mutation || query.dry_run !== true) return undefined;
   const visible = { ...query };
   for (const [key, property] of Object.entries(definition.schema.properties)) {
-    if ('writeOnly' in property && property.writeOnly === true && key in visible) visible[key] = '[redacted]';
+    if ('writeOnly' in property && property.writeOnly === true && key in visible) visible[key] = redactInput(visible[key]);
   }
   return { dry_run: true, report: name, request: webRequest(definition, visible) };
 }
@@ -433,6 +441,7 @@ function auditParameters(definition: Report, q: Query): Query {
     return parameters;
   }
   const paths = (value: Schema.Json | undefined) => Array.isArray(value) ? [...new Set(value.map(path => String(path).startsWith('/') ? String(path) : '/' + String(path)))] : [];
+  const webBotAuth = Object.assign({ signature_agent: '', signature_input: '', signature: '' }, q.web_bot_auth);
   return {
     domain: q.domain ?? null, rootDomain: q.domain ?? null,
     pageLimit: q.page_limit ?? null, scheduleDay: q.schedule_day ?? 0, notify: q.notify ?? false,
@@ -443,7 +452,8 @@ function auditParameters(definition: Report, q: Query): Query {
     allow: paths(q.allow), disallow: paths(q.disallow), withSubfolder: Array.isArray(q.allow) && q.allow.length === 1,
     removedParameters: q.removed_parameters ?? [], excludedChecks: q.excluded_checks ?? [],
     authEnabled: q.auth_enabled ?? false, authUsername: q.auth_username ?? '', authPassword: q.auth_password ?? '', gaSettings: {}, gaStatus: '',
-    webBotAuthEnabled: false, webBotAuthSignatureAgent: '', webBotAuthSignatureInput: '', webBotAuthSignature: '',
+    webBotAuthEnabled: q.web_bot_auth_enabled ?? false, webBotAuthSignatureAgent: webBotAuth.signature_agent,
+    webBotAuthSignatureInput: webBotAuth.signature_input, webBotAuthSignature: webBotAuth.signature,
   };
 }
 

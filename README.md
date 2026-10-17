@@ -694,7 +694,30 @@ semrush audit-configure --campaign-id 456 --domain example.com --page-limit 100 
 
 `audit-create` accepts the same auth flags. use `--auth-password-file -` to read stdin. passwords are redacted in previews. when editing a protected audit, pass `--auth-enabled true` without credentials to keep them, or `--auth-enabled false` to disable authentication. changing credentials requires both username and password.
 
-`audit-configure` replaces settings; include everything you want to retain. google analytics and web bot auth connections still block settings replacement. see the [site audit guide](https://semrush.micr.dev/docs/site-audit) for the full settings.
+for web bot auth, save the complete header values supplied by the website owner in a json file:
+
+```json
+{
+  "signature_agent": "<complete Signature-Agent value>",
+  "signature_input": "<complete Signature-Input value>",
+  "signature": "<complete Signature value>"
+}
+```
+
+replace those placeholders, then enable it with the file:
+
+```bash
+semrush audit-configure --campaign-id 456 --domain example.com --page-limit 100 \
+  --web-bot-auth-enabled true --web-bot-auth-file web-bot-auth.json --confirm
+```
+
+`audit-create` accepts the same flags. use `--web-bot-auth-file -` to read stdin. mcp takes a `web_bot_auth` object directly. all three fields are redacted in previews and responses. the cli does not create or renew third-party signatures.
+
+when editing an audit that already uses web bot auth, pass `--web-bot-auth-enabled true` without a file to retain the stored credentials, or `false` to disable it. retention fails before saving if the current header metadata is missing. enabling or replacing credentials requires all three header values together and `true`.
+
+live source cli and mcp checks on raft verified enabling, retaining, replacing and disabling web bot auth. a five-page test crawl reached a protected endpoint that verified the signature; missing or invalid signatures returned http 401.
+
+`audit-configure` replaces settings; include everything else you want to retain. google analytics connections still block settings replacement. editing settings does not start a crawl. see the [site audit guide](https://semrush.micr.dev/docs/site-audit) for the full settings.
 
 inspect pages and issues after the crawl, then download a report:
 
@@ -795,7 +818,7 @@ npm run check
 
 the cli uses the published [`galleton` 0.1.0 sdk](https://www.npmjs.com/package/galleton). the bundled galleton daemon is still required for sessions. building it from source requires go 1.23 or newer, `tar` and `patch`. published cli packages include the daemon for supported platforms, so npm users do not need go.
 
-the current source passed 206 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
+the current source passed 211 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
 
 ## documentation
 

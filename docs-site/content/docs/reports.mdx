@@ -1357,7 +1357,7 @@ Requires `--confirm`. Use `--dry-run` to inspect the request without sending it.
 
 ## audit-configure
 
-Replace Site Audit settings without starting a crawl. Defaults to manual scheduling and no email. HTTP basic auth is supported; existing Web Bot Auth and Google Analytics connections require the web UI.
+Replace Site Audit settings without starting a crawl. Defaults to manual scheduling and no email. Supports HTTP Basic and Web Bot Auth credentials with explicit retention or disabling. Google Analytics connections require the web UI.
 
 ```sh
 semrush audit-configure --help
@@ -1389,6 +1389,8 @@ Requires `--confirm`. Use `--dry-run` to inspect the request without sending it.
 | `--auth-enabled` | boolean |  |  |
 | `--auth-username` | string |  |  |
 | `--auth-password-file` | file path or - for stdin |  |  |
+| `--web-bot-auth-enabled` | boolean |  |  |
+| `--web-bot-auth-file` | file path or - for stdin |  |  |
 
 ## audit-create
 
@@ -1424,6 +1426,8 @@ Requires `--confirm`. Use `--dry-run` to inspect the request without sending it.
 | `--auth-enabled` | boolean |  |  |
 | `--auth-username` | string |  |  |
 | `--auth-password-file` | file path or - for stdin |  |  |
+| `--web-bot-auth-enabled` | boolean |  |  |
+| `--web-bot-auth-file` | file path or - for stdin |  |  |
 
 ## audit-pages
 

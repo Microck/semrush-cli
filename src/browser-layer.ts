@@ -22,6 +22,8 @@ const json = JSONbig({ storeAsString: true, protoAction: 'error', constructorAct
 const safeBrowserError = () => new ReportError({ message: 'Semrush browser request failed. Run semrush doctor. If your session expired, sign in again with semrush auth login.' });
 const browserCall = <A>(run: () => Promise<A>) => Effect.tryPromise({ try: run, catch: safeBrowserError });
 const objectValue = (value: Schema.Json | undefined): value is Schema.JsonObject => Predicate.isObject(value) && !Array.isArray(value);
+const auditSecrets = (value: Schema.Json) => objectValue(value)
+  ? [value.authPassword, value.webBotAuthSignatureAgent, value.webBotAuthSignatureInput, value.webBotAuthSignature].filter(Predicate.isString) : [];
 
 /** JSON never passes through the browser's number parser, preserving 64-bit IDs. */
 export function parseWire(text: string): Schema.Json { return Schema.decodeUnknownSync(Schema.Json)(json.parse(text)); }
@@ -29,7 +31,7 @@ export function parseWire(text: string): Schema.Json { return Schema.decodeUnkno
 /** Remove credential fields and echoed secrets, including nested provider errors. */
 export function redact(value: Schema.Json, secrets: string[]): Schema.Json {
   if (Array.isArray(value)) return value.map(item => redact(item, secrets));
-  if (objectValue(value)) return Object.fromEntries(Object.entries(value).filter(([key]) => !/^(api_?key|key|user_?id|access_token|refresh_token|authorization|cookie|set-cookie|hashes|display_hash|rnd|password|auth_?password|auth_?username|webBotAuthSignature)$/i.test(key)).map(([key, item]) => [key, redact(item, secrets)]));
+  if (objectValue(value)) return Object.fromEntries(Object.entries(value).filter(([key]) => !/^(api_?key|key|user_?id|access_token|refresh_token|authorization|cookie|set-cookie|hashes|display_hash|rnd|password|auth_?password|auth_?username|webBotAuthSignature(?:Agent|Input)?)$/i.test(key)).map(([key, item]) => [key, redact(item, secrets)]));
   if (Predicate.isString(value)) return secrets.filter(secret => secret.length > 0).reduce((text, secret) => text.replaceAll(secret, '[redacted]'), value);
   return value;
 }
@@ -73,7 +75,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
   const semaphore = yield* Semaphore.make(1);
   let spectrumToken = '';
   const request = Effect.fn('Semrush.request')(function* (path: string, payload: Schema.Json, method = 'POST', extraHeaders: Record<string, string> = {}, responseType: 'json' | 'empty' = 'json', file?: WebRequest['file']) {
-    const secrets = [auth.apiKey, spectrumToken, spectrumToken.replace(/^Bearer /, ''), objectValue(payload) && Predicate.isString(payload.display_hash) ? payload.display_hash : '', objectValue(payload) && Predicate.isString(payload.authPassword) ? payload.authPassword : ''];
+    const secrets = [auth.apiKey, spectrumToken, spectrumToken.replace(/^Bearer /, ''), objectValue(payload) && Predicate.isString(payload.display_hash) ? payload.display_hash : '', ...auditSecrets(payload)];
     // Chromium fetch can replay a POST after a connection reset. The context's
     // HTTP client shares its cookie jar and gives us an explicit no-retry contract.
     const wire = yield* browserCall(async () => {
@@ -210,7 +212,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     ).pipe(Effect.mapError(() => new ReportError({ message: 'Backlink Audit did not acknowledge the CSV import. Read backlink-audit-status before retrying; the finish request was not retried.' })));
     return { file: uploaded.file, result };
   });
-  const checkAuditSettings = Effect.fn('Semrush.checkAuditSettings')(function* (name: string, query: Query) {
+  const auditBody = Effect.fn('Semrush.auditBody')(function* (name: string, query: Query, body: Schema.Json) {
     if (name === 'audit_abort' || name === 'audit_finalize') {
       const states = yield* request('/siteaudit/private/polling', { campaignIds: String(query.campaign_id), key: auth.apiKey }, 'GET');
       const state = Array.isArray(states) ? states.find(state => objectValue(state) && String(state.id) === String(query.campaign_id)) : undefined;
@@ -223,12 +225,25 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     }
     // The audit save endpoint replaces settings, including protected-site credentials.
     if (name === 'audit_configure') {
-      const current = yield* request(`/siteaudit/api/campaigns/${query.campaign_id}/info?key=${encodeURIComponent(auth.apiKey)}`, {}, 'GET');
-      if (objectValue(current) && Predicate.isString(current.projectDomain) && current.projectDomain !== query.domain) return yield* Effect.fail(new ReportError({ message: 'The audit domain must match the SEO project website. Inspect audit-info for projectDomain before configuring it.' }));
-      if (objectValue(current) && (Boolean(current.webBotAuthEnabled) || (objectValue(current.gaSettings) && Object.keys(current.gaSettings).length > 0))) return yield* Effect.fail(new ReportError({ message: 'This audit uses Web Bot Auth or Google Analytics. Edit its settings in the Semrush web UI to preserve those connections.' }));
-      if (objectValue(current) && current.authEnabled && query.auth_enabled === undefined) return yield* Effect.fail(new ReportError({ message: 'This audit uses protected-site authentication. Set --auth-enabled true to keep it, or false to explicitly disable it.' }));
-      if (objectValue(current) && !current.authEnabled && query.auth_enabled === true && !query.auth_password) return yield* Effect.fail(new ReportError({ message: 'Enabling HTTP authentication requires both auth_username and auth_password. Supply the password through --auth-password-file.' }));
+      const current = yield* Schema.decodeUnknownEffect(Schema.Struct({
+        projectDomain: Schema.String, authEnabled: Schema.Boolean, webBotAuthEnabled: Schema.Boolean,
+        gaSettings: Schema.NullOr(Schema.Record(Schema.String, Schema.Json)),
+        webBotAuthSignatureAgent: Schema.optionalKey(Schema.NullOr(Schema.String)), webBotAuthSignatureInput: Schema.optionalKey(Schema.NullOr(Schema.String)),
+      }))(yield* request(`/siteaudit/api/campaigns/${query.campaign_id}/info?key=${encodeURIComponent(auth.apiKey)}`, {}, 'GET'))
+        .pipe(Effect.mapError(() => new ReportError({ message: 'Site Audit authentication metadata is unavailable. Inspect audit-info before configuring it. No settings were saved.' })));
+      if (current.projectDomain !== query.domain) return yield* Effect.fail(new ReportError({ message: 'The audit domain must match the SEO project website. Inspect audit-info for projectDomain before configuring it.' }));
+      if (current.gaSettings && Object.keys(current.gaSettings).length > 0) return yield* Effect.fail(new ReportError({ message: 'This audit uses Google Analytics. Edit its settings in the Semrush web UI to preserve that connection.' }));
+      if (current.authEnabled && query.auth_enabled === undefined) return yield* Effect.fail(new ReportError({ message: 'This audit uses protected-site authentication. Set --auth-enabled true to keep it, or false to explicitly disable it.' }));
+      if (!current.authEnabled && query.auth_enabled === true && !query.auth_password) return yield* Effect.fail(new ReportError({ message: 'Enabling HTTP authentication requires both auth_username and auth_password. Supply the password through --auth-password-file.' }));
+      if (current.webBotAuthEnabled && query.web_bot_auth_enabled === undefined) return yield* Effect.fail(new ReportError({ message: 'This audit uses Web Bot Auth. Set --web-bot-auth-enabled true to keep it, or false to explicitly disable it.' }));
+      if (query.web_bot_auth_enabled === true && query.web_bot_auth === undefined) {
+        if (!current.webBotAuthEnabled) return yield* Effect.fail(new ReportError({ message: 'Enabling Web Bot Auth requires all three header values. Supply them through --web-bot-auth-file.' }));
+        if (!current.webBotAuthSignatureAgent || !current.webBotAuthSignatureInput) return yield* Effect.fail(new ReportError({ message: 'Stored Web Bot Auth header metadata is unavailable. Supply all three values through --web-bot-auth-file. No settings were saved.' }));
+        // Only Signature is masked by the provider; its empty value retains that stored credential.
+        return Object.assign({}, body, { webBotAuthSignatureAgent: current.webBotAuthSignatureAgent, webBotAuthSignatureInput: current.webBotAuthSignatureInput });
+      }
     }
+    return body;
   });
   /** Native CSV jobs return a filename; endpoint account metadata stays inside the adapter. */
   const backlinkAuditCSV = Effect.fn('Semrush.backlinkAuditCSV')(function* (query: Query, params: Query): Effect.fn.Return<ExportDownload, ReportError> {
@@ -453,13 +468,13 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       if (!objectValue(current) || !objectValue(current.folder)) return yield* Effect.fail(new ReportError({ message: 'Project metadata unavailable. Inspect the project before adding a website.' }));
       if (Predicate.isString(current.folder.domain) && current.folder.domain.length > 0) return yield* Effect.fail(new ReportError({ message: 'This project already has a website. The Semrush web UI only allows adding a website when none is set.' }));
     }
-    if (family === 'audit_web') yield* checkAuditSettings(name, query);
     const authParameter = family === 'audit_web' ? 'key' : 'auth_parameter' in definition ? definition.auth_parameter : '';
     const path = authParameter ? planned.path + '?' + new URLSearchParams({ [authParameter]: auth.apiKey }) : planned.path;
     const formEncoded = 'encoding' in planned && planned.encoding === 'form';
     const headers: Record<string, string> = family === 'notes_web' && !formEncoded ? { authorization: 'Token ' + auth.apiKey } : {};
     if (formEncoded) return { ...planned, path, headers, body: { token: auth.apiKey } };
-    const body = family === 'tracking_web' ? yield* targetBody(name, query, yield* trackingBody(definition, query, planned.body))
+    const body = family === 'audit_web' ? yield* auditBody(name, query, planned.body)
+      : family === 'tracking_web' ? yield* targetBody(name, query, yield* trackingBody(definition, query, planned.body))
       : family === 'notes_web' ? yield* noteBody(name, path, planned.body) : planned.body;
     return { ...planned, path, headers, body };
   });
@@ -494,14 +509,15 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       return { authenticated: true as const, report: name, data: null, artifact };
     }
     let reportData: Schema.Json | undefined;
-    let requestSecret = "";
+    let requestSecrets: string[] = [];
     if (name === 'backlink_audit_replace_scope') {
       reportData = yield* replaceBacklinkAuditScope(params);
     } else if (name === 'backlink_audit_import' && planned) {
       reportData = yield* importBacklinks(query, planned);
     } else if (planned) {
       const prepared = yield* prepareWebRequest({ name, definition, query }, planned);
-      if (objectValue(prepared.body) && 'display_hash' in prepared.body && Predicate.isString(prepared.body.display_hash)) requestSecret = prepared.body.display_hash;
+      requestSecrets = auditSecrets(prepared.body);
+      if (objectValue(prepared.body) && Predicate.isString(prepared.body.display_hash)) requestSecrets.push(prepared.body.display_hash);
       if (responseType === 'download') {
         const artifact = yield* Effect.scoped(downloadExport({ kind: 'file', request: prepared, headers: prepared.headers }, query.format, exports));
         yield* captureCookies(context, sessions.capture, browserOrigin);
@@ -553,7 +569,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     }
     if (Predicate.isNumber(query.limit) && Array.isArray(reportData)) reportData = reportData.slice(0, query.limit);
     yield* captureCookies(context, sessions.capture, browserOrigin);
-    return { authenticated: true as const, report: name, data: redact(reportData ?? null, [auth.apiKey, spectrumToken, spectrumToken.replace(/^Bearer /, ''), requestSecret, Predicate.isString(query.auth_password) ? query.auth_password : '']) };
+    return { authenticated: true as const, report: name, data: redact(reportData ?? null, [auth.apiKey, spectrumToken, spectrumToken.replace(/^Bearer /, ''), ...requestSecrets]) };
   });
   return Semrush.of({ account: { email: email ?? null }, report: request => semaphore.withPermits(1)(report(request)) });
 }));

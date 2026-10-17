@@ -92,8 +92,9 @@ a crawl. Before creation, `audit-info` returns HTTP 404.
 
 `audit-configure` replaces an existing site configuration. Include every
 setting you want to retain; omitted settings take their schema defaults. It
-requires an explicit `auth_enabled` choice for a protected audit. Google
-Analytics and Web Bot Auth connections remain protected from replacement.
+requires an explicit `auth_enabled` or `web_bot_auth_enabled` choice when that
+authentication is already enabled. Google Analytics connections remain protected
+from replacement.
 `audit-start --campaign-id <id> --confirm` launches with the saved settings and
 consumes crawl allowance. Defaults are manual scheduling and email disabled.
 Explicit recurring schedules create future runs; `--notify` enables emails.
@@ -102,7 +103,7 @@ Explicit recurring schedules create future runs; `--notify` enables emails.
 and `audit-snapshot` inspect campaigns and results. Snapshot IDs are opaque
 strings, unlike numeric campaign IDs. Use the exact returned string. All writes
 require confirmation and support a dry run before authentication. Detailed
-issue/page tables and stop controls are documented below. Connected integrations remain in the web UI.
+issue/page tables and stop controls are documented below. Google Analytics connections remain in the web UI.
 
 ## Position Tracking
 
@@ -356,14 +357,38 @@ do not expose a separate name that the provider ignores.
 Credential updates require both fields and `auth_enabled:true`. A protected
 audit edit requires an explicit `auth_enabled` choice; true with omitted
 credentials sends the native empty-field keep-existing request, while false
-explicitly disables authentication. Existing Google Analytics and Web Bot Auth
-connections remain protected from settings replacement.
+explicitly disables authentication. Existing Google Analytics connections remain
+protected from settings replacement.
 
 The CLI reads `auth_password` through `--auth-password-file <path>`; `-` reads
 stdin. It removes one final line ending and preserves other whitespace. MCP
 accepts the string directly with JSON Schema `writeOnly:true`. Passwords are
 redacted in dry runs, provider errors and successful responses; protected-site
 credential fields are never returned by report reads.
+
+Web Bot Auth uses `web_bot_auth_enabled` and the write-only `web_bot_auth`
+object. Its required fields are `signature_agent`, `signature_input` and
+`signature`, containing the website owner's complete native header values.
+CLI reads that JSON object from `--web-bot-auth-file <path>` or stdin with `-`;
+MCP accepts the object directly. All three values are hidden in previews,
+provider errors and report responses. The CLI does not create, refresh or
+validate a third party's cryptographic signature.
+
+Creation and enabling on an unprotected audit require the complete object.
+Credential replacement is atomic: all three fields must be supplied together,
+with `web_bot_auth_enabled:true`. Editing an existing Web Bot Auth audit requires
+an explicit true or false choice. True without a credential object retains the
+current Signature-Agent and Signature-Input and sends the native empty
+Signature value to keep the stored signature. Missing retention metadata fails
+before saving. Disabled audits can return null header fields; retaining enabled
+authentication still requires nonempty Agent/Input strings. False explicitly
+disables Web Bot Auth. Settings replacement still applies defaults to the other
+options unless supplied again.
+
+The native save payload uses `webBotAuthEnabled`, `webBotAuthSignatureAgent`,
+`webBotAuthSignatureInput` and `webBotAuthSignature`. No audit is started by a
+settings edit, no write is retried, and HTTP Basic authentication keeps its
+separate explicit-choice contract. Google Analytics settings are not replaced.
 
 `audit-urls-upload` sends a text or CSV URL list through native multipart POST
 `/siteaudit/api/campaigns/{campaign_id}/settings/urls/upload?key=<runtime-key>`.

@@ -23,7 +23,7 @@ parity. The table distinguishes implemented workflows from remaining gaps.
 | Projects | Create, inspect, rename, add first domain, delete, leave, tags and pinning | Sharing invitations and account administration |
 | Project dashboard | Toolkit status, metric values and detail URLs | Third-party integration setup |
 | SEO setup | Create an SEO project and explicitly start automatic Site Audit/Position Tracking setup | Connected-service audit setup |
-| Site Audit | Discovery, limits, settings, HTTP Basic authentication, uploaded URL lists, schedules, launch, page and issue tables, page recrawl, execution status, abort/finalize, structure, performance, linking, history, snapshots, page, issue-matrix, markup, issue and Compare Crawls CSV/XLSX exports; JS Impact guide, changed-page count, filtered pages and CSV/XLSX exports; All reports ZIP with native files and a manifest | Google Analytics and Web Bot Auth connections; crawled-links downloads |
+| Site Audit | Discovery, limits, settings, HTTP Basic and Web Bot Auth authentication, uploaded URL lists, schedules, launch, page and issue tables, page recrawl, execution status, abort/finalize, structure, performance, linking, history, snapshots, page, issue-matrix, markup, issue and Compare Crawls CSV/XLSX exports; JS Impact guide, changed-page count, filtered pages and CSV/XLSX exports; All reports ZIP with native files and a manifest | Google Analytics connections; crawled-links downloads |
 | Position Tracking | Target creation, destructive replacement/deletion, complete tracked keyword/tag reads, locations, limits, keyword add/delete/tags, competitor replacement, partial address/business/brand/volume settings edits, campaign settings reads, alert listing/counts, rule lifecycle, confirmed event detail/read-state changes and deletion, rankings, pages, ranking distribution, competitor discovery, target comparison, visibility/distribution/cannibalization trends | Tier 3 crawl schedules, AI-target brand matching and clearing, paid-only UI exports |
 | Keyword Strategy Builder | Domain strategy lifecycle, presets, filtered page opportunities, page URLs/SERPs, existing/recommended keywords, keyword deletion and CSV/XLSX exports; seed-based basket lifecycle, topics/pages, paginated clusters, favorites, selected-cluster deletion and metric refresh, keyword import, tags, deletion/undo, clustering, four native export selections and owner-aware selected keyword/cluster copy/move; send selected phrases to tracking; native JPG/PNG mind-map downloads | Content generation |
 | Saved Keywords | Create, rename, delete/undo collections; keyword import, filters, metrics, tags, workflow labels, copy/move, deletion/undo, metadata and CSV/semicolon CSV/XLSX exports; send selected phrases to tracking | Content generation |
@@ -36,7 +36,7 @@ for Magic, Gap, Saved Keywords and the builder.
 
 ## Verification
 
-The source suite has 206 tests, including real Chromium, a private Galleton
+The source suite has 211 tests, including real Chromium, a private Galleton
 daemon and stateful HTTP fixtures. All 48 original research mappings also have
 differential tests against the Python reference. Across versioned live passes,
 all 186 reads have execution evidence. Page/issue-matrix and markup exports
@@ -61,6 +61,13 @@ Native mind-map JPG and PNG downloads matched Semrush's own image bytes through
 source and fresh public npm CLI and MCP. Both images were 4336 x 2228 pixels. Default JPG, native
 filenames, MIME types, sizes, resource reads and authenticated doctor passed.
 The image operation uses the provider's renderer and does not generate content.
+
+Web Bot Auth passed source CLI enabling, MCP retention and native header
+readback. A ten-page owned audit finished at five pages and read the protected
+page with HTTP 200. Its server verified the Ed25519 signature; unsigned and
+invalid requests returned 401. Source MCP replacement and re-enabling, CLI
+disabling and settings readbacks passed. Missing metadata has stateful HTTP
+fixture coverage.
 
 The write checks combine native UI/API execution and real CLI/MCP calls; the
 versioned record identifies each pass. Shared-project leave has request-contract
@@ -164,3 +171,16 @@ matching and clearing remain unverified. Backlink Audit supports brand clearing.
 Notes also have a native URL-validation quirk documented in the
 [notes guide](/docs/notes). No subscription was purchased, outreach sent or
 third-party service connected during verification.
+
+## Native PDF access
+
+Keyword Overview and Organic Research offer native Export to PDF controls.
+They remain unsupported by the CLI. Inspection used the same authenticated
+Guru session as the verified research commands.
+
+Keyword Overview opened My Reports. Its native account metadata reported Tier 2,
+three available Essential reports and an unaccepted privacy acknowledgment.
+No report was created, privacy setting accepted or email sent. Organic Research
+instead displayed an export limit and an upgrade prompt in that session. These
+are distinct native access conditions; neither proves that the CLI used a
+different account. Separate chart-image downloads were not verified.

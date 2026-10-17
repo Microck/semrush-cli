@@ -32,6 +32,37 @@ test('crawl URL uploads use the native multipart file field without configuring 
   await expect(preview('audit_create', { campaign_id: 123, domain: 'example.com', page_limit: 1, crawl_source_type: 3, crawl_source_url: 'semrush-crawl-urls.txt', dry_run: true })).rejects.toThrow('constant');
 });
 
+test('Web Bot Auth uses the native headers and preserves secret structure in offline previews', async () => {
+  const credentials = { signature_agent: 'private-agent', signature_input: 'private-input', signature: 'private-signature' };
+  const input = { campaign_id: 123, domain: 'example.com', page_limit: 10, web_bot_auth_enabled: true, web_bot_auth: credentials, dry_run: true };
+  const parsed = await Effect.runPromise(parseReport('audit_create', input));
+  expect(webRequest(parsed.definition, parsed.query).body).toMatchObject({ webBotAuthEnabled: true,
+    webBotAuthSignatureAgent: credentials.signature_agent, webBotAuthSignatureInput: credentials.signature_input, webBotAuthSignature: credentials.signature });
+  const hidden = previewMutation(parsed.name, parsed.definition, parsed.query);
+  expect(hidden?.request.body).toMatchObject({ webBotAuthEnabled: true,
+    webBotAuthSignatureAgent: '[redacted]', webBotAuthSignatureInput: '[redacted]', webBotAuthSignature: '[redacted]' });
+  for (const value of Object.values(credentials)) expect(JSON.stringify(hidden)).not.toContain(value);
+  expect(input.web_bot_auth).toEqual(credentials);
+  expect((await preview('audit_configure', { campaign_id: 123, domain: 'example.com', page_limit: 10, web_bot_auth_enabled: true, dry_run: true })).body)
+    .toMatchObject({ webBotAuthEnabled: true, webBotAuthSignatureAgent: '', webBotAuthSignatureInput: '', webBotAuthSignature: '' });
+});
+
+test('Web Bot Auth rejects incomplete credentials, header injection and implicit enabling before authentication', async () => {
+  const base = { campaign_id: 123, domain: 'example.com', page_limit: 10, dry_run: true };
+  const credentials = { signature_agent: 'agent', signature_input: 'input', signature: 'signature' };
+  const invalid: Query[] = [
+    { web_bot_auth_enabled: true }, { web_bot_auth: credentials },
+    { web_bot_auth_enabled: false, web_bot_auth: credentials },
+    { web_bot_auth_enabled: true, web_bot_auth: { signature: 'signature' } },
+    { web_bot_auth_enabled: true, web_bot_auth: { ...credentials, signature_input: 'input\r\ninjected: header' } },
+    // JavaScript's $ also matches before a final newline; header validation must reach the true end.
+    { web_bot_auth_enabled: true, web_bot_auth: { ...credentials, signature_agent: 'agent\n' } },
+    { web_bot_auth_enabled: true, web_bot_auth: { ...credentials, signature: 'signature\r' } },
+    { web_bot_auth_enabled: true, web_bot_auth: { ...credentials, extra: 'unknown' } },
+  ];
+  for (const selection of invalid) await expect(preview('audit_create', { ...base, ...selection })).rejects.toThrow('Invalid audit_create');
+});
+
 test('Position Tracking creation matches the web wizard without billing or emails', async () => {
   expect(await preview('position_create', { project_id: 123, domain: 'example.com', keywords: ['example domain'], location_id: 2840, dry_run: true })).toEqual({
     method: 'POST', path: '/tracking/web-api/management/123/create_targets', body: {
