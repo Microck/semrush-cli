@@ -1,6 +1,6 @@
 # Architecture
 
-The CLI and stdio MCP share a catalog of 284 operations, 194 reads and 90 writes,
+The CLI and stdio MCP share a catalog of 292 operations, 202 reads and 90 writes,
 and one Semrush Effect service. Input validation populates defaults before
 credential-bearing resources are acquired. The browser layer owns a transient
 Chromium context, reads page bootstrap metadata without evaluating page-owned
@@ -14,6 +14,13 @@ Disposal aborts an interrupted download while leaving the report client usable.
 Both paths disable network retries because Chromium fetch can silently replay
 a committed POST after a connection reset. Artifact files retain the provider's
 bytes and remain private to the runtime.
+
+Keyword exports start one native job, validate its private receipt and call
+`export.Wait` before downloading from the fixed Keyword Overview route. Only
+the native numeric pending code 0 permits two further wait checks; creation
+and transport failures never retry. The scoped export stage has a 90-second
+deadline and redacts job identifiers from errors. Country metrics and the
+selected-country overview share one native table without synthesizing totals.
 
 Mind-map images use a separate scoped renderer page at the fixed Keyword
 Strategy Builder route. Semrush's own client renders and downloads the image;

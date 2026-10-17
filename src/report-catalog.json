@@ -32,9 +32,30 @@
         },
         "database": {
           "default": "us",
-          "pattern": "^[a-z]{2}$",
+          "pattern": "^[a-z]{2}(?![\\s\\S])",
           "title": "Database",
           "type": "string"
+        },
+        "device": {
+          "type": "string",
+          "enum": [
+            "desktop",
+            "mobile"
+          ],
+          "default": "desktop",
+          "description": "Native desktop or mobile search results."
+        },
+        "date": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(?:|[0-9]{4}(?:0[1-9]|1[0-2]))(?![\\s\\S])",
+          "description": "Monthly YYYYMM snapshot; empty selects the current data. Account access applies."
+        },
+        "currency": {
+          "type": "string",
+          "default": "USD",
+          "pattern": "^[A-Z]{3}(?![\\s\\S])",
+          "description": "Three-letter currency code supported by Semrush."
         }
       },
       "required": [
@@ -64,7 +85,7 @@
         },
         "database": {
           "default": "us",
-          "pattern": "^[a-z]{2}$",
+          "pattern": "^[a-z]{2}(?![\\s\\S])",
           "title": "Database",
           "type": "string"
         },
@@ -79,6 +100,27 @@
           "minimum": 1,
           "title": "Limit",
           "type": "integer"
+        },
+        "device": {
+          "type": "string",
+          "enum": [
+            "desktop",
+            "mobile"
+          ],
+          "default": "desktop",
+          "description": "Native desktop or mobile search results."
+        },
+        "date": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(?:|[0-9]{4}(?:0[1-9]|1[0-2]))(?![\\s\\S])",
+          "description": "Monthly YYYYMM snapshot; empty selects the current data. Account access applies."
+        },
+        "currency": {
+          "type": "string",
+          "default": "USD",
+          "pattern": "^[A-Z]{3}(?![\\s\\S])",
+          "description": "Three-letter currency code supported by Semrush."
         }
       },
       "required": [
@@ -108,7 +150,7 @@
         },
         "database": {
           "default": "us",
-          "pattern": "^[a-z]{2}$",
+          "pattern": "^[a-z]{2}(?![\\s\\S])",
           "title": "Database",
           "type": "string"
         },
@@ -116,6 +158,27 @@
           "default": false,
           "title": "Questions Only",
           "type": "boolean"
+        },
+        "device": {
+          "type": "string",
+          "enum": [
+            "desktop",
+            "mobile"
+          ],
+          "default": "desktop",
+          "description": "Native desktop or mobile search results."
+        },
+        "date": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(?:|[0-9]{4}(?:0[1-9]|1[0-2]))(?![\\s\\S])",
+          "description": "Monthly YYYYMM snapshot; empty selects the current data. Account access applies."
+        },
+        "currency": {
+          "type": "string",
+          "default": "USD",
+          "pattern": "^[A-Z]{3}(?![\\s\\S])",
+          "description": "Three-letter currency code supported by Semrush."
         }
       },
       "required": [
@@ -145,7 +208,7 @@
         },
         "database": {
           "default": "us",
-          "pattern": "^[a-z]{2}$",
+          "pattern": "^[a-z]{2}(?![\\s\\S])",
           "title": "Database",
           "type": "string"
         },
@@ -155,6 +218,27 @@
           "minimum": 1,
           "title": "Limit",
           "type": "integer"
+        },
+        "device": {
+          "type": "string",
+          "enum": [
+            "desktop",
+            "mobile"
+          ],
+          "default": "desktop",
+          "description": "Native desktop or mobile search results."
+        },
+        "date": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(?:|[0-9]{4}(?:0[1-9]|1[0-2]))(?![\\s\\S])",
+          "description": "Monthly YYYYMM snapshot; empty selects the current data. Account access applies."
+        },
+        "currency": {
+          "type": "string",
+          "default": "USD",
+          "pattern": "^[A-Z]{3}(?![\\s\\S])",
+          "description": "Three-letter currency code supported by Semrush."
         }
       },
       "required": [
@@ -184,7 +268,7 @@
         },
         "database": {
           "default": "us",
-          "pattern": "^[a-z]{2}$",
+          "pattern": "^[a-z]{2}(?![\\s\\S])",
           "title": "Database",
           "type": "string"
         },
@@ -194,6 +278,27 @@
           "minimum": 1,
           "title": "Limit",
           "type": "integer"
+        },
+        "device": {
+          "type": "string",
+          "enum": [
+            "desktop",
+            "mobile"
+          ],
+          "default": "desktop",
+          "description": "Native desktop or mobile search results."
+        },
+        "date": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(?:|[0-9]{4}(?:0[1-9]|1[0-2]))(?![\\s\\S])",
+          "description": "Monthly YYYYMM snapshot; empty selects the current data. Account access applies."
+        },
+        "currency": {
+          "type": "string",
+          "default": "USD",
+          "pattern": "^[A-Z]{3}(?![\\s\\S])",
+          "description": "Three-letter currency code supported by Semrush."
         }
       },
       "required": [
@@ -6604,7 +6709,7 @@
   },
   "saved_keyword_list_tags": {
     "method": "/apis/v4-raw/saved-keywords/api/v0/list/tags",
-    "description": "Read the collection\u2019s tags.",
+    "description": "Read the collection’s tags.",
     "transport": "saved_web",
     "total_method": "",
     "web_report": "",
@@ -6628,7 +6733,7 @@
   },
   "saved_keyword_list_labels": {
     "method": "/apis/v4-raw/saved-keywords/api/v0/list/labels",
-    "description": "Read the collection\u2019s labels.",
+    "description": "Read the collection’s labels.",
     "transport": "saved_web",
     "total_method": "",
     "web_report": "",
@@ -6652,7 +6757,7 @@
   },
   "saved_keyword_list_topics": {
     "method": "/apis/v4-raw/saved-keywords/api/v0/list/topics",
-    "description": "Read the collection\u2019s topics.",
+    "description": "Read the collection’s topics.",
     "transport": "saved_web",
     "total_method": "",
     "web_report": "",
@@ -6676,7 +6781,7 @@
   },
   "saved_keyword_list_subtopics": {
     "method": "/apis/v4-raw/saved-keywords/api/v0/list/subtopics",
-    "description": "Read the collection\u2019s subtopics.",
+    "description": "Read the collection’s subtopics.",
     "transport": "saved_web",
     "total_method": "",
     "web_report": "",
@@ -6700,7 +6805,7 @@
   },
   "saved_keyword_list_databases": {
     "method": "/apis/v4-raw/saved-keywords/api/v0/list/databases",
-    "description": "Read the collection\u2019s databases.",
+    "description": "Read the collection’s databases.",
     "transport": "saved_web",
     "total_method": "",
     "web_report": "",
@@ -15681,5 +15786,530 @@
         "urls"
       ]
     }
+  },
+  "keyword_countries": {
+    "method": "keywords.GetInfo",
+    "description": "Native keyword metrics across country databases, without calculating a synthetic global total.",
+    "transport": "keyword",
+    "total_method": "",
+    "web_report": "keyword-overview",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "keyword": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Keyword",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^[a-z]{2}(?![\\s\\S])",
+          "title": "Database",
+          "type": "string"
+        },
+        "device": {
+          "type": "string",
+          "enum": [
+            "desktop",
+            "mobile"
+          ],
+          "default": "desktop",
+          "description": "Native desktop or mobile search results."
+        },
+        "date": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(?:|[0-9]{4}(?:0[1-9]|1[0-2]))(?![\\s\\S])",
+          "description": "Monthly YYYYMM snapshot; empty selects the current data. Account access applies."
+        },
+        "currency": {
+          "type": "string",
+          "default": "USD",
+          "pattern": "^[A-Z]{3}(?![\\s\\S])",
+          "description": "Three-letter currency code supported by Semrush."
+        }
+      },
+      "required": [
+        "keyword"
+      ]
+    }
+  },
+  "keyword_bulk": {
+    "method": "keywords.GetBulk",
+    "description": "Read native Bulk Analysis for one to 100 keywords in the current database and currency.",
+    "transport": "keyword",
+    "total_method": "",
+    "web_report": "keyword-bulk-analysis",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "keywords": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Keyword",
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "description": "One to 100 unique keywords. JSON preserves commas within a phrase."
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^[a-z]{2}(?![\\s\\S])",
+          "title": "Database",
+          "type": "string"
+        },
+        "currency": {
+          "type": "string",
+          "default": "USD",
+          "pattern": "^[A-Z]{3}(?![\\s\\S])",
+          "description": "Three-letter currency code supported by Semrush."
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253,
+          "pattern": "\\S",
+          "description": "Domain for already available native personalized metrics. Does not start a domain update."
+        }
+      },
+      "required": [
+        "keywords"
+      ]
+    }
+  },
+  "keyword_product_ads": {
+    "method": "pla.GetCopies",
+    "description": "Read native Keyword Overview Product Listing Ads previews.",
+    "transport": "keyword",
+    "total_method": "",
+    "web_report": "keyword-overview",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "keyword": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Keyword",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^[a-z]{2}(?![\\s\\S])",
+          "title": "Database",
+          "type": "string"
+        },
+        "device": {
+          "type": "string",
+          "enum": [
+            "desktop",
+            "mobile"
+          ],
+          "default": "desktop",
+          "description": "Native desktop or mobile search results."
+        },
+        "date": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(?:|[0-9]{4}(?:0[1-9]|1[0-2]))(?![\\s\\S])",
+          "description": "Monthly YYYYMM snapshot; empty selects the current data. Account access applies."
+        },
+        "currency": {
+          "type": "string",
+          "default": "USD",
+          "pattern": "^[A-Z]{3}(?![\\s\\S])",
+          "description": "Three-letter currency code supported by Semrush."
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 10
+        }
+      },
+      "required": [
+        "keyword"
+      ]
+    }
+  },
+  "keyword_serp_organic_metrics": {
+    "method": "serp.GetURLsOrganicMetrics",
+    "description": "Read native organic keyword counts and traffic for selected SERP URLs.",
+    "transport": "keyword",
+    "total_method": "",
+    "web_report": "keyword-overview",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "keyword": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Keyword",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^[a-z]{2}(?![\\s\\S])",
+          "title": "Database",
+          "type": "string"
+        },
+        "device": {
+          "type": "string",
+          "enum": [
+            "desktop",
+            "mobile"
+          ],
+          "default": "desktop",
+          "description": "Native desktop or mobile search results."
+        },
+        "date": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(?:|[0-9]{4}(?:0[1-9]|1[0-2]))(?![\\s\\S])",
+          "description": "Monthly YYYYMM snapshot; empty selects the current data. Account access applies."
+        },
+        "currency": {
+          "type": "string",
+          "default": "USD",
+          "pattern": "^[A-Z]{3}(?![\\s\\S])",
+          "description": "Three-letter currency code supported by Semrush."
+        },
+        "urls": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": {
+            "type": "string",
+            "pattern": "^https?://[^\\s]+(?![\\s\\S])"
+          },
+          "description": "Exact HTTP(S) URLs from keyword-serp; repeated URLs are allowed."
+        }
+      },
+      "required": [
+        "keyword",
+        "urls"
+      ]
+    }
+  },
+  "keyword_serp_backlink_metrics": {
+    "method": "serp.GetURLsBacklinksMetrics",
+    "description": "Read native authority, backlink and referring-domain metrics for selected SERP URLs.",
+    "transport": "keyword",
+    "total_method": "",
+    "web_report": "keyword-overview",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "keyword": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Keyword",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^[a-z]{2}(?![\\s\\S])",
+          "title": "Database",
+          "type": "string"
+        },
+        "device": {
+          "type": "string",
+          "enum": [
+            "desktop",
+            "mobile"
+          ],
+          "default": "desktop",
+          "description": "Native desktop or mobile search results."
+        },
+        "date": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(?:|[0-9]{4}(?:0[1-9]|1[0-2]))(?![\\s\\S])",
+          "description": "Monthly YYYYMM snapshot; empty selects the current data. Account access applies."
+        },
+        "currency": {
+          "type": "string",
+          "default": "USD",
+          "pattern": "^[A-Z]{3}(?![\\s\\S])",
+          "description": "Three-letter currency code supported by Semrush."
+        },
+        "urls": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": {
+            "type": "string",
+            "pattern": "^https?://[^\\s]+(?![\\s\\S])"
+          },
+          "description": "Exact HTTP(S) URLs from keyword-serp; repeated URLs are allowed."
+        }
+      },
+      "required": [
+        "keyword",
+        "urls"
+      ]
+    }
+  },
+  "keyword_bulk_export": {
+    "method": "keywords.Export",
+    "description": "Download native Bulk Analysis as CSV, semicolon CSV or XLSX. Starts one export job and retries only a pending wait.",
+    "transport": "keyword",
+    "total_method": "",
+    "web_report": "keyword-bulk-analysis",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "keywords": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Keyword",
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "description": "One to 100 unique keywords. JSON preserves commas within a phrase."
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^[a-z]{2}(?![\\s\\S])",
+          "title": "Database",
+          "type": "string"
+        },
+        "currency": {
+          "type": "string",
+          "default": "USD",
+          "pattern": "^[A-Z]{3}(?![\\s\\S])",
+          "description": "Three-letter currency code supported by Semrush."
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253,
+          "pattern": "\\S",
+          "description": "Domain for already available native personalized metrics. Does not start a domain update."
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "csv",
+            "csv_semicolon",
+            "xlsx"
+          ],
+          "default": "csv",
+          "description": "Native CSV, semicolon CSV or XLSX."
+        },
+        "columns": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "keyword",
+              "intent",
+              "volume",
+              "trend",
+              "difficulty",
+              "cpc",
+              "competition",
+              "serp_features",
+              "results",
+              "personalized_difficulty",
+              "positions",
+              "potential_traffic"
+            ]
+          },
+          "default": [
+            "keyword",
+            "intent",
+            "volume",
+            "trend",
+            "difficulty",
+            "cpc",
+            "serp_features"
+          ],
+          "description": "Exported data fields in native field order. Personalized fields require domain."
+        }
+      },
+      "required": [
+        "keywords"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "columns"
+            ],
+            "properties": {
+              "columns": {
+                "contains": {
+                  "enum": [
+                    "personalized_difficulty",
+                    "positions",
+                    "potential_traffic"
+                  ]
+                }
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "domain"
+            ]
+          }
+        }
+      ]
+    },
+    "response_type": "download_job"
+  },
+  "keyword_serp_export": {
+    "method": "serp.ExportURLs",
+    "description": "Download the native full SERP URL report as CSV, semicolon CSV or XLSX.",
+    "transport": "keyword",
+    "total_method": "",
+    "web_report": "keyword-overview",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "keyword": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Keyword",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^[a-z]{2}(?![\\s\\S])",
+          "title": "Database",
+          "type": "string"
+        },
+        "device": {
+          "type": "string",
+          "enum": [
+            "desktop",
+            "mobile"
+          ],
+          "default": "desktop",
+          "description": "Native desktop or mobile search results."
+        },
+        "date": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(?:|[0-9]{4}(?:0[1-9]|1[0-2]))(?![\\s\\S])",
+          "description": "Monthly YYYYMM snapshot; empty selects the current data. Account access applies."
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "csv",
+            "csv_semicolon",
+            "xlsx"
+          ],
+          "default": "csv",
+          "description": "Native CSV, semicolon CSV or XLSX."
+        }
+      },
+      "required": [
+        "keyword"
+      ]
+    },
+    "response_type": "download_job"
+  },
+  "keyword_serp_domains_export": {
+    "method": "serp.ExportDomains",
+    "description": "Download the native full SERP domain report as CSV, semicolon CSV or XLSX.",
+    "transport": "keyword",
+    "total_method": "",
+    "web_report": "keyword-overview",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "keyword": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Keyword",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^[a-z]{2}(?![\\s\\S])",
+          "title": "Database",
+          "type": "string"
+        },
+        "device": {
+          "type": "string",
+          "enum": [
+            "desktop",
+            "mobile"
+          ],
+          "default": "desktop",
+          "description": "Native desktop or mobile search results."
+        },
+        "date": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(?:|[0-9]{4}(?:0[1-9]|1[0-2]))(?![\\s\\S])",
+          "description": "Monthly YYYYMM snapshot; empty selects the current data. Account access applies."
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "csv",
+            "csv_semicolon",
+            "xlsx"
+          ],
+          "default": "csv",
+          "description": "Native CSV, semicolon CSV or XLSX."
+        }
+      },
+      "required": [
+        "keyword"
+      ]
+    },
+    "response_type": "download_job"
   }
 }

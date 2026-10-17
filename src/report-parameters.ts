@@ -255,11 +255,32 @@ function magicParameters(definition: Report, q: Query): Query {
 }
 
 
+const keywordExportColumns = { keyword: 0, intent: 1, volume: 2, trend: 3, difficulty: 4, cpc: 5, competition: 6, serp_features: 7, results: 8, personalized_difficulty: 10, positions: 11, potential_traffic: 12 };
+function keywordBulkParameters(q: Query): Query {
+  const params: Query = { phrases: q.keywords ?? [], database: q.database ?? 'us', currency: q.currency ?? 'USD' };
+  if (q.domain) params.domain = q.domain;
+  return params;
+}
+/** Export column choices are a selection; native field order determines the file order. */
+function keywordExportParameters(method: string, q: Query): Query {
+  const format = q.format === 'xlsx' ? 0 : q.format === 'csv_semicolon' ? 2 : 1;
+  if (method === 'keywords.Export') {
+    const columns = Array.isArray(q.columns) ? q.columns : [];
+    return { ...keywordBulkParameters(q), format, filename: 'semrush-keyword-bulk',
+      columns: Object.entries(keywordExportColumns).filter(([name]) => columns.includes(name)).map(([, code]) => code) };
+  }
+  return { phrase: q.keyword ?? '', database: q.database ?? 'us', device: q.device === 'mobile' ? 1 : 0, date: q.date ?? '', format,
+    filename: method === 'serp.ExportDomains' ? 'semrush-keyword-serp-domains' : 'semrush-keyword-serp' };
+}
+
 function keywordParameters(definition: Report, q: Query): Query {
   const method = definition.method;
+  if (method === 'keywords.GetBulk') return { ...keywordBulkParameters(q), date: '' };
+  if (method === 'keywords.Export' || method === 'serp.ExportURLs' || method === 'serp.ExportDomains') return keywordExportParameters(method, q);
   if (!('keyword' in q)) return {};
-  const params: Query = { phrase: (q.keyword ?? null), database: (q.database ?? null), device: 0, currency: 'USD', location: 0, date: '' };
+  const params: Query = { phrase: (q.keyword ?? null), database: (q.database ?? null), device: q.device === 'mobile' ? 1 : 0, currency: q.currency ?? 'USD', location: 0, date: q.date ?? '' };
   if (method.startsWith('ideas.')) Object.assign(params, { mode: 0, questions_only: (q.questions_only ?? null) });
+  if (method === 'serp.GetURLsOrganicMetrics' || method === 'serp.GetURLsBacklinksMetrics') params.urls = q.urls ?? [];
   return params;
 }
 

@@ -1,0 +1,101 @@
+---
+title: Keyword Overview and Bulk Analysis
+description: Select keyword snapshots, enrich SERP URLs and download native exports.
+---
+
+These commands use your existing Semrush session. Sign in with the
+[authentication guide](/docs/authentication) first. They read research data and
+create download jobs without saving keywords, refreshing metrics or changing
+account settings.
+
+## Select a keyword snapshot
+
+```sh
+semrush keyword-overview --keyword typescript --database us --json
+semrush keyword-overview --keyword typescript --database us --device mobile --json
+semrush keyword-serp --keyword typescript --database us --date 202609 --json
+semrush keyword-ideas --keyword typescript --database us --currency EUR --json
+semrush keyword-countries --keyword typescript --database us --json
+semrush keyword-product-ads --keyword 'running shoes' --database us --limit 10 --json
+```
+
+`keyword-overview`, `keyword-ideas`, `keyword-ideas-summary`, `keyword-serp`,
+`keyword-ads`, `keyword-countries` and `keyword-product-ads` accept `--device`,
+`--date` and `--currency`. Defaults are desktop, the current snapshot and USD.
+Historical dates use `YYYYMM`, such as `202609`, rather than an ISO date.
+Account access and native snapshot availability still apply.
+
+Country metrics return Semrush's country rows, without calculating a global
+total. Empty ads and unavailable measurements stay as returned by Semrush.
+Keyword clusters does not accept these snapshot or device controls.
+
+## Analyze a batch
+
+```sh
+semrush keyword-bulk --keywords '["typescript","javascript"]' --database us --json
+semrush keyword-bulk --keywords '["typescript","javascript"]' --database us --currency EUR --json
+semrush keyword-bulk --keywords '["typescript","javascript"]' --database us --domain github.com --json
+```
+
+Supply one to 100 unique phrases in a JSON array. Each phrase accepts up to 200
+characters. JSON preserves commas inside a phrase. Bulk Analysis uses current
+desktop data and has no mobile or historical selector. The optional domain
+requests already available personalized metrics; it does not start a domain
+update. A zero personalized difficulty remains zero.
+
+## Read SERP URL metrics
+
+Copy URLs from the SERP results and keep the same keyword and snapshot context:
+
+```sh
+semrush keyword-serp-organic-metrics --keyword typescript --database us --urls '["https://www.typescriptlang.org/","https://github.com/microsoft/typescript"]' --json
+semrush keyword-serp-backlink-metrics --keyword typescript --database us --urls '["https://www.typescriptlang.org/","https://github.com/microsoft/typescript"]' --json
+```
+
+Each call accepts one to 100 absolute HTTP(S) URLs. Repeated URLs are allowed
+because one URL can appear in several SERP features. Results retain native
+ordering, which can differ from the input order. Match records by their URL.
+
+## Download native files
+
+```sh
+semrush keyword-bulk-export --keywords '["typescript","javascript"]' --database us --format xlsx --output ./keywords.xlsx
+semrush keyword-bulk-export --keywords '["typescript","javascript"]' --database us --format csv_semicolon --output ./keywords.csv
+semrush keyword-serp-export --keyword typescript --database us --device mobile --date 202609 --format csv --output ./serp.csv
+semrush keyword-serp-domains-export --keyword typescript --database us --format xlsx --output ./domains.xlsx
+```
+
+Formats are `csv` (default), `csv_semicolon` and `xlsx`. `--output` is required;
+an existing destination is never overwritten. Downloads retain Semrush's bytes.
+SERP exports include the native full result set, independently of the JSON
+report's client-side limit. They accept device and monthly date, but no currency
+or location override.
+
+Bulk exports also accept currency, an optional domain and `--columns`:
+
+```sh
+semrush keyword-bulk-export --keywords '["typescript","javascript"]' --database us --columns '["keyword","volume","cpc"]' --output ./selected.csv
+```
+
+Available columns are `keyword`, `intent`, `volume`, `trend`, `difficulty`,
+`cpc`, `competition`, `serp_features`, `results`, `personalized_difficulty`,
+`positions` and `potential_traffic`. The last three require a
+domain. Native column order applies. Defaults match the web table's visible
+data columns, excluding its interactive SERP button.
+
+The adapter starts an export once, waits for that same job and downloads it.
+Only the native pending response permits another wait, up to three checks.
+Permission, rate and transport failures remain errors. The native export stage
+has a 90-second deadline. Cancellation closes the active download and leaves
+no partial MCP resource.
+
+## Use MCP
+
+MCP exposes underscore names and JSON arguments, such as
+`keyword_bulk` with `{"keywords":["typescript","javascript"],"database":"us"}`.
+Export tools return private file resources; use `resources/read` to retrieve
+their bytes. They accept no caller output path or download URL and do not
+require mutation confirmation. See [MCP](/docs/mcp) for resource handling.
+
+Native PDF and separate chart-image exports remain unverified or gated. See
+the [coverage page](/docs/coverage) for evidence and remaining gaps.

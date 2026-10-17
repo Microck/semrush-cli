@@ -79,12 +79,15 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 
 ## command surface
 
-284 operations, available as cli commands and mcp tools. 194 reads and 90 writes that need explicit confirmation.
+292 operations, available as cli commands and mcp tools. 202 reads and 90 writes that need explicit confirmation.
 
 | command | what it does |
 | --- | --- |
 | `keyword-overview`, `keyword-magic` | volume, difficulty, cpc, intent, related keywords and filtered research |
 | `keyword-serp`, `keyword-ads`, `keyword-clusters` | search results, ads and keyword clusters |
+| `keyword-countries`, `keyword-bulk`, `keyword-product-ads` | country metrics, bulk keyword research and product listing ad previews |
+| `keyword-serp-organic-metrics`, `keyword-serp-backlink-metrics` | enrich selected search result urls with organic or backlink metrics |
+| `keyword-bulk-export`, `keyword-serp-export`, `keyword-serp-domains-export` | download native keyword, search result url or domain tables |
 | `domain-overview`, `domain-keywords`, `domain-competitors` | organic rankings and competing domains |
 | `domain-pages`, `domain-subdomains`, `domain-position-changes` | pages, subdomains and ranking changes |
 | `keyword-gap`, `backlink-gap` | compare domains and find keyword or backlink opportunities |
@@ -191,6 +194,37 @@ pull out the numbers you care about:
 semrush keyword-overview --keyword 'email marketing' \
   | jq '.data | {phrase, volume, difficulty, cpc}'
 ```
+
+check country metrics or compare up to 100 unique keywords:
+
+```bash
+semrush keyword-countries --keyword 'email marketing'
+semrush keyword-bulk --keywords '["email marketing","email automation"]' --currency EUR
+semrush keyword-product-ads --keyword 'running shoes'
+```
+
+`keyword-overview`, `keyword-ideas`, `keyword-ideas-summary`, `keyword-serp` and `keyword-ads` accept `--device desktop|mobile`, `--date YYYYMM` and `--currency USD`. desktop, current data and usd are the defaults; use a currency code semrush supports. countries, product ads and the two url metrics commands accept those options too. `keyword-clusters` keeps its existing inputs. bulk commands read current data only and do not accept device or date.
+
+bulk inputs are json arrays of one to 100 unique phrases. an optional `--domain` reads personalized metrics already prepared by semrush; it does not start a domain update.
+
+copy one to 100 exact http or https urls from `keyword-serp` to read their organic and backlink metrics. repeated urls are allowed:
+
+```bash
+semrush keyword-serp-organic-metrics --keyword 'email marketing' --urls '["https://example.com/"]'
+semrush keyword-serp-backlink-metrics --keyword 'email marketing' --urls '["https://example.com/"]'
+```
+
+export bulk keywords or search result urls and domains as native tables:
+
+```bash
+semrush keyword-bulk-export --keywords '["email marketing","email automation"]' --output keywords.csv
+semrush keyword-serp-export --keyword 'email marketing' --format xlsx --output serp-urls.xlsx
+semrush keyword-serp-domains-export --keyword 'email marketing' --format csv_semicolon --output serp-domains.csv
+```
+
+all three exports accept `csv`, `csv_semicolon` or `xlsx`, default to csv and require an unused `--output` path. serp exports accept device and date, but no currency. mcp returns artifact resources.
+
+bulk exports accept `--columns` as a json array of `keyword`, `intent`, `volume`, `trend`, `difficulty`, `cpc`, `competition`, `serp_features`, `results`, `personalized_difficulty`, `positions` or `potential_traffic`. the last three require `--domain`. see [keyword research](https://semrush.micr.dev/docs/keyword-research) for the full inputs and verification limits.
 
 ### competitors and backlinks
 
@@ -870,7 +904,7 @@ npm run check
 
 the cli uses the published [`galleton` 0.1.0 sdk](https://www.npmjs.com/package/galleton). the bundled galleton daemon is still required for sessions. building it from source requires go 1.23 or newer, `tar` and `patch`. published cli packages include the daemon for supported platforms, so npm users do not need go.
 
-the current source passed 224 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
+the current source passed 237 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
 
 ## documentation
 

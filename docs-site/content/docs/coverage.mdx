@@ -3,14 +3,14 @@ title: Web UI coverage
 description: Supported web workflows, evidence and remaining gaps.
 ---
 
-The CLI has 284 fixed operations: 194 reads and 90 confirmed writes.
+The CLI has 292 fixed operations: 202 reads and 90 confirmed writes.
 It uses your web session and the current web UI's request contracts. Account
 permissions and quotas apply to both interfaces. This is not full Semrush suite
 parity. The table distinguishes implemented workflows from remaining gaps.
 
 | Web workflow | CLI and MCP coverage | Remaining web UI work |
 | --- | --- | --- |
-| Keyword Overview | Metrics, intent, trends, SERPs, ads, related ideas and clusters | UI chart rendering and its export formats |
+| Keyword Overview and Bulk Analysis | Metrics, country rows, intent, trends, device and monthly snapshots, currency, bulk and personalized metrics, SERPs and URL enrichment, ads and Product Listing Ads, related ideas and clusters; native bulk and SERP CSV/semicolon CSV/XLSX downloads | Local keyword research, refresh controls, native PDF and separate chart-image downloads |
 | Keyword Magic | Pagination, sorting, filters, questions, groups and totals; save selected phrases through list import | UI-specific selection rendering |
 | Organic Research | Rankings, pages, subdomains, competitors, position changes, topics, trends | Chart rendering and UI-specific exports |
 | Historical and mobile research | Database and snapshot selection, subject to account access | UI comparisons not represented by available report filters |
@@ -32,16 +32,27 @@ parity. The table distinguishes implemented workflows from remaining gaps.
 | Chart notes | List, detail, database options, owned note lifecycle, hide/show and per-chart category preferences and all-notes CSV export | Native chart rendering |
 | Local, social and content products | Project toolkit status and available dashboard metrics | Product-specific management and connected services |
 
+The [keyword research guide](/docs/keyword-research) covers snapshot controls,
+bulk analysis, SERP metrics and native downloads.
+
 Save-to-list and send-to-tracking actions use the existing destination commands.
 The [keyword selection guide](/docs/keyword-workflows) shows the verified flow
 for Magic, Gap, Saved Keywords and the builder.
 
 ## Verification
 
-The source suite has 224 tests, including real Chromium, a private Galleton
+The source suite has 237 tests, including real Chromium, a private Galleton
 daemon and stateful HTTP fixtures. All 48 original research mappings also have
 differential tests against the Python reference. Across versioned live passes,
-all 194 reads have execution evidence. Core Web Vitals source and fresh public
+all 202 reads have execution evidence. Keyword research source CLI and MCP
+matched 17 native read selections, including mobile and monthly snapshots.
+Bulk CSV, semicolon CSV, personalized CSV and historical mobile SERP CSV
+matched native bytes. Bulk XLSX matched workbook contents apart from provider
+timestamps. SERP domain XLSX passed CLI and MCP file checks; separate export
+jobs differed in changing Backlinks counts. Populated Product Listing Ads
+have fixture evidence only; the live response was empty.
+
+Core Web Vitals source and fresh public
 release CLI and MCP matched nine independent native selections, including positive and negative
 URL IDs. Settings replacements passed native readback on an owned three-page
 audit without launching another crawl. Partial, malformed and lost save receipts

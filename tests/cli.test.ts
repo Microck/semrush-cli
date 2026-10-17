@@ -84,6 +84,17 @@ test('built CLI runs help and version without credentials', async () => {
   expect((await cli(['--help'])).stdout).toMatch(/^Usage: semrush /);
   expect((await cli(['domain-keywords', '--help'])).stdout).toContain('--page-size');
 });
+test('keyword exports require a destination and validate formats before acquiring credentials', async () => {
+  expect((await cli(['keyword-overview', '--help'])).stdout).toContain('--device');
+  expect((await cli(['keyword-bulk', '--help'])).stdout).toContain('--keywords');
+  for (const name of ['keyword-bulk-export', 'keyword-serp-export', 'keyword-serp-domains-export']) {
+    const selection = name === 'keyword-bulk-export' ? ['--keywords', '["typescript"]'] : ['--keyword', 'typescript'];
+    await expect(cli([name, ...selection])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('--output') });
+  }
+  await expect(cli(['keyword-bulk', '--keywords', '[]'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('Invalid keyword_bulk') });
+  await expect(cli(['keyword-overview', '--keyword', 'typescript', '--date', '202613'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('Invalid keyword_overview') });
+});
+
 test('Core Web Vitals URL-list previews stay offline and invalid IDs or unconfirmed writes fail before authentication', async () => {
   const preview = await cli(['audit-web-vitals-settings-set', '--campaign-id', '793', '--urls', '["https://example.com/"]', '--dry-run', '--json']);
   expect(JSON.parse(preview.stdout)).toEqual({ dry_run: true, report: 'audit_web_vitals_settings_set', request: {
@@ -96,7 +107,7 @@ test('Core Web Vitals URL-list previews stay offline and invalid IDs or unconfir
 test('built catalog distinguishes read reports and project writes', async () => {
   const { stdout, stderr } = await cli(['reports', '--json']);
   const listed = JSON.parse(stdout);
-  expect(listed).toHaveLength(284);
+  expect(listed).toHaveLength(292);
   expect(listed.filter((entry: { read_only: boolean }) => !entry.read_only)).toHaveLength(90);
   expect(stderr).toBe('');
 });
@@ -126,13 +137,15 @@ test('MCP advertises write safety and previews without an authenticated runtime'
     expect((await client.listResourceTemplates()).resourceTemplates[0]?.uriTemplate).toBe('semrush-export://{export_id}{?offset,limit}');
     await expect(client.readResource({ uri: 'semrush-export://unknown' })).rejects.toThrow('Download an export first');
     const listed = await client.listTools();
-    expect(listed.tools).toHaveLength(284);
+    expect(listed.tools).toHaveLength(292);
     expect(listed.tools.find(tool => tool.name === 'project_delete')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
     expect(listed.tools.find(tool => tool.name === 'backlink_audit_disavow_import')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
     expect(listed.tools.find(tool => tool.name === 'backlink_audit_export')?.annotations).toMatchObject({ readOnlyHint: true, idempotentHint: false });
     expect(listed.tools.find(tool => tool.name === 'backlink_audit_replace_scope')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true, idempotentHint: false });
     for (const name of ['backlink_audit_comment_delete', 'backlink_audit_tag_delete']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
     expect(listed.tools.find(tool => tool.name === 'project_create')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false });
+    for (const name of ['keyword_bulk', 'keyword_countries', 'keyword_product_ads', 'keyword_serp_organic_metrics', 'keyword_serp_backlink_metrics']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: true });
+    for (const name of ['keyword_bulk_export', 'keyword_serp_export', 'keyword_serp_domains_export']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: true, idempotentHint: false });
     expect(listed.tools.filter(tool => tool.name.startsWith('audit_web_vitals_'))).toHaveLength(8);
     expect(listed.tools.filter(tool => tool.name.startsWith('audit_web_vitals_') && tool.annotations?.readOnlyHint)).toHaveLength(7);
     expect(listed.tools.find(tool => tool.name === 'audit_web_vitals_settings_set')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false });

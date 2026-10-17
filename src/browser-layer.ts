@@ -107,7 +107,11 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     const body = yield* Effect.try({ try: () => parseWire(wire.text), catch: () => new ReportError({ message: 'Semrush returned a page or challenge instead of JSON. Sign in again or retry later.' }) });
     if (file && path.startsWith('/siteaudit/') && (!objectValue(body) || !objectValue(body.status) || body.status.code !== 0)) return yield* Effect.fail(new ReportError({ message: `Semrush rejected the crawl URL upload: ${JSON.stringify(redact(body, secrets)).slice(0, 500)}` }));
     if (path === '/tracking/alerts/' && objectValue(body) && body.error_code !== 0) return yield* Effect.fail(new ReportError({ message: `Semrush tracking alert request failed: ${JSON.stringify(redact(body.error_message ?? body, [auth.apiKey])).slice(0, 500)}` }));
-    if (objectValue(body) && ('error' in body && body.error !== false || (!path.startsWith('/siteaudit/') && 'status' in body && !(body.status === null || body.status === 'SUCCESS' || body.status === 'success' || body.status === 'ok')))) return yield* Effect.fail(new ReportError({ message: `Semrush report failed: ${JSON.stringify(redact(body.error ?? body.error_message ?? body.status ?? null, secrets)).slice(0, 500)}` }));
+    if (objectValue(body) && ('error' in body && body.error !== false || (!path.startsWith('/siteaudit/') && 'status' in body && !(body.status === null || body.status === 'SUCCESS' || body.status === 'success' || body.status === 'ok')))) {
+      const detail = body.error ?? body.error_message ?? body.status ?? null;
+      const providerCode = objectValue(detail) && Predicate.isNumber(detail.code) ? { providerCode: detail.code } : {};
+      return yield* Effect.fail(new ReportError({ ...providerCode, message: `Semrush report failed: ${JSON.stringify(redact(detail, secrets)).slice(0, 500)}` }));
+    }
     return body;
   });
   const rpc = Effect.fn('Semrush.rpc')(function* (method: string, params: Query, transport = 'keyword', webReport = 'domain.overview') {
@@ -329,6 +333,21 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     const bytes = file.bytes;
     return yield* writer.create(file.filename, exportMimeTypes[extension], (destination, signal) => writeFile(destination, bytes, { mode: 0o600, signal }));
   });
+  /** Export creation never retries. Only native code 0 from the idempotent wait means pending. */
+  const keywordExport = Effect.fn('Semrush.keywordExport')(function* (method: string, params: Query, format: Schema.Json | undefined) {
+    return yield* Effect.scoped(Effect.gen(function* () {
+      const receipt = yield* Schema.decodeUnknownEffect(Schema.Struct({ export_id: Schema.String.check(Schema.isMinLength(1)) }))(
+        yield* rpc(method, params),
+      ).pipe(Effect.mapError(() => new ReportError({ message: 'Semrush did not return a keyword export identifier. The export may have started; creation was not retried.' })));
+      yield* rpc('export.Wait', { export_id: receipt.export_id }).pipe(
+        Effect.retry({ schedule: Schedule.exponential('1 second').pipe(Schedule.jittered, Schedule.upTo({ times: 2 })), while: error => error.providerCode === 0 }),
+        Effect.mapError(error => new ReportError({ message: error.message.replaceAll(receipt.export_id, '[redacted]') })),
+      );
+      const address = new URL('/kwogw/v2/download-export', browserOrigin);
+      address.searchParams.set('export_id', receipt.export_id);
+      return yield* downloadExport({ kind: 'file', request: { method: 'GET', path: address.href, body: {} }, headers: {} }, format, exports);
+    })).pipe(Effect.timeoutOrElse({ duration: '90 seconds', orElse: () => Effect.fail(new ReportError({ message: 'The keyword export did not finish within 90 seconds. Wait before creating another export; creation was not retried.' })) }));
+  });
   /** Semrush renders these images in its UI; a separate page owns the renderer and temporary download. */
   const exportMindmap = Effect.fn('Semrush.exportMindmap')(function* (query: Query) {
     const unavailable = () => new ReportError({ message: 'Mind-map export is unavailable. Inspect a completed structured strategy with semrush keyword-list-pages and verify your list access.' });
@@ -525,6 +544,11 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       yield* captureCookies(context, sessions.capture, browserOrigin);
       return { authenticated: true as const, report: name, data: null, artifact };
     }
+    if (family === 'keyword' && responseType === 'download_job') {
+      const artifact = yield* keywordExport(definition.method, params, query.format);
+      yield* captureCookies(context, sessions.capture, browserOrigin);
+      return { authenticated: true as const, report: name, data: null, artifact };
+    }
     let reportData: Schema.Json | undefined;
     let requestSecrets: string[] = [];
     if (name === 'backlink_audit_replace_scope') {
@@ -577,10 +601,8 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       const total = yield* rpc(definition.total_method, totalParams, 'domain', definition.web_report);
       reportData = { rows: reportData, total, page: query.page ?? null, page_size: query.page_size ?? null };
     }
-    if (name === 'keyword_overview') {
-      const rows = objectValue(reportData) ? reportData.keywords : undefined;
-      reportData = Array.isArray(rows) ? rows.find(item => objectValue(item) && item.database === query.database) : undefined;
-      if (!reportData) return yield* Effect.fail(new ReportError({ message: 'No keyword data for the selected database.' }));
+    if (name === 'keyword_overview' || name === 'keyword_countries') {
+      reportData = yield* keywordInfoResult(name, query, reportData);
     } else if (name === 'domain_overview') {
       const search = Array.isArray(reportData) ? reportData.find(item => objectValue(item) && item.database === query.database) : undefined;
       if (!search) return yield* Effect.fail(new ReportError({ message: 'No domain data for the selected database.' }));
@@ -594,6 +616,18 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
 }));
 
 export const semrushLive = makeSemrushLayer(origin);
+
+/** Both overview selections share a native country table but expose distinct results. */
+const keywordInfoResult = Effect.fn('Semrush.keywordInfoResult')(function* (name: string, query: Query, result: Schema.Json | undefined) {
+  const rows = objectValue(result) ? result.keywords : undefined;
+  if (name === 'keyword_countries') {
+    if (!Array.isArray(rows)) return yield* Effect.fail(new ReportError({ message: 'Semrush did not return keyword country metrics.' }));
+    return rows;
+  }
+  const selected = Array.isArray(rows) ? rows.find(item => objectValue(item) && item.database === query.database) : undefined;
+  if (!selected) return yield* Effect.fail(new ReportError({ message: 'No keyword data for the selected database.' }));
+  return selected;
+});
 
 interface BootstrapAuth { readonly apiKey: string; readonly userId: string | number; }
 export function readBootstrap(html: string): BootstrapAuth & { readonly email?: string } {

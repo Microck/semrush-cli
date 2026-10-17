@@ -932,3 +932,67 @@ Current Site Audit spreadsheet controls offer Crawled Pages, pages with all
 issues, markup, Issues, Compare Crawls and All reports. They do not offer a
 Crawled Links export. The client bundle's crawled-links URL constant
 returned 404 in prior native checks and is not treated as an available UI feature.
+
+## Keyword Overview and Bulk Analysis
+
+The current Keyword Overview client is
+`overview_793.655a44eca84c3a01ebb8.js`. Its native serializers and authenticated
+UI/API probes define this extension; caller RPC methods and URLs remain closed.
+
+`keyword-overview`, `keyword-ideas`, `keyword-ideas-summary`, `keyword-serp` and
+`keyword-ads` accept desktop/mobile, currency and monthly snapshot selection.
+Desktop maps to `device:0`, mobile to `device:1`; the current snapshot is `date:""`
+and historical snapshots use `YYYYMM`. Currency defaults to USD. Existing default
+requests retain their original wire values. Keyword clusters has no corresponding
+native snapshot/device controls and does not accept these arguments.
+
+Eight added reads expose native country metrics (`keyword-countries`), Bulk
+Analysis (`keyword-bulk`), Product Listing Ads (`keyword-product-ads`), SERP URL
+organic/backlink enrichment, and native bulk, SERP URL and SERP domain exports.
+Country metrics return the native `keywords` array rather than choosing one
+country or calculating a synthetic global total. All provider measurements,
+ordering, nulls and unavailable rows remain unchanged.
+
+Bulk Analysis requires one to 100 unique keywords, each at most 200 characters
+and containing non-whitespace text. JSON array input preserves commas within
+phrases. `keywords.GetBulk` receives `phrases`, `database`, `currency` and the
+required current-state `date:""`; an optional nonempty domain is sent only when
+requested. Bulk has no native mobile or historical selector. Personalized
+metrics use already available native domain data; these reads do not start a
+domain update, change account preferences or refresh keyword metrics.
+
+SERP enrichment reads accept one to 100 absolute HTTP(S) URLs, with the same
+keyword, country, currency, device and snapshot context as `serp.GetURLs`.
+Repeated URLs are permitted because the native UI can include one URL in
+multiple SERP features. The provider's per-URL metric records are returned
+without merging them into an invented SERP representation.
+
+Exports start one native `keywords.Export`, `serp.ExportURLs` or
+`serp.ExportDomains` job. XLSX, CSV and semicolon CSV map to native formats 0, 1
+and 2. Bulk exports accept data-column selection; the interactive SERP snapshot
+button is not an export column. Bulk defaults match the native visible data
+columns. Personalized export fields are Personal Keyword Difficulty, Positions
+and Potential Traffic, exposed as `personalized_difficulty`, `positions` and
+`potential_traffic`; each requires an explicit domain. SERP exports include the
+native full result set, independently of the JSON report's client-side `limit`.
+Their serializers send keyword, database,
+device, monthly date, format and filename, without adding unsupported currency
+or location fields.
+
+The receipt must contain a nonempty `export_id`. The adapter then calls
+`export.Wait` with that identifier and downloads the fixed
+`/kwogw/v2/download-export?export_id=...` path. The native client treats RPC error
+code 0 from the wait operation as pending and permits two further wait checks.
+Only this idempotent wait can retry; export creation, other provider failures
+and transport failures do not retry. The native export stage has a 90-second
+deadline. Job identifiers stay private and are redacted from errors.
+Existing private file, cancellation, no-overwrite and MCP resource contracts
+apply to the unchanged native bytes.
+
+Guru probes returned positive two-keyword bulk data, EUR prices, personalized
+domain data, URL organic/backlink records, all three bulk export formats and
+both SERP export variants. Product Listing Ads returned a successful empty
+array; populated ad rows require separate evidence. Mobile and September 2026
+requests were observed directly in the current UI. No purchase, preference
+write, keyword refresh, policy acknowledgment or outreach is part of these
+operations.

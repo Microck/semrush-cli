@@ -1,5 +1,51 @@
 # Verification
 
+## Version 0.30.0 Keyword Overview and Bulk Analysis
+
+The catalog contains 292 operations, 202 reads and 90 confirmed
+writes. Eight new reads cover country metrics, Bulk Analysis, Product Listing
+Ads, SERP URL organic/backlink metrics and native bulk, SERP URL and SERP domain
+downloads. Five existing keyword reports now accept native mobile, monthly
+snapshot and currency controls. Their default request mappings remain unchanged.
+
+The current native `overview_793.655a44eca84c3a01ebb8.js` serializers and
+authenticated Guru UI/API requests supplied the contracts. Bulk requires the
+native empty current date and omits an absent domain. Export serializers have
+different field sets and format codes from Saved Keywords. A personalized
+native CSV verified column 11 as Positions before publication.
+
+Typecheck, Oxlint, generated-reference checks, five daemon builds and all 237
+tests passed on Raft. The final Positions correction also passed typecheck,
+lint, build and all 48 workflow parameter tests. Independent reuse, quality
+and efficiency reviews found no changes needed. Stateful HTTP fixtures cover
+all three export formats, pending-only wait retries, exhausted waits,
+permission/rate errors, missing receipts, dropped creation responses,
+cancellation and later report usability. No creation request is replayed.
+
+Native probes returned 121 country rows, positive two-keyword bulk and
+personalized data, EUR prices, two URL metric records, all three bulk export
+formats and both SERP export variants. Product Listing Ads returned an empty
+array. Positive ad rows have fixture evidence only. Independent Node and
+browser HTTP requests observed two EUR conversion rates from the provider;
+live comparisons retain the complete native responses and do not round or
+discard CPC fields.
+
+Source CLI and MCP matched 17 independent native read selections, including
+mobile and September 2026 selections for all five extended reports. EUR
+results matched complete independently observed native responses. Bulk CSV,
+semicolon CSV, personalized-column CSV and mobile historical SERP URL CSV
+matched native bytes. Bulk XLSX matched workbook contents apart from provider
+timestamps. SERP domain XLSX passed CLI saving and MCP resource transfer; its
+separately generated reference and CLI workbooks differed in one live Backlinks
+count, 422,229 versus 422,230 for the same URL. Every other worksheet cell
+matched. A later MCP export differed in 17 Backlinks cells; every other cell and
+non-timestamp workbook entry matched. Byte identity across separate jobs is not
+claimed for that report.
+
+The Fumadocs TypeScript check and production build passed on Raft. Public
+release verification is still pending. No account projects, lists or
+preferences were changed by this research pass.
+
 ## Version 0.29.0 Core Web Vitals
 
 Eight new operations cover native Site Audit page-speed status, overview, page

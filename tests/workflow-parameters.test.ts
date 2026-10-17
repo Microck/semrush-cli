@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { expect, test } from 'vitest';
 import { parseReport } from '../src/validation.js';
 import type { Query } from '../src/report-parameters.js';
-import { webRequest, previewMutation } from '../src/report-parameters.js';
+import { webRequest, previewMutation, reportParameters } from '../src/report-parameters.js';
 
 // Request contracts from the current Site Audit components and Position Tracking wizard.
 // See docs/contract.md; the live probe uses the same bounded public-domain fixture.
@@ -11,6 +11,59 @@ const preview = async (name: string, input: Query) => {
   const parsed = await Effect.runPromise(parseReport(name, input));
   return webRequest(parsed.definition, parsed.query);
 };
+
+
+const keywordParameters = async (name: string, input: Query) => {
+  const parsed = await Effect.runPromise(parseReport(name, input));
+  return reportParameters(parsed.definition, parsed.query);
+};
+
+test('keyword controls preserve default requests and use native monthly, device and currency values', async () => {
+  const defaults = { phrase: 'typescript', database: 'us', device: 0, currency: 'USD', location: 0, date: '' };
+  expect(await keywordParameters('keyword_overview', { keyword: 'typescript' })).toEqual(defaults);
+  for (const name of ['keyword_overview', 'keyword_ideas', 'keyword_ideas_summary', 'keyword_serp', 'keyword_ads', 'keyword_countries', 'keyword_product_ads']) {
+    expect(await keywordParameters(name, { keyword: 'typescript', device: 'mobile', date: '202609', currency: 'EUR' })).toMatchObject({ ...defaults, device: 1, date: '202609', currency: 'EUR' });
+  }
+  const invalidControls: Query[] = [{ device: 'tablet' }, { date: '202613' }, { date: '2026-09' }, { date: '202609\n' }, { currency: 'eur' }, { currency: 'EUR\n' }, { database: 'us\n' }];
+  for (const query of invalidControls) {
+    await expect(keywordParameters('keyword_overview', { keyword: 'typescript', ...query })).rejects.toThrow('Invalid keyword_overview');
+  }
+  await expect(keywordParameters('keyword_clusters', { keyword: 'typescript', device: 'mobile' })).rejects.toThrow('Invalid keyword_clusters');
+});
+
+test('Bulk Analysis uses the current native serializer and rejects unsupported or ambiguous input before authentication', async () => {
+  for (const keywords of [['one, whole phrase'], Array.from({ length: 100 }, (_, i) => 'keyword ' + i)]) {
+    expect(await keywordParameters('keyword_bulk', { keywords })).toEqual({ phrases: keywords, database: 'us', currency: 'USD', date: '' });
+  }
+  expect(await keywordParameters('keyword_bulk', { keywords: ['typescript'], domain: 'github.com', currency: 'EUR' })).toEqual({ phrases: ['typescript'], database: 'us', currency: 'EUR', date: '', domain: 'github.com' });
+  const invalid: Query[] = [{}, { keywords: [] }, { keywords: 'typescript,javascript' }, { keywords: [1] }, { keywords: ['  '] }, { keywords: ['x'.repeat(201)] }, { keywords: ['same', 'same'] }, { keywords: Array.from({ length: 101 }, (_, i) => 'keyword ' + i) }, { keywords: ['typescript'], device: 'mobile' }, { keywords: ['typescript'], date: '202609' }];
+  for (const query of invalid) await expect(keywordParameters('keyword_bulk', query)).rejects.toThrow('Invalid keyword_bulk');
+});
+
+test('SERP enrichment preserves repeated URL selections and the native keyword context', async () => {
+  for (const name of ['keyword_serp_organic_metrics', 'keyword_serp_backlink_metrics']) {
+    const urls = ['https://example.com/path?q=a,b', 'https://example.com/path?q=a,b'];
+    expect(await keywordParameters(name, { keyword: 'typescript', urls, device: 'mobile', date: '202609', currency: 'EUR' })).toEqual({ phrase: 'typescript', database: 'us', device: 1, currency: 'EUR', location: 0, date: '202609', urls });
+    for (const urls of [[], ['relative'], ['https://example.com/\n'], Array.from({ length: 101 }, (_, i) => 'https://example.com/' + i)]) {
+      await expect(keywordParameters(name, { keyword: 'typescript', urls })).rejects.toThrow('Invalid ' + name);
+    }
+  }
+});
+
+test('native keyword export serializers use closed methods, formats and data columns without wire control flags', async () => {
+  for (const [format, code] of Object.entries({ xlsx: 0, csv: 1, csv_semicolon: 2 })) {
+    expect(await keywordParameters('keyword_bulk_export', { keywords: ['typescript'], format })).toEqual({ phrases: ['typescript'], database: 'us', currency: 'USD', format: code, filename: 'semrush-keyword-bulk', columns: [0, 1, 2, 3, 4, 5, 7] });
+    for (const name of ['keyword_serp_export', 'keyword_serp_domains_export']) {
+      expect(await keywordParameters(name, { keyword: 'typescript', device: 'mobile', date: '202609', format })).toEqual({ phrase: 'typescript', database: 'us', device: 1, date: '202609', format: code, filename: name === 'keyword_serp_export' ? 'semrush-keyword-serp' : 'semrush-keyword-serp-domains' });
+    }
+  }
+  expect(await keywordParameters('keyword_bulk_export', { keywords: ['typescript'], domain: 'github.com', columns: ['potential_traffic', 'keyword', 'personalized_difficulty', 'positions'] })).toMatchObject({ domain: 'github.com', columns: [0, 10, 11, 12] });
+  const invalidExports: Query[] = [{ columns: [] }, { columns: ['unknown'] }, { columns: ['keyword', 'keyword'] }, { columns: ['potential_traffic'] }, { filename: '../file' }, { format: 'pdf' }, { method: 'user.SetSettings' }, { date: '202609' }];
+  for (const query of invalidExports) {
+    await expect(keywordParameters('keyword_bulk_export', { keywords: ['typescript'], ...query })).rejects.toThrow('Invalid keyword_bulk_export');
+  }
+  await expect(keywordParameters('keyword_serp_export', { keyword: 'typescript', currency: 'EUR' })).rejects.toThrow('Invalid keyword_serp_export');
+});
 
 test('Core Web Vitals uses fixed GET paths and exact signed decimal URL IDs', async () => {
   const base = '/siteaudit/api/campaigns/793/page-speed-metrics/';

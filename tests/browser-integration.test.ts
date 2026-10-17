@@ -27,6 +27,7 @@ import { unzipSync } from 'fflate';
 import { makeMindmapFixture } from './mindmap-fixture.js';
 import { makeWebBotAuthFixture, auditAuthPath } from './web-bot-auth-fixture.js';
 import { makeReportingFixture } from './reporting-fixture.js';
+import { makeKeywordResearchFixture, keywordDownloadPath, keywordFixturePhrase } from './keyword-research-fixture.js';
 import { makeWebVitalsFixture, webVitalsPath, negativeURLId, positiveURLId } from './web-vitals-fixture.js';
 
 const exec = promisify(execFile);
@@ -69,7 +70,8 @@ const mindmapFixture = makeMindmapFixture();
 const webBotAuthFixture = makeWebBotAuthFixture();
 const reportingFixture = makeReportingFixture();
 const webVitalsFixture = makeWebVitalsFixture();
-const fixtureHandlers = new Map([...archivePaths.map(path => [path, auditArchiveFixture.serve] as const), [folderPath, serveProjectFixture], [savedPath, serveSavedFixture], ['/notes/api/', serveNotesFixture], ['/siteaudit/api/campaigns/789/js-impact/', serveJSImpactFixture], ['/siteaudit/export/js-impact/', serveJSImpactFixture], ['/analytics/keywordmanager/list', mindmapFixture.serve], ['/mindmap-download', mindmapFixture.serve], [auditAuthPath, webBotAuthFixture.serve], ['/my_reports/graphql/', reportingFixture.serve], [webVitalsPath, webVitalsFixture.serve]]);
+const keywordResearchFixture = makeKeywordResearchFixture();
+const fixtureHandlers = new Map([...archivePaths.map(path => [path, auditArchiveFixture.serve] as const), [folderPath, serveProjectFixture], [savedPath, serveSavedFixture], ['/notes/api/', serveNotesFixture], ['/siteaudit/api/campaigns/789/js-impact/', serveJSImpactFixture], ['/siteaudit/export/js-impact/', serveJSImpactFixture], ['/analytics/keywordmanager/list', mindmapFixture.serve], ['/mindmap-download', mindmapFixture.serve], [auditAuthPath, webBotAuthFixture.serve], ['/my_reports/graphql/', reportingFixture.serve], [webVitalsPath, webVitalsFixture.serve], [keywordDownloadPath, keywordResearchFixture.serveDownload]]);
 /** Serve the native authentication checks separately from report fixtures. */
 function serveAuthenticationFixture(request: IncomingMessage, response: ServerResponse, url: URL): boolean {
   if (url.pathname === '/robots.txt') { response.end('User-agent: *\nDisallow: /'); return true; }
@@ -177,19 +179,23 @@ const fixture = createServer(async (request, response) => {
     }
     response.end(JSON.stringify({ jsonrpc: '2.0', id: rpc.id, result: reply })); return;
   }
-  if (url.pathname === '/kwogw/v2/webapi') {
-    let body = '';
-    for await (const chunk of request) body += chunk;
-    const rpc = JSON.parse(body);
-    expect(rpc.params).not.toHaveProperty('email');
-    observed.push(rpc.method);
-    response.setHeader('Content-Type', 'application/json');
-    response.setHeader('Set-Cookie', 'rotated=yes; Path=/; HttpOnly');
-    if (failReport) { response.end('{"error":{"message":"fixture-secret access denied"}}'); return; }
-    response.end(rpc.method === 'keywords.GetInfo' ? '{"result":{"keywords":[{"database":"us","volume":100,"id":9223372036854775807,"apiKey":"fixture-secret"}]}}' : '{"result":{"allowed":true}}'); return;
-  }
+  if (url.pathname === '/kwogw/v2/webapi') { await serveKeywordRPCFixture(request, response); return; }
   response.end('login');
 });
+
+/** Share the real Keyword Overview RPC boundary with the research/export scenarios. */
+async function serveKeywordRPCFixture(request: IncomingMessage, response: ServerResponse) {
+  let body = '';
+  for await (const chunk of request) body += chunk;
+  const rpc = JSON.parse(body);
+  expect(rpc.params).not.toHaveProperty('email');
+  observed.push(rpc.method);
+  response.setHeader('Content-Type', 'application/json');
+  response.setHeader('Set-Cookie', 'rotated=yes; Path=/; HttpOnly');
+  if (failReport) { response.end('{"error":{"message":"fixture-secret access denied"}}'); return; }
+  if (keywordResearchFixture.serveRPC(request, rpc, response)) return;
+  response.end(rpc.method === 'keywords.GetInfo' ? '{"result":{"keywords":[{"database":"us","volume":100,"id":9223372036854775807,"apiKey":"fixture-secret"}]}}' : '{"result":{"allowed":true}}'); return;
+}
 
 beforeAll(async () => {
   directory = await mkdtemp(join(tmpdir(), 'semrush-cli-integration-'));
@@ -427,6 +433,138 @@ test('real multipart uploads and protected audit edits preserve credentials and 
     auditConfigured = previous.configured; auditStarted = previous.started; auditProtected = previous.protected;
     auditUsername = ''; auditPassword = ''; auditRejectPassword = false; auditOtherConnection = null;
   }
+}, 30000);
+
+
+test('keyword controls, country rows and Bulk Analysis retain native values, context and precision', async () => {
+  keywordResearchFixture.use();
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const service = yield* Semrush;
+    const selection = { keyword: keywordFixturePhrase, device: 'mobile', date: '202609', currency: 'EUR' };
+    for (const name of ['keyword_overview', 'keyword_ideas', 'keyword_ideas_summary', 'keyword_serp', 'keyword_ads']) {
+      const read = yield* service.report(yield* parseReport(name, selection));
+      expect(read.authenticated).toBe(true); expect(read.artifact).toBeUndefined();
+      if (name === 'keyword_overview') expect(read.data).toMatchObject({ volume: 80, cpc: '3.6196808999999996', serp_id: 'b-g-9223372036854775807' });
+    }
+    const countries = yield* service.report(yield* parseReport('keyword_countries', selection));
+    expect(countries.data).toMatchObject([{ database: 'us', volume: 80 }, { database: 'uk', volume: 20 }]);
+    const bulk = yield* service.report(yield* parseReport('keyword_bulk', { keywords: ['café', 'one, whole phrase'], currency: 'EUR', domain: 'github.com' }));
+    expect(bulk.data).toMatchObject([{ phrase: 'café', cpc: '3.6196808999999996', domain_difficulty: 0, domain_traffic: 123 }, { phrase: 'one, whole phrase' }]);
+    for (const call of keywordResearchFixture.observed.filter(x => x.method !== 'keywords.GetBulk')) expect(call.params).toMatchObject({ phrase: keywordFixturePhrase, device: 1, date: '202609', currency: 'EUR', location: 0 });
+  }).pipe(Effect.provide(fixtureLayer()))));
+  expect((await sdk.headers('test', fixtureURL)).Cookie).toContain('keyword_read_rotation=retained');
+});
+
+test('SERP enrichment preserves provider URL ordering and Product Listing Ads retain their client limit', async () => {
+  keywordResearchFixture.use();
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const service = yield* Semrush; const urls = ['https://example.com/first', 'https://example.com/second'];
+    for (const name of ['keyword_serp_organic_metrics', 'keyword_serp_backlink_metrics']) {
+      const read = yield* service.report(yield* parseReport(name, { keyword: keywordFixturePhrase, urls }));
+      expect(read.data).toMatchObject([{ url: urls[1] }, { url: urls[0] }]);
+      expect(keywordResearchFixture.observed.at(-1)?.params).toMatchObject({ urls, phrase: keywordFixturePhrase, device: 0, date: '', currency: 'USD' });
+    }
+    const ads = yield* service.report(yield* parseReport('keyword_product_ads', { keyword: keywordFixturePhrase, limit: 1 }));
+    expect(ads.data).toEqual([{ title: 'café shoes', url: 'https://example.com/product', price: 42 }]);
+    keywordResearchFixture.use('empty');
+    const emptyReads: [string, Query][] = [['keyword_bulk', { keywords: ['missing'] }], ['keyword_countries', { keyword: keywordFixturePhrase }], ['keyword_product_ads', { keyword: keywordFixturePhrase }]];
+    for (const [name, query] of emptyReads) {
+      expect((yield* service.report(yield* parseReport(name, query))).data).toEqual([]);
+    }
+  }).pipe(Effect.provide(fixtureLayer()))));
+});
+
+test('keyword provider failures and malformed country data remain errors while later reads still work', async () => {
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const service = yield* Semrush;
+      keywordResearchFixture.use('read-failed');
+      const denied = yield* service.report(yield* parseReport('keyword_bulk', { keywords: ['café'] })).pipe(Effect.flip);
+      expect(denied.message).toContain('HTTP 403'); expect(denied.message).not.toContain('fixture-secret');
+      keywordResearchFixture.use('countries-malformed');
+      const malformed = yield* service.report(yield* parseReport('keyword_countries', { keyword: keywordFixturePhrase })).pipe(Effect.flip);
+      expect(malformed.message).toContain('did not return keyword country metrics');
+      keywordResearchFixture.use();
+      expect((yield* service.report(yield* parseReport('keyword_bulk', { keywords: ['café'] }))).data).toMatchObject([{ phrase: 'café' }]);
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { keywordResearchFixture.use(); }
+});
+
+test('native keyword bulk and SERP exports preserve CSV, semicolon CSV and real XLSX bytes as private MCP resources', async () => {
+  keywordResearchFixture.use();
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const service = yield* Semrush; const files = yield* Exports;
+    for (const [format, code] of Object.entries({ csv: 1, csv_semicolon: 2, xlsx: 0 })) {
+      for (const name of ['keyword_bulk_export', 'keyword_serp_export', 'keyword_serp_domains_export']) {
+        const query: Query = name === 'keyword_bulk_export' ? { keywords: ['café'], format } : { keyword: keywordFixturePhrase, device: 'mobile', date: '202609', format };
+        const read = yield* service.report(yield* parseReport(name, query));
+        expect(read.data).toBeNull(); expect(read.artifact).toBeDefined(); if (!read.artifact) throw Error('Missing export');
+        expect(read.artifact.filename).toBe('keyword native.' + (code === 0 ? 'xlsx' : 'csv'));
+        expect(read.artifact.mime_type).toBe(code === 0 ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv');
+        const bytes = Buffer.from((yield* files.read(read.artifact.uri)).blob, 'base64'); expect(bytes).toEqual(keywordResearchFixture.bytes(code));
+        if (code === 0) expect(Object.keys(unzipSync(bytes))).toContain('xl/worksheets/sheet1.xml');
+      }
+    }
+    expect(yield* files.list()).toHaveLength(9);
+  }).pipe(Effect.provide(fixtureLayer()))));
+  expect(keywordResearchFixture.initializations).toBe(9); expect(keywordResearchFixture.downloads).toBe(9);
+  expect((await sdk.headers('test', fixtureURL)).Cookie).toContain('keyword_download_rotation=retained');
+}, 30000);
+
+test('only native pending code zero retries the existing keyword export wait, with no duplicate creation', async () => {
+  keywordResearchFixture.use('pending');
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    expect((yield* (yield* Semrush).report(yield* parseReport('keyword_bulk_export', { keywords: ['café'] }))).artifact).toBeDefined();
+  }).pipe(Effect.provide(fixtureLayer()))));
+  expect(keywordResearchFixture.initializations).toBe(1); expect(keywordResearchFixture.waits).toBe(2); expect(keywordResearchFixture.downloads).toBe(1);
+});
+
+test('keyword export permission, rate-limit and exhausted pending errors expose no artifacts or private job identifiers', async () => {
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const service = yield* Semrush;
+      for (const scenario of ['denied', 'rate-limited', 'forever'] as const) {
+        keywordResearchFixture.use(scenario);
+        const error = yield* service.report(yield* parseReport('keyword_bulk_export', { keywords: ['café'] })).pipe(Effect.flip);
+        expect(error.message).not.toContain('private-keyword-export-token'); expect(error.message).not.toContain('fixture-secret');
+        expect(keywordResearchFixture.initializations).toBe(1); expect(keywordResearchFixture.waits).toBe(scenario === 'forever' ? 3 : 1); expect(keywordResearchFixture.downloads).toBe(0);
+        expect(yield* (yield* Exports).list()).toEqual([]);
+      }
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { keywordResearchFixture.use(); }
+}, 30000);
+
+test('keyword export creation with a missing identifier or lost response is never replayed', async () => {
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const service = yield* Semrush;
+      for (const scenario of ['missing-id', 'lost-init'] as const) {
+        keywordResearchFixture.use(scenario);
+        const error = yield* service.report(yield* parseReport('keyword_bulk_export', { keywords: ['café'] })).pipe(Effect.flip);
+        expect(error.message).toContain(scenario === 'missing-id' ? 'export identifier' : 'browser request failed');
+        expect(keywordResearchFixture.initializations).toBe(1); expect(keywordResearchFixture.waits).toBe(0); expect(keywordResearchFixture.downloads).toBe(0);
+        expect(yield* (yield* Exports).list()).toEqual([]);
+        expect((yield* service.report(yield* parseReport('keyword_bulk', { keywords: ['café'] }))).authenticated).toBe(true);
+      }
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { keywordResearchFixture.use(); }
+});
+
+test('cancelling a pending keyword export or file stream releases its client, artifacts and report slot', async () => {
+  try {
+    for (const scenario of ['forever', 'slow-download'] as const) {
+      keywordResearchFixture.use(scenario);
+      await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+        const service = yield* Semrush;
+        const fiber = yield* Effect.forkChild(service.report(yield* parseReport('keyword_bulk_export', { keywords: ['café'] })));
+        yield* Effect.promise(scenario === 'forever' ? keywordResearchFixture.waiting : keywordResearchFixture.downloading).pipe(Effect.timeout('5 seconds'));
+        yield* Fiber.interrupt(fiber).pipe(Effect.timeout('5 seconds'));
+        if (scenario === 'slow-download') yield* Effect.promise(keywordResearchFixture.disconnected).pipe(Effect.timeout('5 seconds'));
+        expect(yield* (yield* Exports).list()).toEqual([]);
+        expect((yield* service.report(yield* parseReport('keyword_bulk', { keywords: ['café'] }))).authenticated).toBe(true);
+      }).pipe(Effect.provide(fixtureLayer()))));
+    }
+  } finally { keywordResearchFixture.use(); }
 }, 30000);
 
 test('Core Web Vitals reads retain native measurements, signed URL IDs, history ordering and cookie rotation', async () => {
