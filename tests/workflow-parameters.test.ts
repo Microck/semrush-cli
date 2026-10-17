@@ -18,10 +18,27 @@ test('My Reports discovery is one fixed read-only query and rejects caller Graph
   const request = webRequest(parsed.definition, parsed.query);
   expect(request).toMatchObject({ method: 'POST', path: '/my_reports/graphql/', body: { operationName: 'ReportingOverview' } });
   expect(request.body).toHaveProperty('query', expect.stringContaining('isCommonPrivacyAccepted'));
-  const invalidInputs: Query[] = [{ query: 'mutation { createReport }' }, { url: 'https://example.com/' }, { limit: 100 }, { confirm: true }, { dry_run: true }];
+  const invalidInputs: Query[] = [{ query: 'mutation { createReport }' }, { url: 'https://example.com/' }, { limit: 100 }, { confirm: true }, { dry_run: true }, { offset: -1 }, { offset: 0.5 }, { offset: 2147483648 }, { ownership: 'other' }, { branding: 'other' }, { schedule: 'yearly' }];
   for (const input of invalidInputs) {
     await expect(preview('reporting_overview', input)).rejects.toThrow('Invalid reporting_overview');
   }
+});
+
+test('My Reports pagination and grid filters use fixed GraphQL variables without interpolating search text', async () => {
+  const initial = await preview('reporting_overview', {});
+  expect(initial.body).toHaveProperty('variables', { offset: 0, where: {} });
+  const search = 'quote" \n mutation { createReport }';
+  const filtered = await preview('reporting_overview', { offset: 30, ownership: 'shared', branding: 'standard', schedule: 'weekly', search });
+  const initialQuery = Schema.decodeUnknownSync(Schema.Struct({ query: Schema.String }))(initial.body).query;
+  expect(filtered.body).toHaveProperty('query', initialQuery);
+  expect(filtered.body).toHaveProperty('variables', { offset: 30, where: {
+    ownedByMe: false, isVirtualShare: false, isBranded: false, schedulePeriods: ['weekly'], name: { method: 'Contains', value: search },
+  } });
+  expect((await preview('reporting_overview', { ownership: 'own', branding: 'branded', schedule: 'daily' })).body)
+    .toHaveProperty('variables.where', { ownedByMe: true, isBranded: true, schedulePeriods: ['daily'] });
+  expect((await preview('reporting_overview', { ownership: 'team', schedule: 'monthly' })).body)
+    .toHaveProperty('variables.where', { isVirtualShare: true, schedulePeriods: ['monthly'] });
+  expect((await preview('reporting_overview', { offset: 2147483647 })).body).toHaveProperty('variables.offset', 2147483647);
 });
 
 test('protected audit credentials match the native settings payload and disappear from previews', async () => {

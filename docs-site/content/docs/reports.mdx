@@ -4374,9 +4374,17 @@ CLI requires `--output <path>` and refuses existing files. MCP returns an export
 
 ## reporting-overview
 
-Read My Reports access, limits, privacy acknowledgment, native templates and the first 30 reports by latest update. Does not create reports, accept policies or generate PDFs.
+Read My Reports access, limits, privacy acknowledgment, native templates and a filtered 30-report page by latest update. Does not create reports, accept policies or generate PDFs.
 
 ```sh
 semrush reporting-overview --help
 ```
+
+| Flag | Type | Default | Required |
+| --- | --- | --- | --- |
+| `--offset` | integer | `0` |  |
+| `--ownership` | string | `"all"` |  |
+| `--branding` | string | `"all"` |  |
+| `--schedule` | string | `"all"` |  |
+| `--search` | string | `""` |  |
 

@@ -12,7 +12,7 @@ const savedOwnership = new Map([['all', 1], ['own', 2], ['shared', 3], ['team', 
 const savedLabels = new Map([['position_tracking', 1], ['content_written', 2], ['brief_generated', 3]]);
 
 /** Native My Reports fields; this fixed overview never accepts caller GraphQL or generates reports. */
-const reportingOverviewQuery = `query ReportingOverview {
+const reportingOverviewQuery = `query ReportingOverview($offset: Int, $where: ReportsWhereInput) {
   me {
     hasProduct productTier isPaid isCommonPrivacyAccepted availableActions
     newReportProperties { state availableActions }
@@ -25,7 +25,7 @@ const reportingOverviewQuery = `query ReportingOverview {
       trials { isLimitReached limit used }
     }
     systemTemplates { type title isPremium new tools datasources groups hint }
-    reports(limit: 30, sort: UpdatedAt, sortDescend: true) {
+    reports(limit: 30, sort: UpdatedAt, sortDescend: true, offset: $offset, where: $where) {
       totalCount
       nodes {
         id name state createdAt updatedAt availableActions isBranded
@@ -47,10 +47,23 @@ export function reportResponseType(definition: Report): string | undefined {
 /** Validated catalog queries and fixed JSON request payloads; optional keys are omitted on wire. */
 export interface Query { [key: string]: Schema.Json; }
 
+/** Filters mirror the native grid; caller text only enters GraphQL variables. */
+function reportingParameters(query: Query): Query {
+  const where: Query = {};
+  if (query.ownership === 'own') where.ownedByMe = true;
+  if (query.ownership === 'shared') Object.assign(where, { ownedByMe: false, isVirtualShare: false });
+  if (query.ownership === 'team') where.isVirtualShare = true;
+  const branding = query.branding ?? 'all'; const schedule = query.schedule ?? 'all';
+  if (branding !== 'all') where.isBranded = branding === 'branded';
+  if (schedule !== 'all') where.schedulePeriods = [schedule];
+  if (query.search) where.name = { method: 'Contains', value: query.search };
+  return { operationName: 'ReportingOverview', query: reportingOverviewQuery, variables: { offset: query.offset ?? 0, where } };
+}
+
 /** Fixed request shapes observed in semrush-web-mcp. No arbitrary RPC or URL input. */
 export function reportParameters(definition: Report, q: Query): Query {
   const family = definition.transport;
-  if (family === 'reporting_web') return { operationName: 'ReportingOverview', query: reportingOverviewQuery };
+  if (family === 'reporting_web') return reportingParameters(q);
   if (family === 'bla') return backlinkAuditParameters(definition, q);
   if (family === 'notes_web') return noteParameters(definition, q);
   if (family === 'ksb') return domainStrategyParameters(definition, q);

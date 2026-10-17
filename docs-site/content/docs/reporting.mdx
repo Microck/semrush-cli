@@ -8,8 +8,7 @@ semrush reporting-overview --json
 ```
 
 The command reads your My Reports account with the same encrypted web session
-as other commands. It takes no options beyond the standard output flags.
-MCP exposes `reporting_overview` with empty arguments.
+as other commands. MCP exposes `reporting_overview` with the same filters.
 
 ## Read the result
 
@@ -21,7 +20,7 @@ MCP exposes `reporting_overview` with empty arguments.
 | `isCommonPrivacyAccepted` | Current reporting Privacy Policy acknowledgment |
 | `limits` | Essential/Premium report counters, upgrades, AI summary and trial allowances |
 | `systemTemplates` | Native template types, titles, groups and data sources |
-| `reports.totalCount` | Total reports visible to your account |
+| `reports.totalCount` | Total reports matching the current filters |
 | `reports.nodes` | Up to 30 reports, ordered by latest update first |
 
 ```sh
@@ -34,9 +33,35 @@ Report rows preserve their native IDs, names, states, timestamps, available
 actions and schedule settings. `readyTasks` contains at most one ready task per
 report. Its filename is metadata; this command does not download that PDF.
 
-The overview returns the first report page. If `reports.totalCount` exceeds
-`reports.nodes.length`, further reports exist. Complete paginated listing and
-report downloads remain unsupported.
+## Page and filter reports
+
+The default reads the first 30 reports, newest update first. Use `--offset 30`
+for the next page, then 60, 90 and so on. Stop when the page is empty or the next
+offset reaches `reports.totalCount`. Keep the same filters across pages.
+Requests read current data, so concurrent report edits can change page order.
+
+```sh
+semrush reporting-overview --offset 30 --json
+semrush reporting-overview --ownership own --branding standard --schedule weekly --search seo --json
+```
+
+| Option | Values | Default |
+| --- | --- | --- |
+| `--offset` | Integer from 0 to 2147483647 | `0` |
+| `--ownership` | `all`, `own`, `shared`, `team` | `all` |
+| `--branding` | `all`, `branded`, `standard` | `all` |
+| `--schedule` | `all`, `daily`, `weekly`, `monthly` | `all` |
+| `--search` | Native report-name Contains search | Empty |
+
+Filters combine. `shared` selects reports owned by another user and directly
+shared with you; `team` selects native team sharing. The result's total is the
+filtered count. Pages keep the native fixed size of 30. Search text stays in
+GraphQL variables and cannot change the query.
+
+For MCP, use arguments such as
+`{"offset":30,"ownership":"own","schedule":"weekly","search":"seo"}`.
+Pagination and filters only read data; they do not change saved schedules.
+Report downloads remain unsupported.
 
 ## Account access and PDF limits
 

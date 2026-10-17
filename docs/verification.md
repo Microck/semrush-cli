@@ -1,5 +1,34 @@
 # Verification
 
+## Version 0.28.0 My Reports pagination and filters
+
+The existing reporting overview now accepts native offset pagination and combined
+ownership, branding, schedule-period and name filters. The catalog remains at
+276 operations, 187 reads and 89 confirmed writes. One fixed GraphQL query sends
+all caller values as JSON variables. Pages retain the native size of 30 and
+last-update descending order. The filtered total does not imply a stable snapshot
+when reports change between requests.
+
+The lazy-loaded native `Root.DzYlx7gJ.js` grid supplied the offset and
+`ReportsWhereInput` contract. Its ownership mapping distinguishes directly shared
+reports from team sharing. Eight independent native HTTP probes passed on the
+same Guru account, including the second page and combined branding/schedule
+selection. Every result was empty, and reporting privacy acceptance stayed false.
+
+Typecheck, Oxlint, generated-reference checks, five daemon builds and all
+216 tests passed on Raft. Three independent simplification reviewers found no
+changes needed. Real HTTP fixtures verify a populated second page, exhaustion,
+combined filters, filtered totals, JSON-variable encoding and unchanged failure
+handling. Populated live pagination remains unverified because the account has
+no saved reports and creation requires an explicit policy acknowledgment.
+
+Source CLI and MCP each matched an independent native account query for nine
+selections: defaults, second page, each ownership scope, branded reports,
+standard weekly reports, name search and combined filters with quote/newline
+search text. Native HTTP responses were successful and privacy stayed false.
+These live reads verify request acceptance and empty results; fixture coverage
+supplies positive row selection and traversal evidence.
+
 ## Version 0.27.0 My Reports overview
 
 The catalog contains 276 operations, 187 reads and 89 confirmed writes.

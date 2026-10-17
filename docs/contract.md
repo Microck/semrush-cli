@@ -860,12 +860,21 @@ or cancellation. Runtime-owned export files follow the existing scoped lifetime.
 
 `reporting-overview` reads reporting access, native quota counters, privacy
 acknowledgment state, Essential/Premium capabilities, system templates and the
-first 30 reports ordered by last update descending. Each report includes its
-saved schedule and one ready task's metadata. `reports.totalCount` can exceed
-the returned page; this overview is not a complete paginated report listing.
+selected page of up to 30 reports ordered by last update descending. Each report
+includes its saved schedule and one ready task's metadata. `--offset` defaults
+to zero and accepts a nonnegative GraphQL Int up to 2147483647. Advance by 30
+to read subsequent pages; stop when the returned page is empty or the next
+offset reaches `reports.totalCount`. The total describes the filtered selection.
 Task filenames are metadata, not downloaded artifacts.
 
-CLI and MCP accept no report query, URL or options. The adapter sends the fixed
+Optional `--ownership all|own|shared|team`, `--branding all|branded|standard`,
+`--schedule all|daily|weekly|monthly` and `--search` combine with pagination.
+They map to native `ReportsWhereInput` values: `ownedByMe`, `isVirtualShare`,
+`isBranded`, `schedulePeriods` and `name:{method:Contains,value:...}`. Defaults
+apply no filters. Search text stays in JSON variables, never GraphQL source.
+The lazy-loaded native grid module supplies this request contract.
+
+CLI and MCP accept no caller GraphQL, URL or page-size override. The adapter sends the fixed
 `ReportingOverview` GraphQL query to `/my_reports/graphql/` using the encrypted
 session's cookies. It returns the native `data.me` object under the usual
 authenticated envelope. GraphQL errors, including partial-data errors, and

@@ -94,6 +94,7 @@ test('built catalog distinguishes read reports and project writes', async () => 
 test('invalid usage fails before attempting authentication', async () => {
   await expect(cli(['keyword-magic', '--keyword', 'foo', '--page', '0'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('must be >= 1') });
   await expect(cli(['reporting-overview', '--query', 'mutation { createReport }'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('unknown option') });
+  await expect(cli(['reporting-overview', '--offset', '-1'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('must be >= 0') });
 });
 test('missing session is an actionable failure with no stdout', async () => {
   await expect(cli(['account-status', '--json'])).rejects.toMatchObject({ code: 1, stdout: '', stderr: expect.stringContaining('semrush setup') });

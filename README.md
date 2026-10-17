@@ -159,7 +159,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 | `notes-export` | download all chart notes as native csv |
 | `note-create`, `note-update`, `note-delete` | create, edit or delete your own user notes |
 | `note-hide`, `note-show`, `note-hidden-categories-set` | change note visibility or replace hidden categories for a chart |
-| `reporting-overview` | read my reports access, quotas, templates and the first 30 saved reports |
+| `reporting-overview` | read my reports access, quotas and templates, then filter and page through saved reports |
 | `reports` | list every operation and its inputs |
 | `mcp` | run the stdio mcp server |
 | `doctor` | check the browser, session engine and semrush connection |
@@ -617,11 +617,17 @@ read your reporting access, quotas, privacy acknowledgment status and native tem
 
 ```bash
 semrush reporting-overview
+semrush reporting-overview --ownership own --branding branded --schedule weekly --search seo
+semrush reporting-overview --ownership own --branding branded --schedule weekly --search seo --offset 30
 ```
 
-the result includes the first 30 saved reports, newest update first, with their schedules and at most one ready task per report. task filenames are metadata; this command does not download pdfs. mcp exposes `reporting_overview` with no arguments.
+the result includes up to 30 matching saved reports, newest update first, with their schedules and at most one ready task per report. `--ownership` accepts `all`, `own`, `shared` or `team`; `--branding` accepts `all`, `branded` or `standard`; `--schedule` accepts `all`, `daily`, `weekly` or `monthly`. `--search` matches report names with semrush's native contains filter. the filters combine and default to `all` with no search.
 
-live checks verified both the source and a fresh npm install of v0.27.0. cli and mcp matched the native query on a guru account with 34 templates, no saved reports and three essential report slots. the account had not accepted reporting's privacy policy. report creation, saving and pdf generation remain unsupported; the native workflow requires an explicit privacy acknowledgment. pagination beyond the first 30 reports is not available.
+start at offset `0`, then use `30`, `60` and so on with the same filters. stop when the page is empty or the offset reaches the filtered total. concurrent edits can change page order. offsets must be whole numbers between `0` and `2147483647`.
+
+task filenames are metadata; this command does not download pdfs or change schedules. mcp exposes `reporting_overview` with the same optional filters and offset.
+
+live checks verified both the source and a fresh npm install of v0.27.0. cli and mcp matched the native query on a guru account with 34 templates, no saved reports and three essential report slots. the account had not accepted reporting's privacy policy. report creation, saving and pdf generation remain unsupported; the native workflow requires an explicit privacy acknowledgment.
 
 ### chart notes
 
@@ -831,7 +837,7 @@ npm run check
 
 the cli uses the published [`galleton` 0.1.0 sdk](https://www.npmjs.com/package/galleton). the bundled galleton daemon is still required for sessions. building it from source requires go 1.23 or newer, `tar` and `patch`. published cli packages include the daemon for supported platforms, so npm users do not need go.
 
-the current source passed 214 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
+the current source passed 216 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
 
 ## documentation
 

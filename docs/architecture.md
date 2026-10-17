@@ -48,8 +48,9 @@ Provider report data can contain nested objects and provider errors. Secret fiel
 
 My Reports discovery uses one fixed cookie-authenticated GraphQL query. Its
 adapter rejects GraphQL errors even when partial data accompanies them, then
-returns the native account object. The query includes a bounded first report
-page and task metadata; it does not fetch task files or accept caller GraphQL.
+returns the native account object. The query includes one bounded 30-report
+page and task metadata. Offset and combined filters stay in JSON variables;
+it does not fetch task files or accept caller GraphQL.
 
 Site Audit settings replace the native configuration. Existing HTTP Basic and
 Web Bot Auth credentials therefore require an explicit keep or disable choice.

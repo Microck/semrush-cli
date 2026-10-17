@@ -446,6 +446,32 @@ test('My Reports overview preserves native limits, first-page metadata and cooki
   } finally { reportingFixture.use('complete'); }
 });
 
+test('My Reports pages preserve row order and combine native ownership, branding, schedule and name filters', async () => {
+  reportingFixture.use('complete');
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const semrush = yield* Semrush;
+    const next = yield* semrush.report(yield* parseReport('reporting_overview', { offset: 30 }));
+    expect(next.data).toHaveProperty('reports.totalCount', 38);
+    expect(next.data).toHaveProperty('reports.nodes.length', 8);
+    expect(next.data).toHaveProperty('reports.nodes.0.id', 31);
+    const end = yield* semrush.report(yield* parseReport('reporting_overview', { offset: 60 }));
+    expect(end.data).toHaveProperty('reports', { totalCount: 38, nodes: [] });
+    const selected = yield* semrush.report(yield* parseReport('reporting_overview', {
+      ownership: 'shared', branding: 'standard', schedule: 'weekly', search: 'report 1',
+    }));
+    expect(selected.data).toHaveProperty('reports.totalCount', 1);
+    expect(selected.data).toHaveProperty('reports.nodes.length', 1);
+    expect(selected.data).toHaveProperty('reports.nodes.0.id', 14);
+    const own = yield* semrush.report(yield* parseReport('reporting_overview', { ownership: 'own', branding: 'branded', schedule: 'daily' }));
+    expect(own.data).toHaveProperty('reports.totalCount', 3);
+    const team = yield* semrush.report(yield* parseReport('reporting_overview', { ownership: 'team', schedule: 'monthly' }));
+    expect(team.data).toHaveProperty('reports.totalCount', 4);
+    const missing = yield* semrush.report(yield* parseReport('reporting_overview', { search: 'missing report' }));
+    expect(missing.data).toHaveProperty('reports', { totalCount: 0, nodes: [] });
+    expect(missing.artifact).toBeUndefined();
+  }).pipe(Effect.provide(fixtureLayer()))));
+});
+
 test('My Reports fails on partial GraphQL errors, missing account data and denied access while preserving later reads', async () => {
   try {
     await Effect.runPromise(Effect.scoped(Effect.gen(function* () {

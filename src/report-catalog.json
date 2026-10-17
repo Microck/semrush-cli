@@ -15391,7 +15391,7 @@
   },
   "reporting_overview": {
     "method": "/my_reports/graphql/",
-    "description": "Read My Reports access, limits, privacy acknowledgment, native templates and the first 30 reports by latest update. Does not create reports, accept policies or generate PDFs.",
+    "description": "Read My Reports access, limits, privacy acknowledgment, native templates and a filtered 30-report page by latest update. Does not create reports, accept policies or generate PDFs.",
     "transport": "reporting_web",
     "total_method": "",
     "web_report": "",
@@ -15401,7 +15401,49 @@
     "schema": {
       "type": "object",
       "additionalProperties": false,
-      "properties": {}
+      "properties": {
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647,
+          "default": 0,
+          "description": "Native report offset. Advance by 30 to read the next page."
+        },
+        "ownership": {
+          "type": "string",
+          "enum": [
+            "all",
+            "own",
+            "shared",
+            "team"
+          ],
+          "default": "all"
+        },
+        "branding": {
+          "type": "string",
+          "enum": [
+            "all",
+            "branded",
+            "standard"
+          ],
+          "default": "all"
+        },
+        "schedule": {
+          "type": "string",
+          "enum": [
+            "all",
+            "daily",
+            "weekly",
+            "monthly"
+          ],
+          "default": "all"
+        },
+        "search": {
+          "type": "string",
+          "default": "",
+          "description": "Native report-name Contains search, combined with other filters."
+        }
+      }
     }
   }
 }
