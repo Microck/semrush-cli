@@ -1,80 +1,125 @@
 ---
 title: Projects
-description: Create and manage the same projects as the current Semrush web dashboard.
+description: Create, configure, and inspect projects matching the Semrush web dashboard.
 ---
 
-Projects use the current web dashboard's folder IDs. These differ from legacy
-SEO project IDs. Use the `id` from `projects`, `folders` or `project-create`.
+Projects in `semrush-cli` match the projects on your Semrush web dashboard. These operations use project folder IDs, represented as decimal strings.
 
-## Create a project
+## Identifier distinction
+
+- **Folder ID (`folder_id`)**: A decimal string returned by `projects`, `folders`, or `project-create`. Used for general project organization, tagging, and dashboard metrics.
+- **SEO project ID (`campaign_id` or `project_id`)**: A numeric integer returned by `project-enable-seo`. Used by Site Audit, Position Tracking, and Backlink Audit.
+
+## Creating a project
+
+Before creating a project, check your account allowance:
 
 ```sh
 semrush project-limits --json
-semrush project-create --name 'my website' --domain example.com --dry-run
-semrush project-create --name 'my website' --domain example.com --confirm --json
 ```
 
-Creation adds a project to the dashboard. The website is optional, as in the web
-UI. It does not share the project, start a crawl or enable paid tools. Domains
-must omit the protocol and path. Account project limits apply.
+Preview project creation without network mutation:
 
-Every write requires `--confirm`. Without it, the CLI fails before authentication.
-`--dry-run` validates and prints the HTTP method, path and JSON body without
-network access. MCP accepts the equivalent `confirm:true` and `dry_run:true`.
-Writes have no automatic retries. After an interrupted write, inspect the project
-before issuing it again.
+```sh
+semrush project-create --name 'Client Portal' --domain example.com --dry-run
+```
 
-## Manage projects
+Execute creation by adding `--confirm`:
+
+```sh
+semrush project-create --name 'Client Portal' --domain example.com --confirm --json
+```
+
+The domain argument is optional and must omit protocols (`https://`) and paths. Writes require `--confirm`. Omitting `--confirm` causes the command to abort before connecting to Semrush.
+
+## Project settings and tags
+
+Retrieve project details or update metadata:
 
 ```sh
 semrush project-get --folder-id 123 --json
-semrush project-update --folder-id 123 --name 'new name' --confirm
-semrush project-set-tags --folder-id 123 --tags '["client","seo"]' --confirm
-semrush project-pin --folder-id 123 --pinned --confirm
-semrush project-pin --folder-id 123 --pinned false --confirm
-semrush project-tags --json
-semrush project-check-domain --domain example.com --json
+semrush project-update --folder-id 123 --name 'Updated Client Portal' --confirm
 ```
 
-`project-update --domain` adds a website only when a project has none. Semrush
-does not allow changing an existing project website. Tags replace the entire tag
-list. Use `--tags '[]'` to clear it. The web UI allows three tags of up to 50
-characters each and restricts punctuation. Sharing and access permissions apply.
+Adding a domain with `project-update` is permitted only when the project has no existing domain. Once a domain is attached to a project in Semrush, it cannot be replaced.
 
-`project-delete --folder-id 123 --confirm` permanently removes the project and
-attached tool data. `project-leave --folder-id 123 --confirm` leaves a shared
-project. Both MCP tools carry destructive annotations.
+### Managing tags and dashboard pinning
 
-## Dashboard and SEO tools
+Tags replace the entire tag list for the project:
+
+```sh
+semrush project-set-tags --folder-id 123 --tags '["client","active"]' --confirm
+semrush project-set-tags --folder-id 123 --tags '[]' --confirm
+semrush project-pin --folder-id 123 --pinned --confirm
+semrush project-pin --folder-id 123 --pinned false --confirm
+```
+
+Passing an empty JSON array `'[]'` removes all tags.
+
+### Deleting or leaving a project
+
+```sh
+semrush project-delete --folder-id 123 --confirm
+semrush project-leave --folder-id 123 --confirm
+```
+
+Deleting permanently deletes the project and attached tool data. Leaving relinquishes access to a shared project.
+
+## Sharing a project
+
+Sharing grants access to all tools configured in the project and sends a notification to each recipient. Choose `viewer` or `editor` explicitly:
+
+```sh
+semrush project-shares --folder-id 123 --json
+semrush project-share --folder-id 123 --emails '["person@example.com"]' --role viewer --dry-run
+semrush project-share --folder-id 123 --emails '["person@example.com"]' --role viewer --confirm --json
+```
+
+The result keeps Semrush's sharing envelope. Existing share IDs are in
+`data.data.list[].share_id`. Use those 24-character hexadecimal IDs when changing
+permissions or revoking access:
+
+```sh
+semrush project-share-set-role --share-ids '["0123456789abcdef01234567"]' --role editor --confirm
+semrush project-share-revoke --share-ids '["0123456789abcdef01234567"]' --confirm
+```
+
+Replace the example IDs with the exact IDs from `project-shares`. If a sharing
+write fails or loses its response, read the shares before trying again. Writes do
+not retry automatically.
+
+## Enabling SEO tools
+
+To connect Site Audit or Position Tracking, create the associated SEO project:
+
+```sh
+semrush project-enable-seo --folder-id 123 --confirm --json
+```
+
+This returns a numeric SEO campaign identifier (`data.id`). Use this numeric ID when configuring [Site Audit](/docs/site-audit) or [Position Tracking](/docs/position-tracking).
+
+To trigger the standard web automatic configuration for both tools simultaneously:
+
+```sh
+semrush project-seo-auto-setup --folder-id 123 --confirm --json
+```
+
+## Reading dashboard metrics
+
+Inspect active toolkits and high-level project metrics:
 
 ```sh
 semrush project-toolkits --folder-ids '["123"]' --json
 semrush project-tools --folder-id 123 --tools '[23,27,28,31]' --json
-semrush project-enable-seo --folder-id 123 --confirm --json
-semrush project-seo-auto-setup --folder-id 123 --confirm --json
 ```
 
-`project-toolkits` reads toolkit status and detail URLs. `project-tools` reads the
-dashboard metrics. It does not poll until data becomes ready. Common tool IDs:
+Common tool metric identifiers:
 
-| ID | Metric |
+| Tool ID | Metric |
 | --- | --- |
 | 23 | Site health |
-| 24 | Backlink prospects |
 | 25 | Backlinks |
-| 26 | SEO ideas |
 | 27 | Organic keywords |
 | 28 | Organic traffic |
-| 29 | Organic sessions |
-| 30 | Toxic domains |
 | 31 | Position Tracking visibility |
 | 32 | AI visibility |
-| 33 | AI mentions |
-
-`project-enable-seo` associates an SEO project with the folder. It consumes the
-account's SEO project allowance. `project-seo-auto-setup` starts the web UI's
-automatic SEO setup, including Site Audit and Position Tracking. These commands
-are separate because starting crawls and tracking consumes account allowances.
-Use the [Site Audit guide](/docs/site-audit) to create a public-site audit, set its
-schedule and launch it explicitly. Custom Position Tracking settings and
-third-party integrations still require the web UI. See [coverage](/docs/coverage).

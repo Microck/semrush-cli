@@ -1,15 +1,13 @@
 ---
 title: Keyword research
-description: Research keywords, personalize metrics, choose Magic groups and download native exports.
+description: Inspect search volume, SERP features, AI topics, Keyword Magic groups, and bulk exports.
 ---
 
-These commands use your existing Semrush session. Sign in with the
-[authentication guide](/docs/authentication) first. They read research data and
-create download jobs without saving keywords or changing account settings.
-The explicit `keyword-refresh` command requests a metric refresh. Domain
-preparation is a separate confirmed action.
+`semrush-cli` provides commands for keyword discovery, intent analysis, local SERPs, competitor personalization, and batch exports using your Semrush web account.
 
-## Select a keyword snapshot
+## Single keyword metrics
+
+Query volume, difficulty, intent, and trends for any search query:
 
 ```sh
 semrush keyword-overview --keyword typescript --database us --json
@@ -17,252 +15,116 @@ semrush keyword-overview --keyword typescript --database us --device mobile --js
 semrush keyword-serp --keyword typescript --database us --date 202609 --json
 semrush keyword-ideas --keyword typescript --database us --currency EUR --json
 semrush keyword-countries --keyword typescript --database us --json
-semrush keyword-product-ads --keyword 'running shoes' --database us --limit 10 --json
+semrush keyword-clusters --keyword typescript --database us --json
 ```
 
-`keyword-overview`, `keyword-ideas`, `keyword-ideas-summary`, `keyword-serp`,
-`keyword-ads`, `keyword-countries` and `keyword-product-ads` accept `--device`,
-`--date` and `--currency`. Defaults are desktop, the current snapshot and USD.
-Historical dates use `YYYYMM`, such as `202609`, rather than an ISO date.
-Account access and native snapshot availability still apply.
+Key options for keyword queries:
+- `--database`: Target country database code (default: `us`).
+- `--device`: Search context, either `desktop` or `mobile` (default: `desktop`).
+- `--date`: Historical snapshot in `YYYYMM` format (for example, `202609`). Omit for current data.
+- `--currency`: Three-letter currency code (default: `USD`).
 
-Country metrics return Semrush's country rows, without calculating a global
-total. Empty ads and unavailable measurements stay as returned by Semrush.
-Keyword clusters does not accept these snapshot or device controls.
+## Domain personalization
 
-## Prepare a domain for personalized research
+Personalize difficulty scores and intent metrics against an established website:
+
+1. Identify the bare root domain:
+   ```sh
+   semrush keyword-domain-root --domain www.example.com --json
+   ```
+2. Prepare the domain for personalization:
+   ```sh
+   semrush keyword-domain-prepare --domain example.com --dry-run
+   semrush keyword-domain-prepare --domain example.com --confirm --json
+   ```
+3. If preparation returns a pending job ID, inspect the status:
+   ```sh
+   semrush keyword-domain-status --domain example.com --job-id 'job-id-placeholder' --json
+   ```
+4. Query metrics personalized to your prepared domain:
+   ```sh
+   semrush keyword-overview --keyword typescript --domain example.com --json
+   semrush keyword-clusters --keyword typescript --domain example.com --json
+   ```
+
+## Keyword Magic Tool
+
+Perform in-depth exploratory keyword discovery with topic and word groupings:
 
 ```sh
-semrush keyword-domain-suggestions --json
-semrush keyword-domain-root --domain www.example.com --json
-semrush keyword-domain-prepare --domain www.example.com --dry-run
-semrush keyword-domain-prepare --domain www.example.com --confirm --json
+semrush keyword-magic --keyword 'email marketing' --page 1 --page-size 50 --json
+semrush keyword-magic --keyword 'email marketing' --questions-only --json
+semrush keyword-magic-groups --keyword 'email marketing' --group-by topics --json
+semrush keyword-magic-summary --keyword 'email marketing' --json
 ```
 
-Preparation resolves the native root domain, then starts preparation once.
-The result contains `domain` and the unchanged native `preparation` receipt.
-Status `2` is ready and can have an empty or absent ID. Status `1` is pending
-and includes a nonempty ID. Read that job explicitly using both returned values:
+Use `--group-by words` to switch from topic grouping to classic word groups. Word groups can be ordered with `--groups-sort-field volume` or `--groups-sort-field count`.
 
-```sh
-semrush keyword-domain-status --domain example.com --job-id '<returned-id>' --json
-```
+## AI search visibility and topics
 
-A status read never initializes another job or polls. If preparation loses its
-response, inspect its state in Semrush before another request. The adapter does
-not replay initialization. Do not pass an empty job ID for a ready domain.
-
-```sh
-semrush keyword-overview --keyword typescript --domain github.com --device mobile --json
-semrush keyword-countries --keyword typescript --domain github.com --json
-semrush keyword-ideas --keyword typescript --domain github.com --json
-semrush keyword-ideas-summary --keyword typescript --domain github.com --json
-semrush keyword-clusters --keyword typescript --domain github.com --json
-semrush keyword-serp --keyword typescript --domain github.com --limit 1000 --json
-```
-
-These six reads accept an already prepared root domain. They do not start
-preparation. Current desktop and mobile research support personalization;
-historical snapshots reject a domain. Clusters has no device selector. Zero
-personalized difficulty and other native values remain unchanged. The SERP
-limit defaults to ten and accepts up to 1,000 rows, including native feature rows.
-
-## Read keyword AI topics
+Inspect search queries analyzed for AI visibility and large language model topic extraction:
 
 ```sh
 semrush keyword-ai-databases --json
 semrush keyword-ai-summary --keyword 'running shoes' --database us --json
-semrush keyword-ai-topics --keyword 'running shoes' --database us --domain github.com --json
+semrush keyword-ai-topics --keyword 'running shoes' --database us --json
 ```
 
-Choose a database returned by the discovery command. Summary retains native
-volumes by model and the topic count. Topics returns the native sample, which
-can be shorter than that count. These commands use current national desktop
-data and USD. They accept an optional prepared domain, but no device, date,
-currency or location override. Unsupported databases and account restrictions
-remain errors. The adapter does not switch to the US database automatically.
-Full topic exports and prompt tracking are separate unverified workflows.
+## Local search analysis
 
-## Research with Keyword Magic
+Retrieve search results and metrics for specific municipal locations:
 
 ```sh
-semrush keyword-magic-access --json
-semrush keyword-magic --keyword typescript --mode 0 --page-size 10 --json
-semrush keyword-magic --keyword typescript --mode 0 --domain github.com --json
-semrush keyword-magic-summary --keyword typescript --domain github.com --json
-semrush keyword-magic-groups --keyword typescript --domain github.com --json
-semrush keyword-magic-groups-summary --keyword typescript --domain github.com --json
-semrush keyword-magic-topic-suggestions --keyword typescript --domain github.com --json
+semrush keyword-locations --input 'Chicago' --database us --json
+semrush keyword-local-overview --keyword 'plumbing repair' --location-id 2840 --json
+semrush keyword-local-serp --keyword 'plumbing repair' --location-id 2840 --limit 10 --json
 ```
 
-Access returns Keyword Magic's own row limits, update allowance and product
-flags. These can differ from Keyword Overview. They do not redefine your plan;
-returned personalized measurements remain available even when a separate AI
-flag is false. Account limits and native access errors still apply.
+Location IDs are positive integers obtained from `keyword-locations`. Local queries use current desktop data.
 
-The optional domain selects already prepared personalized metrics. Reads never
-prepare a domain or refresh a keyword. Zero difficulty and potential traffic
-stay zero. Rows and groups retain their complete native response objects and
-metadata. Group totals are a separate read, not a count of one returned page.
-Topic suggestions are a sample of phrases, not the complete keyword table.
+## Bulk keyword analysis
 
-`--mode` uses native gateway values: `0` broad, `1` phrase, `2` exact,
-`3` related and `4` all. Its existing default `4` matches the web page's
-All Keywords selection. Rows and groups accept `--page` and `--page-size`.
-Existing `--filters`, `--groups`, `--sort-field` and `--descending` select the
-native report context. Match sorting and filtering to the same prepared domain.
-
-### Choose topic or word groups
-
-Topic grouping is the default and uses the native relevance order. Word groups
-support count or volume ordering:
+Analyze up to 100 keywords in a single call:
 
 ```sh
-semrush keyword-magic-groups --keyword typescript --group-by words --json
-semrush keyword-magic-groups --keyword typescript --group-by words --groups-sort-field volume --groups-descending false --json
-semrush keyword-magic-groups-summary --keyword typescript --group-by words --json
+semrush keyword-bulk --keywords '["typescript","javascript","react"]' --database us --json
 ```
 
-Word groups default to descending keyword count. The keyword table defaults to
-volume order for word grouping and relevance for topics. An explicit
-`--sort-field` selects a native table order. Word-group sorting controls
-require `--group-by words`; topic grouping rejects them before authentication.
-Use the same grouping selection for rows, totals, groups and group totals.
-Topic suggestions always use topic grouping. Native report requests allow
-90 seconds and make one attempt.
+## Export keyword reports
 
-Native Keyword Magic exports remain unsupported. A selected-export job returned
-an ID, but its first native wait failed with `-32603 Internal error`. The CLI
-does not retry that initializer, synthesize a CSV or use another download route.
-Save selected phrases with the [keyword selection guide](/docs/keyword-workflows).
-
-## Analyze a batch
+Export native CSV, semicolon-delimited CSV, or XLSX files directly to disk:
 
 ```sh
-semrush keyword-bulk --keywords '["typescript","javascript"]' --database us --json
-semrush keyword-bulk --keywords '["typescript","javascript"]' --database us --currency EUR --json
-semrush keyword-bulk --keywords '["typescript","javascript"]' --database us --domain github.com --json
+semrush keyword-bulk-export --keywords '["typescript","javascript"]' --output bulk.csv
+semrush keyword-serp-export --keyword typescript --output serp.csv
+semrush keyword-local-serp-export --keyword 'plumbing repair' --location-id 2840 --output local.csv
 ```
 
-Supply one to 100 unique phrases in a JSON array. Each phrase accepts up to 200
-characters. JSON preserves commas inside a phrase. Bulk Analysis uses current
-desktop data and has no mobile or historical selector. The optional domain
-requests already available personalized metrics; it does not start a domain
-update. A zero personalized difficulty remains zero.
+Export commands require the `--output` flag. The CLI checks the target path before initiating the export and refuses to overwrite existing files.
 
-## Read SERP URL metrics
-
-Copy URLs from the SERP results and keep the same keyword and snapshot context:
+## Download a Keyword Overview PDF
 
 ```sh
-semrush keyword-serp-organic-metrics --keyword typescript --database us --urls '["https://www.typescriptlang.org/","https://github.com/microsoft/typescript"]' --json
-semrush keyword-serp-backlink-metrics --keyword typescript --database us --urls '["https://www.typescriptlang.org/","https://github.com/microsoft/typescript"]' --json
+semrush keyword-overview-pdf --keyword typescript --confirm --output overview.pdf
 ```
 
-Each call accepts one to 100 absolute HTTP(S) URLs. Repeated URLs are allowed
-because one URL can appear in several SERP features. Results retain native
-ordering, which can differ from the input order. Match records by their URL.
+This creates an Essential report in My Reports, accepts its Privacy Policy and
+generates the native PDF. It uses reporting allowance. Email, scheduling and
+AI summaries are disabled for this export.
 
-## Download native files
+The CLI receipt includes `data.manifest.report_id` and `data.manifest.task_id`.
+MCP returns those IDs in `data`. The saved report stays
+in My Reports. Use [reporting commands](/docs/reporting) to inspect or delete it.
+If an export is interrupted after creation, inspect its task list before starting
+another export. Existing output files are not overwritten.
+
+## Refreshing keyword metrics
+
+Request fresh live metric updates from Semrush:
 
 ```sh
-semrush keyword-bulk-export --keywords '["typescript","javascript"]' --database us --format xlsx --output ./keywords.xlsx
-semrush keyword-bulk-export --keywords '["typescript","javascript"]' --database us --format csv_semicolon --output ./keywords.csv
-semrush keyword-serp-export --keyword typescript --database us --device mobile --date 202609 --format csv --output ./serp.csv
-semrush keyword-serp-domains-export --keyword typescript --database us --format xlsx --output ./domains.xlsx
+semrush keyword-refresh --keywords '["typescript"]' --database us --confirm --json
+semrush keyword-refresh-status --keywords '["typescript"]' --database us --json
 ```
 
-Formats are `csv` (default), `csv_semicolon` and `xlsx`. `--output` is required;
-an existing destination is never overwritten. Downloads retain Semrush's bytes.
-SERP exports include the native full result set, independently of the JSON
-report's client-side limit. They accept device and monthly date, but no currency
-or location override.
-
-Bulk exports also accept currency, an optional domain and `--columns`:
-
-```sh
-semrush keyword-bulk-export --keywords '["typescript","javascript"]' --database us --columns '["keyword","volume","cpc"]' --output ./selected.csv
-```
-
-Available columns are `keyword`, `intent`, `volume`, `trend`, `difficulty`,
-`cpc`, `competition`, `serp_features`, `results`, `personalized_difficulty`,
-`positions` and `potential_traffic`. The last three require a
-domain. Native column order applies. Defaults match the web table's visible
-data columns, excluding its interactive SERP button.
-
-The adapter starts an export once, waits for that same job and downloads it.
-Only the native pending response permits another wait, up to three checks.
-Permission, rate and transport failures remain errors. The native export stage
-has a 90-second deadline. Cancellation closes the active download and leaves
-no partial MCP resource.
-
-## Read local keyword data
-
-```sh
-semrush keyword-locations --database us --input 'New York' --json
-semrush keyword-local-overview --keyword typescript --database us --location-id 21167 --json
-semrush keyword-local-serp --keyword typescript --database us --location-id 21167 --limit 1000 --json
-semrush keyword-local-serp-organic-metrics --keyword typescript --location-id 21167 --urls '["https://www.typescriptlang.org/"]' --json
-semrush keyword-local-serp-export --keyword typescript --location-id 21167 --format xlsx --output ./local-serp.xlsx
-```
-
-Choose a location ID from the lookup response. Empty `--input` requests native
-discovery. Location lookup can return a history/results object or an array;
-the command retains either native shape.
-
-Local research uses current desktop data. Mobile, historical dates and a
-personalized domain cannot be combined with these commands. The overview
-returns the complete native `global_metrics` and `local_metrics` object.
-Reading it does not start a metric refresh. Unavailable values remain null or
-empty as returned by Semrush. Supported databases and account access apply.
-
-Local URL enrichment accepts one to 100 URLs, including repeated URLs. Local
-exports accept the same three file formats as national exports. They use the
-native local export serializer and retain the provider's file bytes.
-
-## Read domain metrics from a SERP
-
-```sh
-semrush keyword-serp-domain-organic-metrics --keyword typescript --domains '["typescriptlang.org","github.com"]' --json
-semrush keyword-serp-domain-backlink-metrics --keyword typescript --domains '["typescriptlang.org","github.com"]' --json
-```
-
-Supply one to 100 distinct bare domains from SERP rows, without URL schemes or
-paths. The request sends them in native lexical order. These national reports
-accept the existing desktop/mobile, monthly snapshot and currency controls.
-Match results by domain; the adapter does not merge them into SERP rows.
-
-## Refresh metrics explicitly
-
-```sh
-semrush keyword-refresh --keywords '["typescript"]' --database us --location-id 21167 --dry-run
-semrush keyword-refresh --keywords '["typescript"]' --database us --location-id 21167 --confirm --json
-semrush keyword-refresh-status --keywords '["typescript"]' --database us --location-id 21167 --json
-```
-
-Review the preview before confirming. Refresh uses the native account allowance
-and can consume requests. It accepts one to 100 unique phrases, with location
-zero (default) for national data or a positive ID for local data. It does not
-purchase more allowance, change preferences or wait for completion.
-
-The receipt includes native quota counters and per-keyword statuses. The status
-command reads once and does not start another refresh or poll. An optional
-`--status-updated-at` uses native epoch seconds; its default zero requests the
-current state. Status reads accept currency and an optional domain for already
-available personalized national metrics. A domain cannot be combined with a
-local location. The native numeric statuses remain unchanged.
-
-A lost response or invalid receipt can occur after a refresh commits. Read
-`keyword-refresh-status` before requesting another refresh. The adapter never
-replays the request automatically, including after permission or quota errors.
-
-## Use MCP
-
-MCP exposes underscore names and JSON arguments, such as
-`keyword_bulk` with `{"keywords":["typescript","javascript"],"database":"us"}`.
-Export tools return private file resources; use `resources/read` to retrieve
-their bytes. They accept no caller output path or download URL and do not
-require mutation confirmation. See [MCP](/docs/mcp) for resource handling.
-
-Native PDF and separate chart-image exports remain unverified or gated. See
-the [coverage page](/docs/coverage) for evidence and remaining gaps.
+Refreshing consumes your account update quota.

@@ -1,7 +1,13 @@
 ---
 title: Troubleshooting
-description: Diagnose browser, session and account failures.
+description: Diagnose browser, daemon, session, and quota errors.
 ---
+
+`semrush-cli` writes diagnostics to standard error. Service, authentication and report failures exit with code 1. Invalid arguments exit with code 2.
+
+## Diagnostic commands
+
+Run the built-in diagnostic checks to inspect your environment:
 
 ```sh
 semrush doctor --json
@@ -9,32 +15,68 @@ semrush auth status --json
 semrush auth status --check --json
 ```
 
-## Galleton unavailable
+## Daemon connection errors
 
-Run `semrush setup` once, then `semrush daemon start` after reboot or a deliberate shutdown. The daemon's private log is `~/.local/share/semrush-cli/galleton/daemon.log`. Keep that directory private. If port 8771 belongs to another process, stop that process deliberately or use your own Galleton instance through the documented configuration.
+If the CLI reports that Galleton is unreachable:
 
-## Browser unavailable
+1. Verify that the daemon is running:
+   ```sh
+   semrush daemon start
+   ```
+2. Inspect daemon logs for startup failures:
+   ```sh
+   cat ~/.local/share/semrush-cli/galleton/daemon.log
+   ```
+3. Check for port conflicts on `127.0.0.1:8771`. If another service occupies that port, stop it or configure `SEMRUSH_GALLETON_URL` to point to a distinct instance.
 
-Run `semrush setup` to install Chromium. On Linux, install missing browser libraries with `npx patchright install-deps chromium`. `SEMRUSH_BROWSER_EXECUTABLE` can select an installed Chromium binary. Headless report commands do not require a graphical desktop; `auth login` does.
+## Browser launch failures
 
-## Session expired or renewal blocked
+If Chromium fails to launch during setup or report execution:
 
-Run `semrush auth login`, or reimport a signed-in browser. Restart your MCP client. The tool does not bypass login, CAPTCHA, account revocation or provider challenges. A Galleton cookie refresh cannot guarantee that Semrush will keep a session valid.
+- Re-run browser initialization:
+  ```sh
+  semrush setup
+  ```
+- On Linux distributions, install missing system dependencies for headless Chromium:
+  ```sh
+  npx patchright install-deps chromium
+  ```
+- To use an existing system-installed Chromium binary instead, set:
+  ```sh
+  export SEMRUSH_BROWSER_EXECUTABLE=/usr/bin/chromium
+  ```
 
-## Report denied or empty
+Note that headless report queries run in non-graphical environments, but `semrush auth login` requires a desktop display.
 
-Your account's plan, product permissions, history access and quotas apply. A read-only request can consume a report allowance. Paid search, AI and historical reports can be restricted independently. A failure is not an empty dataset. Check the same report in Semrush before changing the command.
+## Expired sessions and multilogin redirects
 
-## Changed web endpoints
+If commands return authentication errors:
 
-Internal Semrush endpoints can change. Open an issue with the command, CLI version and a redacted error message. Never attach cookies, browser profiles, daemon tokens or bootstrap HTML.
+- Refresh your session by signing in again:
+  ```sh
+  semrush auth login
+  ```
+- Or reimport an active session from your primary browser:
+  ```sh
+  semrush auth import --cdp-url http://127.0.0.1:9234
+  ```
+- If Semrush redirects requests to `/multilogin/`, open your primary browser, resolve the active session conflict prompt manually, and then run import or login again.
 
-## Uninstall
+## Quota and subscription limits
+
+Read-only requests consume your Semrush account report allowances. If a command returns an access denial:
+
+- Verify your subscription tier and remaining limits in your Semrush account dashboard.
+- Certain endpoints (such as historical snapshots, mobile databases, or AI metrics) depend on your account plan.
+- The CLI does not retry failed queries automatically to avoid draining allowances.
+
+## Complete uninstallation
+
+To remove the CLI and local session data:
 
 ```sh
 semrush auth logout
 semrush daemon stop
 npm uninstall -g semrush-cli
+rm -rf ~/.local/share/semrush-cli
 ```
-
-The private vault and browser cache remain on disk. Remove them yourself only after confirming they contain no sessions you need. This tool never deletes another application's browser profile.

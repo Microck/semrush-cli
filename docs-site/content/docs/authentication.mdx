@@ -1,9 +1,13 @@
 ---
 title: Authentication
-description: Sign in, import a browser, and manage encrypted sessions.
+description: Sign in, import sessions from existing browsers, and manage encrypted credentials.
 ---
 
-## Visible sign-in
+`semrush-cli` uses authenticated web sessions rather than developer API keys. Session state is managed by a background Galleton daemon and encrypted locally on disk.
+
+## Interactive login
+
+For machines with a graphical desktop environment, launch the browser sign-in flow:
 
 ```sh
 semrush setup
@@ -11,54 +15,55 @@ semrush auth login
 semrush auth status --check --json
 ```
 
-Sign-in requires a graphical desktop. The CLI waits up to five minutes. Enter your password only in the browser; Galleton stores the resulting session cookies, not your password. The CLI never logs cookies or page-owned API keys.
+The CLI opens a dedicated browser window to the Semrush sign-in page. Enter your credentials directly in the browser. Once sign-in succeeds, the CLI verifies the session, stores the encrypted session cookies in Galleton, and closes the browser window.
 
-## Import an existing browser
+## Importing an existing browser session
 
-Start a dedicated Chromium profile with a loopback debugging port, sign into Semrush, then import it:
+If you work on a headless server or already have an active Semrush session in Chromium, import it via Chrome DevTools Protocol (CDP):
 
 ```sh
 semrush auth import --cdp-url http://127.0.0.1:9234
 semrush doctor
 ```
 
-The browser must already be running with CDP enabled. The reference `semrush-web-mcp` browser on port 9234 is supported. Import opens and closes one temporary page. It does not stop or reconfigure that browser. The URL must use HTTP and a literal loopback address such as `127.0.0.1`; public endpoints and hostnames are rejected.
+The target browser must run with remote debugging enabled on a loopback address. For security, non-loopback hosts and remote endpoints are rejected.
 
-For a remote signed-in browser, forward its loopback debugging port over SSH:
+### Remote headless servers
+
+To authenticate on a remote headless machine, start Chromium with remote debugging on your local computer, run this reverse SSH tunnel from your local computer:
 
 ```sh
-ssh -N -L 127.0.0.1:9234:127.0.0.1:9234 user@browser-host
+ssh -N -R 127.0.0.1:9234:127.0.0.1:9234 user@remote-server
 ```
 
-Replace `user@browser-host` with your SSH destination. Leave the tunnel running
-and run the import command above in another terminal. The local port must be
-free. Keep the remote browser debugging port bound to loopback too.
+Keep the tunnel open. It forwards the remote server's loopback port to your local browser. In a separate terminal on the remote host, execute:
 
-Import verifies the account before storing cookies. Repeating import replaces only the selected CLI profile, using Galleton's revision check.
+```sh
+semrush auth import --cdp-url http://127.0.0.1:9234
+```
 
-## Check the signed-in account
+The import command connects to the forwarded port, captures the authenticated cookies, and verifies your account.
 
-`semrush doctor --json` and `semrush auth status --check --json` include
-`account.email` after an authenticated account report succeeds. A provider
-response without an email produces null. These commands never infer an SEO
-plan from generic billing flags. Check **Subscription info → SEO** in Semrush
-for the actual toolkit subscription; "Trial active" can coexist with
-"Guru, Subscribed".
+## Session validation and multilogin
 
-If Semrush redirects the session check to `/multilogin/`, the CLI reports that
-session confirmation is required and sends no report. If Semrush still works
-in your signed-in browser, import that browser's current session again. If the
-browser also shows a confirmation prompt, resolve it before importing. The CLI
-never confirms a session takeover automatically. Other login redirects still
-produce the expired-session error.
+Verify session status at any time:
 
-## Storage and lifecycle
+```sh
+semrush auth status --check --json
+semrush doctor --json
+```
 
-Galleton owns the durable cookies. Every CLI process starts a transient browser context from the stored session. The MCP server reuses one context and serializes report requests. Successful reports save updated cookies back through the SDK. No plaintext cookie export or persistent Chromium profile is created by this tool.
+If Semrush redirects an authentication check to `/multilogin/`, multiple concurrent sessions have been detected. The CLI refuses to confirm session takeover automatically. Resolve the prompt manually in your primary browser, then run `semrush auth login` or reimport the updated session.
 
-Galleton encrypts its vault with AES-256-GCM. The local key and vault share a private state directory. This protects against accidental file disclosure, not another process running as your OS user. Its daemon API token grants access to all profiles in that daemon.
+## Storage and security
 
-The bundled Galleton daemon includes a documented storage-only provider. It never schedules renewal or fabricates a refresh token. Semrush validates the stored session before each report. If it expires, sign in or import again. The TypeScript SDK remains unchanged. See the repository architecture document for the exact patch, tests and upstream removal criteria.
+- **Encryption**: Sessions are stored in a local vault using AES-256-GCM encryption in `~/.local/share/semrush-cli/galleton`.
+- **Ephemeral contexts**: Each command initializes a short-lived browser context from stored cookies. No persistent browser profile is modified on your system.
+- **Process isolation**: Only local processes authorized with the daemon API token can request sessions.
+
+## Managing the daemon
+
+Control the local session service directly:
 
 ```sh
 semrush auth logout
@@ -66,15 +71,15 @@ semrush daemon stop
 semrush daemon start
 ```
 
-Logout forgets only this CLI's Galleton profile. It does not log out your other browsers. The default daemon continues after the terminal closes; run `daemon start` after a machine reboot. No system startup service is installed automatically.
+Logging out removes the CLI profile from Galleton without ending sessions in your regular web browsers.
 
-## Configuration
+## Environment configuration
+
+Override default paths and endpoints using environment variables:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `SEMRUSH_GALLETON_URL` | `http://127.0.0.1:8771` | Existing literal-loopback Galleton API |
-| `SEMRUSH_GALLETON_TOKEN_FILE` | `~/.local/share/semrush-cli/galleton/api.token` | Local API token file |
-| `SEMRUSH_SESSION` | `semrush-cli` | Galleton session ID |
-| `SEMRUSH_BROWSER_EXECUTABLE` | Patchright Chromium | Optional system Chromium executable |
-
-The `setup` and `daemon` commands always manage the CLI-owned default daemon. To use another compatible Galleton instance, build it with this repository's static-provider extension and configure its `semrush` provider with the supplied adapter, set the URL and token file variables, and use the auth/report commands. Never expose the daemon API token in browser code or publish it.
+| `SEMRUSH_GALLETON_URL` | `http://127.0.0.1:8771` | Galleton daemon loopback API endpoint |
+| `SEMRUSH_GALLETON_TOKEN_FILE` | `~/.local/share/semrush-cli/galleton/api.token` | Path to local daemon API token |
+| `SEMRUSH_SESSION` | `semrush-cli` | Named session identifier |
+| `SEMRUSH_BROWSER_EXECUTABLE` | Bundled Chromium | Path to custom Chromium binary |

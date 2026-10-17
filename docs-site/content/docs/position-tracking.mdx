@@ -1,11 +1,17 @@
 ---
 title: Position Tracking
-description: Create tracking targets, manage keywords and read rankings.
+description: Track daily keyword rankings, monitor competitors, configure alert triggers, and manage targets.
 ---
 
-Enable SEO on a project before creating a tracking target. The numeric SEO
-project ID differs from both the project folder ID and a tracking campaign ID.
-Read `position-limits` before creating targets or adding keywords.
+Position Tracking monitors daily search engine ranking positions, visibility trends, and cannibalization across desktop, mobile, and localized search markets.
+
+## Target identifier format
+
+Position Tracking campaigns use a composite identifier formatted as two numeric values separated by an underscore (for example, `456_789`). This string represents a specific target (domain, location, device, and engine combination) within an SEO project. Always keep it as a string.
+
+## Creating a tracking target
+
+Inspect account allowances and available location IDs:
 
 ```sh
 semrush position-locations --query 'United States'
@@ -13,234 +19,134 @@ semrush position-limits --project-id 456
 semrush position-targets --project-id 456
 ```
 
-## Create a target
+Create a new target and begin keyword tracking:
 
 ```sh
 semrush position-create \
   --project-id 456 --domain example.com \
-  --keywords '["example domain"]' --location-id 2840 --dry-run
+  --keywords '["typescript framework","deno runtime"]' \
+  --location-id 2840 --dry-run
 
 semrush position-create \
   --project-id 456 --domain example.com \
-  --keywords '["example domain"]' --location-id 2840 --confirm
+  --keywords '["typescript framework","deno runtime"]' \
+  --location-id 2840 --confirm
 ```
 
-Creation starts tracking and consumes target and keyword allowances. Defaults
-are Google, desktop, English, national search volume, UTC and no weekly emails.
-Find supported options with `position-create --help`. The returned campaign ID
-has two numeric parts, such as `456_789`. Keep that complete string for reads
-and writes. Do not substitute the project ID alone.
+Default settings: Google, desktop, English language, national volume level, and UTC timezone.
 
-## Manage keywords and competitors
+## Managing tracked keywords and competitors
+
+Add keywords, update tags, or remove phrases from tracking:
 
 ```sh
 semrush position-keywords-add --campaign-id 456_789 \
-  --keywords '["example website"]' --tags '["research"]' --confirm
+  --keywords '["node runtime"]' --tags '["backend"]' --confirm
 
 semrush position-keyword-tags --campaign-id 456_789 \
-  --keywords '["example website"]' --add-tags '["reviewed"]' \
-  --remove-tags '["research"]' --confirm
-
-semrush position-competitors-set --campaign-id 456_789 \
-  --competitors '["example.org"]' --confirm
+  --keywords '["node runtime"]' --add-tags '["priority"]' --remove-tags '["backend"]' --confirm
 
 semrush position-keywords-delete --campaign-id 456_789 \
-  --keywords '["example website"]' --confirm
+  --keywords '["deno runtime"]' --confirm
 ```
 
-Competitor replacement sets the complete competitor list. An empty JSON array
-clears it. Keyword deletion removes those phrases from tracking. Writes also
-support `--dry-run`, which validates and prints the request without signing in.
+Adding keywords consumes your account tracking keyword allowance.
 
-## Change tracked address and business settings
+### Configuring competitor benchmarks
 
-Settings edits preserve fields you omit. Changing the tracked address requires
-both `--domain` and `--url-type`. Supported types are `rootdomain`, `subdomain`,
-`subfolder` and `url`.
+Replace the target's competitor benchmark list:
 
 ```sh
-semrush position-configure --campaign-id 456_789 --business-name 'example business' --dry-run
-semrush position-configure --campaign-id 456_789 --business-name 'example business' --confirm
-semrush position-configure --campaign-id 456_789 --business-name '' --confirm
-semrush position-configure --campaign-id 456_789 --brands '["example"]' --confirm
-semrush position-configure --campaign-id 456_789 --domain docs.example.com --url-type subdomain --confirm
-semrush position-configure --campaign-id 456_789 --volume-type national --confirm
+semrush position-competitors-set --campaign-id 456_789 \
+  --competitors '["competitor1.com","competitor2.com"]' --confirm
 ```
 
-An empty business name clears that field. Brands must be a nonempty array.
-The current provider accepts an empty brand array but retains the old values,
-so the CLI rejects that request. Brand-list clearing remains unsupported.
+Passing an empty array `'[]'` clears all tracked competitors.
 
-The browser reads current settings and fresh edit metadata before submitting
-the native request. Internal edit tokens never appear in previews or results.
-This command does not replace the search engine, device, language or location.
+## Updating target settings
 
-## Manage alert rules
-
-List alerts without marking them as read, or inspect existing rules and counts:
+Use `position-configure` to update business names, brand terms, volume level, or domain scope while preserving omitted fields:
 
 ```sh
-semrush position-alerts --campaign-id 456_789 --page 1 --limit 50
-semrush position-alert-counts --campaign-id 456_789
-semrush position-triggers --campaign-id 456_789
-semrush position-trigger-count --campaign-id 456_789
+semrush position-configure --campaign-id 456_789 \
+  --business-name 'Acme Corp' --confirm
+
+semrush position-configure --campaign-id 456_789 \
+  --brands '["Acme","Acme Tools"]' --confirm
 ```
 
-Alert pagination starts at page 1, with at most 50 rows per page. Responses keep
-native timestamps and the provider's `error_code` envelope. A nonzero error code
-fails even when the provider returns HTTP 200.
+Note: If brand terms are already established, the provider requires a non-empty brand array.
 
-Use the exact ASCII `data.campaign_settings.tracking_url` or competitor URL
-from `position-info` for a rule's `--domain`. This value is separate from the
-wildcard patterns used in ranking reports below.
+### Replacing targets and clearing history
+
+To change core target parameters such as search engine, device, location, or language, use `position-replace`:
 
 ```sh
-semrush position-trigger-create --campaign-id 456_789 --domain example.com --condition enters_top --threshold 10 --dry-run
-semrush position-trigger-create --campaign-id 456_789 --domain example.com --condition enters_top --threshold 10 --confirm
-semrush position-trigger-update --campaign-id 456_789 --trigger-id opaque-rule-id --domain example.com --condition leaves_top --threshold 20 --confirm
-semrush position-trigger-delete --campaign-id 456_789 --trigger-id opaque-rule-id --confirm
+semrush position-replace --campaign-id 456_789 \
+  --engine google --device phone --location-id 2840 \
+  --language-code en --volume-type national --confirm
 ```
 
-Creation returns a string `trigger_id`; use it without numeric conversion.
-Update replaces the rule, so supply its domain, condition and threshold again.
-Conditions are `enters_top`, `leaves_top`, `changes_more_than`, `gains_more_than`
-and `loses_more_than`. Thresholds are integers from 1 to 100. Rules apply to all
-tracked keywords and the position metric. Semrush enforces rule limits.
+Caution: Running `position-replace` permanently destroys previous ranking history for that target while preserving existing keywords, tags, and competitor settings.
 
-These commands do not enable weekly emails or schedule email exports.
-
-## Manage alert events
-
-Copy the exact string `alert_id` from `position-alerts`. Opening an alert marks
-it read, so even the detail command requires confirmation:
-
-```sh
-semrush position-alert-read --campaign-id 456_789 --alert-id opaque-event-id --dry-run
-semrush position-alert-read --campaign-id 456_789 --alert-id opaque-event-id --confirm
-semrush position-alert-mark-all-read --campaign-id 456_789 --confirm
-semrush position-alert-delete --campaign-id 456_789 --alert-id opaque-event-id --confirm
-```
-
-Mark-all applies to every event in that one target, including other list pages.
-Delete permanently removes only the selected event. All three commands support
-offline dry runs and preserve native response envelopes and timestamp units.
-They never retry a write. MCP exposes the same operations as confirmed writes;
-delete also has the destructive annotation. Listing events does not mark them
-read. Source CLI and MCP matched native mark-all on an empty owned target and
-error code 9 for missing-event read/delete requests. Positive state changes
-have stateful HTTP fixture coverage; positive live event checks are still pending.
-
-## Read rankings
-
-```sh
-semrush position-info --campaign-id 456_789
-semrush position-tags --campaign-id 456_789
-semrush position-campaign-limits --campaign-id 456_789
-```
-
-`position-info` returns available dates, campaign settings and competitors.
-Choose `date_begin` and `date_end` within `data.dates.min` and `data.dates.max`.
-Dates use YYYYMMDD. New targets need time to collect rankings.
-
-```sh
-semrush position-overview --campaign-id 456_789 \
-  --date-begin 20261015 --date-end 20261015 \
-  --competitors '["*.example.com/*"]' --limit 20 --offset 0
-```
-
-Use the same dates and competitor target patterns with
-`position-overview-trend`, `position-distribution-trend`, `position-pages` and
-`position-cannibalization-trend`. A root-domain pattern includes subdomains and
-paths. Quote the JSON array so the shell does not expand its wildcard characters.
-
-Responses preserve the provider's native `status` and `data` envelope. The
-rankings report's `data.keywords` contains tracked phrases, tags, positions and
-landing URLs. `data.total`, `limit` and `offset` support pagination.
-
-## Discover competitors and compare targets
-
-Read the ranking distribution for the selected domain patterns:
-
-```sh
-semrush position-distribution --campaign-id 456_789 \
-  --date-begin 20261015 --date-end 20261015 \
-  --competitors '["*.example.com/*"]' --sort-field top10 --sort-top new
-```
-
-Distribution returns top-3, top-10, top-20, top-50 and top-100 buckets.
-`--sort-top` selects a change category when sorting a top bucket. It does not
-filter the report. This report has no pagination.
-
-Discover competing websites with the tracked address rather than a wildcard:
-
-```sh
-semrush position-competitors --campaign-id 456_789 \
-  --date-begin 20261015 --date-end 20261015 \
-  --main-competitor example.com --limit 20 --offset 0 --sort-field matches
-```
-
-Use `--url-type` for a subdomain, subfolder or URL. Read `data.total` and increase
-`--offset` to fetch further pages. Sort fields are visibility, traffic, matches
-and average position. Competitor rows keep the native string `competitor` field.
-
-Use `position-targets --project-id 456` to get the complete campaign IDs for
-comparison. Choose collected dates shared by the selected targets:
-
-```sh
-semrush position-targets-compare --campaign-id 456_789 \
-  --date-begin 20261015 --date-end 20261015 \
-  --competitors '["*.example.com/*"]' \
-  --target-ids '["456_789","456_790"]' --intersection-type shared \
-  --sort-field position --sort-target 1
-```
-
-Comparison accepts exactly one domain pattern and up to 20 distinct target IDs.
-The campaign ID sets the reference target. Intersection modes are `all`,
-`shared`, `not_in_main` and `only_in_main`. `--sort-target` is the zero-based
-index in the supplied target array. Keyword rows identify each target with its
-native `id`, including both parts of the campaign ID.
-
-Crawl schedules and tracking exports still require the web UI. [Chart notes](/docs/notes) have a separate guide. Current request contracts were checked against the
-tracking dashboard and wizard, then verified on a disposable account target.
-
-The current native crawl-scheduling form disables saving below SEO Tier 3.
-The verification account has Guru access with `seo_toolkit_tier2:1` and
-`seo_toolkit_tier3:0` in its current owner limits. Scheduling remains account-gated.
-No plan upgrade was purchased.
-
-## Replace or delete one target
-
-Replacement permanently deletes the target's ranking history, as the native
-wizard warns. Create a separate target instead when you need to keep history.
-
-```sh
-semrush position-keywords --campaign-id 456_789
-semrush position-replace --campaign-id 456_789 --device phone --dry-run
-semrush position-replace --campaign-id 456_789 --device phone --confirm
-```
-
-Use the returned `data.result.id` for later commands. Replacement reads the
-complete keyword/tag list and current title, URL, business, brands, notification
-and volume settings. It changes only supplied targeting fields: engine, device,
-location ID and language code. At least one targeting field is required. Time
-zone defaults to UTC; use `--timezone` for another whole-hour offset. Account
-limits apply. A dry run cannot show current settings because it does not sign in.
-
-`position-keywords` reads all tracked keywords, including targets without collected
-ranks. It does not use the analytics keyword-suggestion endpoint.
+To permanently delete a target entirely:
 
 ```sh
 semrush position-delete --campaign-id 456_789 --confirm
 ```
 
-Deletion removes that target and its history. Other targets and the SEO project
-remain. Both destructive commands require an editable target and fresh native
-request metadata. Neither retries a write.
+## Reading ranking reports
 
-Location IDs belong to a search engine. Use `position-locations --query
-"United Kingdom" --engine bing` to resolve Bing's IDs and language options.
-Do not reuse Google's numeric location IDs when switching engines. An unsupported
-location/language remains a provider error; no replacement is retried.
+Query ranking tables, landing pages, and visibility trends across date ranges:
 
-See [save and track keyword selections](/docs/keyword-workflows) for a tested
-workflow across research reports, Saved Keywords, the builder and tracking.
+```sh
+semrush position-info --campaign-id 456_789
+semrush position-overview --campaign-id 456_789 \
+  --date-begin 20261001 --date-end 20261015 \
+  --competitors '["*.example.com/*"]' --json
+
+semrush position-overview-trend --campaign-id 456_789 \
+  --date-begin 20261001 --date-end 20261015 \
+  --competitors '["*.example.com/*"]' --json
+
+semrush position-distribution --campaign-id 456_789 \
+  --date-begin 20261001 --date-end 20261015 \
+  --competitors '["*.example.com/*"]' --json
+
+semrush position-pages --campaign-id 456_789 \
+  --date-begin 20261001 --date-end 20261015 \
+  --competitors '["*.example.com/*"]' --json
+
+semrush position-cannibalization-trend --campaign-id 456_789 \
+  --date-begin 20261001 --date-end 20261015 \
+  --competitors '["*.example.com/*"]' --json
+```
+
+Dates use `YYYYMMDD` format. Competitor patterns require wildcard syntax (for example, `*.example.com/*`), matching the patterns returned by `position-info`.
+
+## Automated alert rules and notifications
+
+Set up automated alerts for ranking movements:
+
+```sh
+semrush position-trigger-create --campaign-id 456_789 \
+  --domain example.com --condition enters_top --threshold 10 --confirm
+
+semrush position-trigger-update --campaign-id 456_789 \
+  --trigger-id 'trigger-id-placeholder' --domain example.com \
+  --condition leaves_top --threshold 20 --confirm
+
+semrush position-trigger-delete --campaign-id 456_789 \
+  --trigger-id 'trigger-id-placeholder' --confirm
+```
+
+Conditions include `changes_more_than`, `enters_top`, `leaves_top`, `gains_more_than`, and `loses_more_than`.
+
+Inspect triggered alerts:
+
+```sh
+semrush position-alerts --campaign-id 456_789 --page 1 --limit 50
+semrush position-alert-counts --campaign-id 456_789
+semrush position-alert-read --campaign-id 456_789 --alert-id 'alert-id-placeholder' --confirm
+semrush position-alert-mark-all-read --campaign-id 456_789 --confirm
+```

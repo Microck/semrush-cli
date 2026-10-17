@@ -1,15 +1,13 @@
 ---
 title: Core Web Vitals
-description: Read native page-speed reports and replace the saved URL selection.
+description: Inspect performance metrics, Lighthouse suggestions, and replace the monitored URL list.
 ---
 
-Core Web Vitals commands use your existing Semrush session. They read Site
-Audit's native LCP, TBT and CLS measurements, score, page-status history and
-Lighthouse recommendations. The CLI does not calculate additional INP or CrUX metrics.
+Core Web Vitals commands inspect Largest Contentful Paint (LCP), Total Blocking Time (TBT), and Cumulative Layout Shift (CLS) measurements tracked within Site Audit.
 
-## Read a report
+## Reading Core Web Vitals metrics
 
-Use a campaign ID from `audit-campaigns`:
+Queries require the numeric SEO project identifier (`campaign_id`):
 
 ```sh
 semrush audit-web-vitals-status --campaign-id 456 --json
@@ -19,61 +17,40 @@ semrush audit-web-vitals-improvements --campaign-id 456 --json
 semrush audit-web-vitals-settings --campaign-id 456 --json
 ```
 
-The page report contains every measured URL, native thresholds in `scales` and
-per-page values and differences. It has no server-side pagination or filters.
-History retains the provider's ordering. Long numeric literals can appear as
-strings under the CLI's precision-preserving JSON parser. Empty recommendations and unavailable
-measurements stay as Semrush returned them.
+Summary of report commands:
+- `audit-web-vitals-status`: Overall health score and delta since the previous crawl.
+- `audit-web-vitals-overview`: Native score and dated page-status counts.
+- `audit-web-vitals-pages`: Measured URLs with exact LCP, TBT, and CLS values.
+- `audit-web-vitals-improvements`: Top high-impact opportunities across audited pages.
+- `audit-web-vitals-settings`: Active monitored URL selection and pending update flags.
 
-| Command suffix | Native data |
-| --- | --- |
-| `status` | Availability, score and score delta |
-| `overview` | Score and dated page-status counts |
-| `pages` | Snapshot ID, thresholds and LCP/TBT/CLS for each measured URL |
-| `history` | Metric history for one `url_id` |
-| `recommendations` | Lighthouse recommendations for one `url_id` |
-| `improvements` | Top improvements and affected-page statistics |
-| `settings` | Saved URLs and whether a change is pending |
+## Per-URL history and Lighthouse diagnostics
 
-Copy a `urlId` from `pageMetricsValues` for a per-URL read. Keep it as a string,
-including a leading minus sign. It is different from the crawled-page `pageId`.
+To inspect historical trends or recommendations for a specific page, extract its `urlId` from `audit-web-vitals-pages`. Note that this identifier is a signed decimal string and may include a leading minus sign. Always preserve it as a string:
 
 ```sh
-semrush audit-web-vitals-history --campaign-id 456 --url-id '-1234567890123456789' --json
-semrush audit-web-vitals-recommendations --campaign-id 456 --url-id '-1234567890123456789' --json
+semrush audit-web-vitals-history --campaign-id 456 \
+  --url-id '-1234567890123456789' --json
+
+semrush audit-web-vitals-recommendations --campaign-id 456 \
+  --url-id '-1234567890123456789' --json
 ```
 
-MCP uses underscore names such as `audit_web_vitals_history` and arguments
-`{"campaign_id":456,"url_id":"-1234567890123456789"}`. All seven report commands
-are read-only.
+## Configuring monitored URLs
 
-## Replace the URL selection
-
-Read the current settings before replacing the full list:
+You can configure between 1 and 10 representative URLs for Core Web Vitals evaluation during future Site Audit crawls:
 
 ```sh
-semrush audit-web-vitals-settings --campaign-id 456 --json
-semrush audit-web-vitals-settings-set --campaign-id 456 --urls '["https://example.com/","https://example.com/about"]' --dry-run
-semrush audit-web-vitals-settings-set --campaign-id 456 --urls '["https://example.com/","https://example.com/about"]' --confirm --json
+semrush audit-web-vitals-settings-set --campaign-id 456 \
+  --urls '["https://example.com/","https://example.com/blog","https://example.com/pricing"]' \
+  --dry-run
+
+semrush audit-web-vitals-settings-set --campaign-id 456 \
+  --urls '["https://example.com/","https://example.com/blog","https://example.com/pricing"]' \
+  --confirm --json
 ```
 
-Supply one to ten unique absolute HTTP(S) URLs. JSON array input preserves URLs
-containing commas. The write replaces the complete saved selection, applies to
-the next audit and does not launch a crawl or change general audit settings.
-MCP exposes `audit_web_vitals_settings_set` with `urls` and `confirm:true`.
-
-The native form enables Save after Clear all, but its API rejects an empty
-array with HTTP 400, `urls must not be empty`. The CLI rejects empty arrays
-before authentication. Clearing the list remains unsupported.
-
-A provider can accept only part of a submitted list. Partial or missing URL
-receipts remain errors because a complete replacement was not confirmed.
-The saved list may already have changed. Inspect `audit-web-vitals-settings`
-before sending another write. The CLI never automatically retries or rolls
-back a partial or lost response.
-
-New audits can return HTTP 404, `no previously saved page speed properties`,
-before their first analysis. The CLI preserves this error rather than returning
-an empty list. Core Web Vitals has no native spreadsheet export in the current UI.
-Native PDF workflows remain unsupported; see the [coverage page](/docs/coverage)
-for verified account gates.
+Configuration notes:
+- The input must contain between 1 and 10 unique, absolute HTTP(S) URLs. The Semrush API rejects empty arrays.
+- This command replaces the entire saved URL list for future audits. It does not initiate an immediate crawl.
+- To execute an audit using the new selection, run `semrush audit-start --campaign-id 456 --confirm`.

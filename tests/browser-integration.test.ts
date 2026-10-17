@@ -26,11 +26,12 @@ import { makeAuditArchiveFixture, archivePaths } from './audit-archive-fixture.j
 import { unzipSync } from 'fflate';
 import { makeMindmapFixture } from './mindmap-fixture.js';
 import { makeWebBotAuthFixture, auditAuthPath } from './web-bot-auth-fixture.js';
-import { makeReportingFixture } from './reporting-fixture.js';
+import { makeReportingFixture, reportingDocument, reportingPDFBytes } from './reporting-fixture.js';
 import { makeKeywordResearchFixture, keywordDownloadPath, keywordFixturePhrase } from './keyword-research-fixture.js';
 import { makeWebVitalsFixture, webVitalsPath, negativeURLId, positiveURLId } from './web-vitals-fixture.js';
 import { makeOnpageFixture, onpagePath, onpagePageId, onpageSnapshotId } from './onpage-fixture.js';
 import { makeOrganicResearchFixture } from './organic-research-fixture.js';
+import { makeProjectSharingFixture } from './project-sharing-fixture.js';
 
 const exec = promisify(execFile);
 const binary = resolve(`dist/daemon/galleton-${process.platform}-${process.arch}${process.platform === 'win32' ? '.exe' : ''}`);
@@ -75,7 +76,8 @@ const webVitalsFixture = makeWebVitalsFixture();
 const keywordResearchFixture = makeKeywordResearchFixture();
 const onpageFixture = makeOnpageFixture();
 const organicResearchFixture = makeOrganicResearchFixture();
-const fixtureHandlers = new Map([...archivePaths.map(path => [path, auditArchiveFixture.serve] as const), [folderPath, serveProjectFixture], [savedPath, serveSavedFixture], ['/notes/api/', serveNotesFixture], ['/siteaudit/api/campaigns/789/js-impact/', serveJSImpactFixture], ['/siteaudit/export/js-impact/', serveJSImpactFixture], ['/analytics/keywordmanager/list', mindmapFixture.serve], ['/mindmap-download', mindmapFixture.serve], [auditAuthPath, webBotAuthFixture.serve], ['/my_reports/graphql/', reportingFixture.serve], [webVitalsPath, webVitalsFixture.serve], [keywordDownloadPath, keywordResearchFixture.serveDownload], [onpagePath, onpageFixture.serve]]);
+const projectSharingFixture = makeProjectSharingFixture();
+const fixtureHandlers = new Map([...archivePaths.map(path => [path, auditArchiveFixture.serve] as const), [folderPath, serveProjectFixture], [savedPath, serveSavedFixture], ['/notes/api/', serveNotesFixture], ['/siteaudit/api/campaigns/789/js-impact/', serveJSImpactFixture], ['/siteaudit/export/js-impact/', serveJSImpactFixture], ['/analytics/keywordmanager/list', mindmapFixture.serve], ['/mindmap-download', mindmapFixture.serve], [auditAuthPath, webBotAuthFixture.serve], ['/my_reports/graphql/', reportingFixture.serve], ['/my_reports/api/v1/', reportingFixture.lifecycle.serve], ['/my_reports/reports/', reportingFixture.lifecycle.serve], [webVitalsPath, webVitalsFixture.serve], [keywordDownloadPath, keywordResearchFixture.serveDownload], [onpagePath, onpageFixture.serve]]);
 /** Serve the native authentication checks separately from report fixtures. */
 function serveAuthenticationFixture(request: IncomingMessage, response: ServerResponse, url: URL): boolean {
   if (url.pathname === '/robots.txt') { response.end('User-agent: *\nDisallow: /'); return true; }
@@ -94,6 +96,7 @@ function serveAuthenticationFixture(request: IncomingMessage, response: ServerRe
 const fixture = createServer(async (request, response) => {
   const url = new URL(request.url ?? '/', fixtureURL);
   if (serveAuthenticationFixture(request, response, url)) return;
+  if (url.pathname.startsWith('/share/json/')) { await projectSharingFixture.serve(request, response, url); return; }
   const handler = [...fixtureHandlers].find(([prefix]) => url.pathname.startsWith(prefix))?.[1];
   if (handler) { await handler(request, response, url); return; }
   if (url.pathname === '/dpa/rpc') { await organicResearchFixture.serve(request, response); return; }
@@ -305,6 +308,38 @@ test('real browser and Galleton complete the stateful project lifecycle with exa
   }).pipe(Effect.provide(fixtureLayer()))));
 }, 30000);
 
+
+test('real browser and Galleton grant, change and revoke exact project shares', async () => {
+  projectSharingFixture.reset();
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const semrush = yield* Semrush;
+    const folder = { folder_id: '9223372036854775807' };
+    const readRequest = yield* parseReport('project_shares', folder);
+    const read = () => semrush.report(readRequest);
+    expect((yield* read()).data).toMatchObject({ is_success: true, data: { list: [], total: 0 } });
+    expect((yield* semrush.report(yield* parseReport('project_share', { ...folder, emails: ['recipient@example.com'], role: 'viewer', confirm: true }))).data).toMatchObject({ is_success: true, data: { list: [{ share_id: '0123456789abcdef01234567' }] } });
+    const share = { share_ids: ['0123456789abcdef01234567'], confirm: true };
+    yield* semrush.report(yield* parseReport('project_share_set_role', { ...share, role: 'editor' }));
+    expect((yield* read()).data).toMatchObject({ data: { list: [{ role: 'editor' }], total: 1 } });
+    yield* semrush.report(yield* parseReport('project_share_revoke', share));
+    expect((yield* read()).data).toMatchObject({ data: { list: [], total: 0 } });
+    expect(projectSharingFixture.writes()).toBe(3);
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
+
+test('project sharing rejects denied, lost and incomplete receipts without replaying writes', async () => {
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const semrush = yield* Semrush;
+    for (const scenario of ['denied', 'create-lost', 'receipt-missing', 'receipt-partial']) {
+      projectSharingFixture.reset(scenario);
+      const folder = { folder_id: '9223372036854775807' };
+      const error = yield* semrush.report(yield* parseReport('project_share', { ...folder, emails: ['recipient@example.com'], role: 'viewer', confirm: true })).pipe(Effect.flip);
+      expect(error.message).toContain('project-shares');
+      expect(projectSharingFixture.writes()).toBe(1);
+      expect((yield* semrush.report(yield* parseReport('project_shares', folder))).data).toMatchObject({ data: { total: scenario === 'denied' ? 0 : 1 } });
+    }
+  }).pipe(Effect.provide(fixtureLayer()))));
+}, 30000);
 
 test('real browser and Galleton manage keyword lists, import, tags, deletion and undo', async () => {
   await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
@@ -1208,6 +1243,105 @@ test('My Reports fails on partial GraphQL errors, missing account data and denie
       expect((yield* semrush.report(yield* parseReport('reporting_overview', {}))).data).toHaveProperty('reports.totalCount', 38);
     }).pipe(Effect.provide(fixtureLayer()))));
   } finally { reportingFixture.use('complete'); }
+});
+
+test('My Reports lifecycle creates, saves, clones and generates once, and reads existing PDF bytes privately', async () => {
+  reportingFixture.lifecycle.reset();
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const semrush = yield* Semrush;
+      const created = yield* semrush.report(yield* parseReport('reporting_create', { template: 'tc_organic_search_positions', parameters: { domain: 'example.com', database: 'us' }, confirm: true }));
+      expect(created.data).toEqual({ status: 'success', userDocumentId: 72 });
+      const original = yield* semrush.report(yield* parseReport('reporting_get', { report_id: 71 }));
+      expect(original.data).toEqual({ status: 'success', document: reportingDocument });
+      const document = { ...structuredClone(reportingDocument), name: 'Updated report' };
+      const saved = yield* semrush.report(yield* parseReport('reporting_save', { document, confirm: true }));
+      expect(saved.data).toEqual({ status: 'success', documentId: 71, name: 'Updated report' });
+      const cloned = yield* semrush.report(yield* parseReport('reporting_clone', { report_id: 71, name: 'Cloned report', confirm: true }));
+      expect(cloned.data).toEqual({ status: 'success', document: { id: 73, name: 'Cloned report' } });
+      const generated = yield* semrush.report(yield* parseReport('reporting_generate', { report_id: 71, confirm: true }));
+      expect(generated.data).toEqual({ id: '1001', state: 'ready' });
+      const tasks = yield* semrush.report(yield* parseReport('reporting_tasks', { report_id: 71 }));
+      expect(tasks.data).toHaveProperty('reports.nodes.0.tasks.0.id', '1001');
+      expect(JSON.stringify(tasks)).not.toContain('private-capability');
+      const downloaded = yield* semrush.report(yield* parseReport('reporting_download', { report_id: 71, task_id: '1001' }));
+      expect(downloaded.artifact).toMatchObject({ filename: 'report.pdf', mime_type: 'application/pdf', size_bytes: reportingPDFBytes.length });
+      const exports = yield* Exports;
+      const resource = yield* exports.read(downloaded.artifact?.uri ?? 'missing');
+      expect(Buffer.from(resource.blob, 'base64')).toEqual(reportingPDFBytes);
+      expect(JSON.stringify(downloaded)).not.toContain('private-capability');
+      expect((yield* semrush.report(yield* parseReport('reporting_delete', { report_ids: [72, 73], confirm: true }))).data).toBe(true);
+      expect(reportingFixture.lifecycle.counts()).toEqual({ creates: 1, clones: 1, saves: 2, generations: 1, downloads: 1, deletions: 1, taskReads: 2 });
+      expect((yield* semrush.report(yield* parseReport('reporting_get', { report_id: 71 }))).data).toHaveProperty('document.marker', reportingDocument.marker);
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { reportingFixture.lifecycle.reset(); }
+});
+
+test('My Reports never generates after a lost or invalid save, and never replays a lost generation', async () => {
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const semrush = yield* Semrush;
+      for (const [scenario, expectedGenerations] of [['save-lost', 0], ['save-missing', 0], ['generate-lost', 1]] as const) {
+        reportingFixture.lifecycle.reset(); reportingFixture.lifecycle.use(scenario);
+        const error = yield* semrush.report(yield* parseReport('reporting_generate', { report_id: 71, confirm: true })).pipe(Effect.flip);
+        expect(error.message).toMatch(/not retried|before another write/);
+        expect(reportingFixture.lifecycle.counts()).toMatchObject({ saves: 1, generations: expectedGenerations });
+        reportingFixture.lifecycle.use('complete');
+        expect((yield* semrush.report(yield* parseReport('reporting_get', { report_id: 71 }))).data).toHaveProperty('document.marker', reportingDocument.marker);
+      }
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { reportingFixture.lifecycle.reset(); }
+});
+
+test('My Reports refuses false deletion receipts and never replays a lost deletion', async () => {
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const semrush = yield* Semrush;
+      for (const scenario of ['delete-false', 'delete-lost'] as const) {
+        reportingFixture.lifecycle.reset(); reportingFixture.lifecycle.use(scenario);
+        const error = yield* semrush.report(yield* parseReport('reporting_delete', { report_ids: [72, 73], confirm: true })).pipe(Effect.flip);
+        expect(error.message).toMatch(/not retried|not confirm/);
+        expect(reportingFixture.lifecycle.counts().deletions).toBe(1);
+        reportingFixture.lifecycle.use('complete');
+        expect((yield* semrush.report(yield* parseReport('reporting_get', { report_id: 71 }))).data).toHaveProperty('document.id', 71);
+      }
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { reportingFixture.lifecycle.reset(); }
+});
+
+test('My Reports rejects missing creation and clone receipts without replaying writes', async () => {
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const semrush = yield* Semrush;
+      reportingFixture.lifecycle.reset(); reportingFixture.lifecycle.use('create-missing');
+      const created = yield* semrush.report(yield* parseReport('reporting_create', { template: 'tc_organic_search_positions', parameters: { domain: 'example.com', database: 'us' }, confirm: true })).pipe(Effect.flip);
+      expect(created.message).toContain('no valid creation receipt');
+      expect(reportingFixture.lifecycle.counts().creates).toBe(1);
+      reportingFixture.lifecycle.use('clone-missing');
+      const cloned = yield* semrush.report(yield* parseReport('reporting_clone', { report_id: 71, name: 'Cloned report', confirm: true })).pipe(Effect.flip);
+      expect(cloned.message).toContain('no valid clone receipt');
+      expect(reportingFixture.lifecycle.counts().clones).toBe(1);
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { reportingFixture.lifecycle.reset(); }
+});
+
+test('My Reports rejects unfinished tasks, external PDF paths and invalid PDF bytes without leaving artifacts', async () => {
+  reportingFixture.lifecycle.reset();
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const semrush = yield* Semrush;
+      const exports = yield* Exports;
+      for (const [scenario, message] of [['pending', 'not ready'], ['outside', 'outside its supported'], ['bad-pdf', 'valid PDF bytes']] as const) {
+        reportingFixture.lifecycle.use(scenario);
+        const error = yield* semrush.report(yield* parseReport('reporting_download', { report_id: 71, task_id: '1001' })).pipe(Effect.flip);
+        expect(error.message).toContain(message);
+        expect(yield* exports.list()).toEqual([]);
+        expect(reportingFixture.lifecycle.counts().generations).toBe(0);
+      }
+      reportingFixture.lifecycle.use('complete');
+      expect((yield* semrush.report(yield* parseReport('reporting_download', { report_id: 71, task_id: '1001' }))).artifact?.mime_type).toBe('application/pdf');
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { reportingFixture.lifecycle.reset(); }
 });
 
 test('Web Bot Auth creation, retention, replacement and disabling preserve protected audit state', async () => {
@@ -2240,3 +2374,53 @@ test('cancelling an All reports download removes staged files and releases the b
     expect((yield* service.report(yield* parseReport('account_status', {}))).authenticated).toBe(true);
   }).pipe(Effect.provide(fixtureLayer()))));
 }, 30000);
+
+
+test('Keyword Overview PDF creates and generates once, polls only task reads and preserves native PDF resource bytes', async () => {
+  reportingFixture.lifecycle.reset(); reportingFixture.lifecycle.use('pdf-task-pending');
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const semrush = yield* Semrush;
+      const result = yield* semrush.report(yield* parseReport('keyword_overview_pdf', { keyword: 'typescript', confirm: true }));
+      expect(result.data).toEqual({ report_id: 71, task_id: '1001' });
+      expect(result.artifact).toMatchObject({ mime_type: 'application/pdf', size_bytes: reportingPDFBytes.length });
+      const store = yield* Exports;
+      expect(Buffer.from((yield* store.read(result.artifact?.uri ?? 'missing')).blob, 'base64')).toEqual(reportingPDFBytes);
+      expect(JSON.stringify(result)).not.toMatch(/private-capability|fixture-secret/);
+      expect(reportingFixture.lifecycle.counts()).toEqual({ creates: 1, clones: 0, saves: 0, generations: 1, downloads: 1, deletions: 0, taskReads: 2 });
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { reportingFixture.lifecycle.reset(); }
+});
+
+test('Keyword Overview PDF never repeats lost initializers or generates without a valid creation receipt', async () => {
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const semrush = yield* Semrush;
+      for (const scenario of ['pdf-create-lost', 'pdf-create-missing', 'pdf-create-denied', 'generate-lost', 'generate-missing', 'pdf-task-failed'] as const) {
+        reportingFixture.lifecycle.reset(); reportingFixture.lifecycle.use(scenario);
+        const error = yield* semrush.report(yield* parseReport('keyword_overview_pdf', { keyword: 'typescript', confirm: true })).pipe(Effect.flip);
+        expect(error.message).toMatch(/not retried|Inspect reporting-tasks/); expect(error.message).not.toContain('fixture-secret');
+        expect(reportingFixture.lifecycle.counts()).toMatchObject({ creates: 1, saves: 0, generations: ['generate-lost', 'generate-missing', 'pdf-task-failed'].includes(scenario) ? 1 : 0, downloads: 0 });
+        expect((yield* (yield* Exports).list())).toEqual([]);
+        reportingFixture.lifecycle.use('complete');
+        expect((yield* semrush.report(yield* parseReport('reporting_get', { report_id: 71 }))).data).toHaveProperty('document.id', 71);
+      }
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { reportingFixture.lifecycle.reset(); }
+});
+
+
+test('cancelling a Keyword Overview PDF after initialization stops polling without replaying writes', async () => {
+  reportingFixture.lifecycle.reset(); reportingFixture.lifecycle.use('pending');
+  const observed = new Promise<void>(resolve => reportingFixture.lifecycle.onTaskRead(() => resolve()));
+  const controller = new AbortController();
+  const running = Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    return yield* (yield* Semrush).report(yield* parseReport('keyword_overview_pdf', { keyword: 'typescript', confirm: true }));
+  }).pipe(Effect.provide(fixtureLayer()))), { signal: controller.signal });
+  try {
+    const cancelled = expect(running).rejects.toThrow();
+    await Promise.race([observed, running.then(() => { throw new Error('PDF completed before the pending task was observed'); })]);
+    controller.abort(); await cancelled;
+    expect(reportingFixture.lifecycle.counts()).toMatchObject({ creates: 1, generations: 1, saves: 0, downloads: 0, taskReads: 1 });
+  } finally { controller.abort(); reportingFixture.lifecycle.reset(); }
+});

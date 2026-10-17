@@ -1,12 +1,14 @@
 {
   "title": "semrush-cli",
   "pages": [
+    "---Getting started---",
     "index",
     "authentication",
-    "reports",
+    "troubleshooting",
+    "---Guides---",
+    "projects",
     "keyword-research",
     "organic-research",
-    "projects",
     "keyword-lists",
     "saved-keywords",
     "keyword-workflows",
@@ -17,10 +19,13 @@
     "position-tracking",
     "notes",
     "reporting",
-    "coverage",
+    "---Automation---",
     "mcp",
     "scripting",
-    "troubleshooting",
+    "---Reference---",
+    "reports",
+    "reference",
+    "coverage",
     "development"
   ]
 }

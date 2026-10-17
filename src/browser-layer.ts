@@ -8,8 +8,8 @@ import { Semrush } from './browser-service.js';
 import { Sessions } from './session-service.js';
 import { origin } from './session-layer.js';
 import { ReportError, SessionError } from './errors.js';
-import { reportResponseType, reportParameters, webRequest, rpcBody, reports, type ReportName, type Query, type WebRequest } from './report-parameters.js';
-import type { ReportRequest } from './validation.js';
+import { reportResponseType, reportParameters, keywordPDFParameters, webRequest, rpcBody, reports, type Report, type ReportName, type Query, type WebRequest } from './report-parameters.js';
+import { parseReport, type ReportRequest } from './validation.js';
 import { Exports, type ExportWriter } from './exports.js';
 
 type ExportDownload = { readonly request: WebRequest; readonly headers: Record<string, string> } & (
@@ -17,7 +17,9 @@ type ExportDownload = { readonly request: WebRequest; readonly headers: Record<s
 );
 
 const transportPaths = new Map([['domain', '/dpa/rpc'], ['direct', '/dpa/rpc'], ['magic', '/kmtgw/v2/webapi'], ['keyword', '/kwogw/v2/webapi'], ['kwm', '/kwm/rpc'], ['ksb', '/ksb/rpc'], ['bla', '/backlink_audit/rpc/']]);
-const exportMimeTypes = { csv: 'text/csv', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', txt: 'text/plain' };
+const reportingGenerationReceipt = Schema.Struct({ id: Schema.String.check(Schema.isMinLength(1)), state: Schema.String.check(Schema.isMinLength(1)) });
+const reportingTaskSchema = Schema.Struct({ id: Schema.String, state: Schema.String, pdfPath: Schema.NullOr(Schema.String) });
+const exportMimeTypes = { csv: 'text/csv', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', txt: 'text/plain', pdf: 'application/pdf' };
 const json = JSONbig({ storeAsString: true, protoAction: 'error', constructorAction: 'error' });
 const safeBrowserError = () => new ReportError({ message: 'Semrush browser request failed. Run semrush doctor. If your session expired, sign in again with semrush auth login.' });
 const browserCall = <A>(run: () => Promise<A>) => Effect.tryPromise({ try: run, catch: safeBrowserError });
@@ -41,8 +43,8 @@ function reportFailure(detail: Schema.Json, secrets: readonly string[]): ReportE
   return new ReportError({ ...providerCode, message: `Semrush report failed: ${JSON.stringify(redact(detail, secrets)).slice(0, 500)}` });
 }
 
-/** Confirmed keyword writes keep provider codes when adding native readback advice. */
-function keywordWriteError(error: ReportError, advice: string): ReportError {
+/** Confirmed writes keep provider codes when adding native readback advice. */
+function confirmedWriteError(error: ReportError, advice: string): ReportError {
   const message = error.message + advice;
   return error.providerCode === undefined ? new ReportError({ message }) : new ReportError({ message, providerCode: error.providerCode });
 }
@@ -138,14 +140,52 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     return body.result ?? null;
   });
   /** GraphQL can return usable-looking partial data together with a failed query. */
-  const reportingAccount = Effect.fn('Semrush.reportingAccount')(function* (body: Schema.Json) {
+  const reportingResult = Effect.fn('Semrush.reportingResult')(function* (body: Schema.Json, field: string) {
     const response = yield* Schema.decodeUnknownEffect(Schema.Struct({
-      data: Schema.optionalKey(Schema.Struct({ me: Schema.NullOr(Schema.Record(Schema.String, Schema.Json)) })),
+      data: Schema.optionalKey(Schema.Record(Schema.String, Schema.Json)),
       errors: Schema.optionalKey(Schema.Array(Schema.Json)),
     }))(body).pipe(Effect.mapError(() => new ReportError({ message: 'My Reports did not return account data. Check reporting access in the Semrush web UI.' })));
     if (response.errors && response.errors.length > 0) return yield* Effect.fail(new ReportError({ message: `My Reports query failed: ${JSON.stringify(redact(response.errors, [auth.apiKey])).slice(0, 500)}` }));
-    if (!response.data?.me) return yield* Effect.fail(new ReportError({ message: 'My Reports did not return account data. Check reporting access in the Semrush web UI.' }));
-    return response.data.me;
+    const selected = response.data?.[field];
+    if (selected === undefined || selected === null || field === 'me' && !objectValue(selected)) return yield* Effect.fail(new ReportError({ message: 'My Reports did not return account data. Check reporting access in the Semrush web UI.' }));
+    return selected;
+  });
+  /** A save may commit before its reply is lost; require its exact document receipt. */
+  const reportingSaved = Effect.fn('Semrush.reportingSaved')(function* (body: Schema.Json, expectedId: Schema.Json | undefined) {
+    const receipt = yield* Schema.decodeUnknownEffect(Schema.Struct({ documentId: Schema.Int }))(body)
+      .pipe(Effect.mapError(() => new ReportError({ message: 'My Reports returned no valid save receipt. Read reporting-get before another write; saving was not retried.' })));
+    if (receipt.documentId !== expectedId) return yield* Effect.fail(new ReportError({ message: 'My Reports returned a different saved report ID. Inspect reporting-overview before another write.' }));
+    return body;
+  });
+  /** Each native write must return its own receipt, rather than just an HTTP success. */
+  const selectReportingData = Effect.fn('Semrush.selectReportingData')(function* (name: string, definition: Report, query: Query, body: Schema.Json) {
+    const selected = 'graphql_field' in definition ? yield* reportingResult(body, definition.graphql_field) : yield* successfulEnvelope(body, []);
+    if (name === 'reporting_save') {
+      // SAFETY: public validation requires a complete document object with an integer ID.
+      return yield* reportingSaved(selected, (query.document as Query).id);
+    }
+    if (name === 'reporting_delete' && selected !== true) return yield* Effect.fail(new ReportError({ message: 'My Reports did not confirm deletion. Inspect reporting-overview before another deletion; deletion was not retried.' }));
+    const id = Schema.Int.check(Schema.isGreaterThan(0));
+    if (name === 'reporting_create') yield* Schema.decodeUnknownEffect(Schema.Struct({ userDocumentId: id }))(selected)
+      .pipe(Effect.mapError(() => new ReportError({ message: 'My Reports returned no valid creation receipt. Inspect reporting-overview before creating another report; creation was not retried.' })));
+    if (name === 'reporting_clone') yield* Schema.decodeUnknownEffect(Schema.Struct({ document: Schema.Struct({ id }) }))(selected)
+      .pipe(Effect.mapError(() => new ReportError({ message: 'My Reports returned no valid clone receipt. Inspect reporting-overview before cloning again; cloning was not retried.' })));
+    if (name === 'reporting_generate') yield* Schema.decodeUnknownEffect(reportingGenerationReceipt)(selected)
+      .pipe(Effect.mapError(() => new ReportError({ message: 'My Reports returned no valid generation receipt. Read reporting-tasks before another generation; generation was not retried.' })));
+    return selected;
+  });
+  /** The UI saves the current document and privacy acknowledgment before generation. */
+  const saveBeforeGeneration = Effect.fn('Semrush.saveBeforeGeneration')(function* (query: Query) {
+    const read = webRequest(reports.reporting_get, query);
+    const body = yield* successfulEnvelope(yield* request(read.path, read.body, read.method, { 'X-Requested-With': 'XMLHttpRequest' }), []);
+    if (!objectValue(body) || !objectValue(body.document)) return yield* Effect.fail(new ReportError({ message: 'My Reports did not return a populated report document. No save or generation was started.' }));
+    const saved = yield* parseReport('reporting_save', { document: body.document, timezone: query.timezone ?? 0, confirm: true })
+      .pipe(Effect.mapError(() => new ReportError({ message: 'My Reports returned an incomplete saved document. No save or generation was started.' })));
+    if (body.document.id !== query.report_id) return yield* Effect.fail(new ReportError({ message: 'My Reports returned a different document ID. No save or generation was started.' }));
+    const save = webRequest(reports.reporting_save, saved.query);
+    const receipt = yield* successfulEnvelope(yield* request(save.path, save.body, save.method, { 'X-Requested-With': 'XMLHttpRequest' }).pipe(Effect.mapError(error => confirmedWriteError(error,
+      ' Saving may have committed and was not retried. Read reporting-get before another write. Generation was not started.'))), []);
+    yield* reportingSaved(receipt, query.report_id);
   });
   /** A native partial save can commit; never report it as a complete replacement or retry it. */
   const webVitalsSettingsReceipt = Effect.fn('Semrush.webVitalsSettingsReceipt')(function* (body: Schema.Json, requestedCount: number) {
@@ -314,7 +354,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
   });
   const downloadExport = Effect.fn('Semrush.downloadExport')(function* (downloadRequest: ExportDownload, format: Schema.Json | undefined, writer: ExportWriter) {
     const { request, headers } = downloadRequest;
-    const extension = format === 'xlsx' ? 'xlsx' : format === 'txt' ? 'txt' : 'csv';
+    const extension = format === 'xlsx' ? 'xlsx' : format === 'txt' ? 'txt' : format === 'pdf' ? 'pdf' : 'csv';
     const address = new URL(request.path, browserOrigin);
     if (request.method === 'GET') {
       for (const [key, value] of Object.entries(request.body ?? {})) address.searchParams.set(key, String(value));
@@ -364,12 +404,52 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     ) : fetchFile;
     if (!file.bytes || !file.filename) return yield* Effect.fail(new ReportError({ message: 'Semrush did not return an export file (HTTP ' + file.status + '). Check your session, export permissions and selected resource.' }));
     const bytes = file.bytes;
+    if (extension === 'pdf' && !bytes.subarray(0, 5).equals(Buffer.from('%PDF-'))) return yield* Effect.fail(new ReportError({ message: 'Semrush did not return valid PDF bytes. No export artifact was created.' }));
     return yield* writer.create(file.filename, exportMimeTypes[extension], (destination, signal) => writeFile(destination, bytes, { mode: 0o600, signal }));
+  });
+  /** Only this private query resolves PDF capabilities for an exact report/task pair. */
+  const reportingTask = Effect.fn('Semrush.reportingTask')(function* (query: Query) {
+    const account = yield* reportingResult(yield* request('/my_reports/graphql/', reportParameters(reports.reporting_download, query)), 'me');
+    const selected = yield* Schema.decodeUnknownEffect(Schema.Struct({ reports: Schema.Struct({ nodes: Schema.Array(Schema.Struct({
+      id: Schema.String, tasks: Schema.Array(reportingTaskSchema),
+    })) }) }))(account).pipe(Effect.mapError(() => new ReportError({ message: 'My Reports task metadata is unavailable. Read reporting-tasks before downloading.' })));
+    return selected.reports.nodes.find(report => report.id === String(query.report_id))?.tasks.find(task => task.id === query.task_id);
+  });
+  /** Existing-task downloads never initialize generation or expose the provider capability. */
+  const downloadReportingTask = Effect.fn('Semrush.downloadReportingTask')(function* (task: Schema.Schema.Type<typeof reportingTaskSchema> | undefined) {
+    if (!task || task.state !== 'ready' || !task.pdfPath) return yield* Effect.fail(new ReportError({ message: 'The selected report task is missing or not ready. Read reporting-tasks before downloading.' }));
+    const pdfPath = task.pdfPath;
+    const address = yield* Effect.try({ try: () => new URL(pdfPath, browserOrigin), catch: () => new ReportError({ message: 'My Reports returned an invalid PDF path.' }) });
+    if (address.origin !== browserOrigin || !address.pathname.startsWith('/my_reports/reports/') || address.username || address.password || address.hash) return yield* Effect.fail(new ReportError({ message: 'My Reports returned a PDF outside its supported download path.' }));
+    return yield* Effect.scoped(downloadExport({ kind: 'file', request: { method: 'GET', path: address.href, body: {} }, headers: {} }, 'pdf', exports));
+  });
+  /** Create and generate once; polling is limited to the resulting task's read endpoint. */
+  const keywordPDF = Effect.fn('Semrush.keywordPDF')(function* (query: Query) {
+    const created = yield* reportingResult(yield* request('/my_reports/graphql/', keywordPDFParameters(query, auth.apiKey)).pipe(Effect.mapError(error => confirmedWriteError(error,
+      ' PDF report creation may have committed and was not retried. Inspect reporting-overview before another export.'))), 'createLiteOrder');
+    const receipt = yield* Schema.decodeUnknownEffect(Schema.Struct({ id: Schema.String.check(Schema.isPattern(/^[1-9][0-9]*(?![\s\S])/)) }))(created)
+      .pipe(Effect.mapError(() => new ReportError({ message: 'My Reports returned no valid PDF report creation receipt. Inspect reporting-overview; creation was not retried and no generation was started.' })));
+    const reportId = Number(receipt.id);
+    if (!Number.isInteger(reportId) || reportId > 2147483647) return yield* Effect.fail(new ReportError({ message: 'My Reports returned an unsupported report ID. Inspect reporting-overview; no generation was started.' }));
+    return yield* Effect.gen(function* () {
+      const generation = webRequest(reports.reporting_generate, { report_id: reportId });
+      const generated = yield* reportingResult(yield* request(generation.path, generation.body, generation.method).pipe(
+        Effect.mapError(error => confirmedWriteError(error, ' PDF generation may have committed and was not retried.')),
+      ), 'generateReport');
+      const task = yield* Schema.decodeUnknownEffect(reportingGenerationReceipt)(generated)
+        .pipe(Effect.mapError(() => new ReportError({ message: 'My Reports returned no valid generation receipt. Generation was not retried.' })));
+      const selection = { report_id: reportId, task_id: task.id };
+      const ready = yield* reportingTask(selection).pipe(
+        Effect.repeat({ schedule: Schedule.spaced('2 seconds'), until: value => value?.state === 'ready' || value?.state === 'error' || value?.state === 'failed' }),
+        Effect.timeoutOrElse({ duration: '2 minutes', orElse: () => Effect.fail(new ReportError({ message: 'The PDF task did not become ready within two minutes.' })) }),
+      );
+      return { data: selection, artifact: yield* downloadReportingTask(ready) };
+    }).pipe(Effect.mapError(error => confirmedWriteError(error, ` Inspect reporting-tasks --report-id ${reportId} before another export. The report was retained in My Reports.`)));
   });
   /** A refresh can consume allowance before a lost response; never replay it. */
   const keywordRefresh = Effect.fn('Semrush.keywordRefresh')(function* (params: Query) {
     const readback = ' Read keyword-refresh-status before requesting another refresh; the request may have committed and was not retried.';
-    const receipt = yield* rpc('updates.RequestUpdates', params).pipe(Effect.mapError(error => keywordWriteError(error, readback)));
+    const receipt = yield* rpc('updates.RequestUpdates', params).pipe(Effect.mapError(error => confirmedWriteError(error, readback)));
     yield* Schema.decodeUnknownEffect(Schema.Struct({
       change: Schema.Struct({ before: Schema.Int, delta: Schema.Int, limit: Schema.Int }),
       phrases: Schema.Array(Schema.Struct({ phrase: Schema.String, database: Schema.String, location: Schema.Int, update_status: Schema.Int })).check(Schema.isMinLength(1)),
@@ -381,7 +461,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     const root = yield* Schema.decodeUnknownEffect(Schema.Struct({ site_root_domain: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(253), Schema.isPattern(/^[^\s/:?#]+(?![\s\S])/)) }))(
       yield* rpc('domains.GetSiteRoot', params),
     ).pipe(Effect.mapError(() => new ReportError({ message: 'Semrush did not resolve a root domain. Read keyword-domain-root before preparing it. No preparation was started.' })));
-    const receipt = yield* rpc('domains.GetStatus', { domain: root.site_root_domain }).pipe(Effect.mapError(error => keywordWriteError(error,
+    const receipt = yield* rpc('domains.GetStatus', { domain: root.site_root_domain }).pipe(Effect.mapError(error => confirmedWriteError(error,
       ' Domain preparation may have started and was not retried. Inspect its state in Semrush before another preparation request.')));
     return { domain: root.site_root_domain, preparation: yield* keywordDomainReceipt(receipt) };
   });
@@ -549,6 +629,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
   /** Acquire native metadata and credentials only after public validation and write consent. */
   const prepareWebRequest = Effect.fn('Semrush.prepareWebRequest')(function* ({ name, definition, query }: ReportRequest, planned: ReturnType<typeof webRequest>) {
     const family = definition.transport;
+    if (name === 'reporting_generate') yield* saveBeforeGeneration(query);
     if (family === 'bla_file') return yield* backlinkAuditFile(query, planned);
     // The web UI only allows adding a website to a project that has none.
     if (name === 'project_update' && query.domain !== undefined) {
@@ -564,6 +645,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     }
     const formEncoded = 'encoding' in planned && planned.encoding === 'form';
     const headers: Record<string, string> = family === 'notes_web' && !formEncoded ? { authorization: 'Token ' + auth.apiKey } : {};
+    if (family === 'reporting_web') headers['X-Requested-With'] = 'XMLHttpRequest';
     if (formEncoded) return { ...planned, path, headers, body: { token: auth.apiKey } };
     let body = planned.body;
     if (family === 'onpage_web') body = yield* onpageBody(name, query, body);
@@ -599,6 +681,16 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
   });
   const report = Effect.fn('Semrush.report')(function* ({ name, definition, query }: ReportRequest) {
     yield* checkSession();
+    if (name === 'reporting_download') {
+      const artifact = yield* downloadReportingTask(yield* reportingTask(query));
+      yield* captureCookies(context, sessions.capture, browserOrigin);
+      return { authenticated: true as const, report: name, data: null, artifact };
+    }
+    if (definition.transport === 'reporting_pdf') {
+      const result = yield* keywordPDF(query);
+      yield* captureCookies(context, sessions.capture, browserOrigin);
+      return { authenticated: true as const, report: name, ...result };
+    }
     if (definition.transport === 'kwm_ui') {
       const artifact = yield* exportMindmap(query);
       yield* captureCookies(context, sessions.capture, browserOrigin);
@@ -611,7 +703,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     }
     const family = definition.transport;
     const responseType = reportResponseType(definition);
-    const planned = ['project_web', 'audit_web', 'tracking_web', 'saved_web', 'notes_web', 'reporting_web', 'onpage_web', 'bla_file'].includes(family) ? webRequest(definition, query) : undefined;
+    const planned = ['project_web', 'sharing_web', 'audit_web', 'tracking_web', 'saved_web', 'notes_web', 'reporting_web', 'onpage_web', 'bla_file'].includes(family) ? webRequest(definition, query) : undefined;
     const params = planned ? {} : reportParameters(definition, query);
     if (name === 'backlink_audit_export') {
       const prepared = yield* backlinkAuditCSV(query, params);
@@ -641,10 +733,22 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       }
       const wireResponseType = responseType === 'empty' ? 'empty' : 'json';
       reportData = yield* request(prepared.path, prepared.body, prepared.method, prepared.headers, wireResponseType, prepared).pipe(
-        Effect.mapError(error => family === 'onpage_web' && definition.mutation ? new ReportError({ message: error.message + ' This On Page write was not confirmed and may have committed. Inspect onpage-info, onpage-settings or onpage-pages before another write.' }) : error),
+        Effect.mapError(error => {
+          if (family === 'sharing_web' && definition.mutation) return confirmedWriteError(error, ' Project sharing may have changed and was not retried. Inspect project-shares before another write.');
+          if (family === 'onpage_web' && definition.mutation) return new ReportError({ message: error.message + ' This On Page write was not confirmed and may have committed. Inspect onpage-info, onpage-settings or onpage-pages before another write.' });
+          return family === 'reporting_web' && definition.mutation ? confirmedWriteError(error, ' The reporting action may have committed and was not retried. Inspect reporting-overview, reporting-get and reporting-tasks before another write.') : error;
+        }),
       );
       if (family === 'tracking_web') reportData = yield* successfulEnvelope(reportData, requestSecrets);
-      if (family === 'reporting_web') reportData = yield* reportingAccount(reportData);
+      if (family === 'sharing_web') {
+        const invalidReceipt = () => new ReportError({ message: 'Semrush did not confirm the project sharing request. Inspect project-shares before another write; the request was not retried.' });
+        yield* Schema.decodeUnknownEffect(Schema.Struct({ is_success: Schema.Literal(true) }))(reportData).pipe(Effect.mapError(invalidReceipt));
+        if (name === 'project_share') {
+          const receipt = yield* Schema.decodeUnknownEffect(Schema.Struct({ data: Schema.Struct({ list: Schema.Array(Schema.Struct({ share_id: Schema.String.check(Schema.isPattern(/^[0-9a-f]{24}(?![\s\S])/)) })) }) }))(reportData).pipe(Effect.mapError(invalidReceipt));
+          if (receipt.data.list.length !== (Array.isArray(query.emails) ? query.emails.length : 0) || new Set(receipt.data.list.map(entry => entry.share_id)).size !== receipt.data.list.length) return yield* Effect.fail(invalidReceipt());
+        }
+      }
+      if (family === 'reporting_web') reportData = yield* selectReportingData(name, definition, query, reportData);
       if (name === 'audit_web_vitals_settings_set') reportData = yield* webVitalsSettingsReceipt(reportData, Array.isArray(query.urls) ? query.urls.length : 0);
     } else if (['keyword', 'domain', 'direct', 'magic', 'kwm', 'ksb', 'bla'].includes(family)) {
       if (name === 'backlink_audit_rerun') yield* checkBacklinkAuditControl(query);

@@ -47,8 +47,84 @@ export function reportResponseType(definition: Report): string | undefined {
 /** Validated catalog queries and fixed JSON request payloads; optional keys are omitted on wire. */
 export interface Query { [key: string]: Schema.Json; }
 
+interface ReportingWidget extends Query { widgetType: string; content: ReportingWidget[]; }
+interface ReportingStoredDocument extends Query {
+  content: ReportingWidget[]; emailing: Query; recipients: string | null;
+  titlePageTexts: Query | null; publicDashboard: Query | null; schedulePeriod: string;
+}
+
+const reportingDocumentFields = ['orientation', 'isSystem', 'id', 'name', 'type', 'topHeaderLogoId', 'topHeaderLogo', 'titleLogoId', 'titleLogo', 'title', 'subtitle', 'isScheduled', 'isBranded', 'isBuilderCreated', 'isTemplateCreated', 'tableOfContents', 'generationStartHour', 'areSettingsTouched', 'themeId', 'state'];
+const reportingWidgetFields = ['widgetType', 'publicId', 'isSetup', 'isEditable', 'settings', 'ownerId', 'sign', 'validUntil'];
+
+/** The constructor writes editor fields, not the larger stored document record. */
+function reportingDocumentForSave(document: ReportingStoredDocument): Query {
+  const widget = (node: ReportingWidget, gridChild = false): Query => {
+    const selected: Query = Object.fromEntries(Object.entries(node).filter(([key]) => reportingWidgetFields.includes(key)));
+    if (gridChild) {
+      Object.assign(selected, Object.fromEntries(Object.entries(node).filter(([key]) => ['isDeprecated', 'replacementIntegrationId'].includes(key))));
+      selected.sign = null; selected.validUntil = null;
+    }
+    selected.content = node.content.map(child => widget(child, node.widgetType === 'grid'));
+    return selected;
+  };
+  const emailing = document.emailing;
+  const recipients = document.recipients;
+  const titlePageTexts: Query = { ...document.titlePageTexts };
+  titlePageTexts.title ??= document.title ?? null; titlePageTexts.subtitle ??= document.subtitle ?? null;
+  const delivery: Query = { isEnabled: Boolean(recipients), emails: recipients ? recipients.split(',') : [],
+    subject: emailing.mailSubject ?? '', message: emailing.mailMessageText ?? '', signImageId: emailing.signImageId ?? null };
+  for (const key of ['emailToReplyTo', 'senderName', 'senderEmailName', 'signText']) delivery[key] = emailing[key] === '' ? null : emailing[key] ?? null;
+  return { ...Object.fromEntries(Object.entries(document).filter(([key]) => reportingDocumentFields.includes(key))),
+    topHeaderText: document.topHeaderText ?? '',
+    content: document.content.filter(node => node.widgetType !== 'empty').map(node => widget(node)),
+    reportValue: document.scheduleDayOfPeriod || 1, reportPeriod: document.schedulePeriod,
+    titlePageTexts, footerTexts: document.footerTexts ?? {}, headerTexts: document.headerTexts ?? {},
+    emailing: delivery, publicDashboard: document.publicDashboard?.url ? {} : null,
+  };
+}
+
+/** Native Download PDF defaults; only the adapter supplies the scoped template key. */
+export function keywordPDFParameters(query: Query, apiKey?: string): Query {
+  const templateParameters: Query = { action: 'report', phrase: query.keyword ?? '', db: query.database ?? 'us',
+    db_date: query.date || 'current', device_type: query.device === 'mobile' ? 'Mobile' : 'Desktop',
+    currency: String(query.currency ?? 'USD').toLowerCase() };
+  if (apiKey !== undefined) templateParameters.key = apiKey;
+  return { operationName: 'CreateLiteOrder',
+    query: 'mutation CreateLiteOrder($input: LiteOrderInput!, $templateType: String!) { createLiteOrder(input: $input, templateType: $templateType) { ... on Report { id name state } } }',
+    variables: { templateType: 'keyword_overview', input: {
+      branding: null, emailing: { subject: '', message: '', recipients: [], signImageId: 0, signText: '' },
+      scheduling: { isScheduled: false, period: 'monthly', dayOfPeriod: 28, generationStartHour: null },
+      publicDashboard: null, aiSummaryWidget: null, commonPrivacyAccepted: true, isTOCEnabled: false,
+      templateParameters, state: 'essential',
+    } },
+  };
+}
+
 /** Filters mirror the native grid; caller text only enters GraphQL variables. */
-function reportingParameters(query: Query): Query {
+function reportingParameters(definition: Report, query: Query): Query {
+  if (definition.method.includes('/template/system/')) return { parameters: query.parameters ?? {} };
+  if (definition.method.endsWith('/clone')) return { documentName: query.name ?? null };
+  if (definition.method.endsWith('/{document_id}')) {
+    // SAFETY: reporting-save's public schema validates the stored document and recursive widgets.
+    const document = query.document as ReportingStoredDocument;
+    return { document: reportingDocumentForSave(document), timezone: query.timezone ?? 0, commonPrivacyAccepted: true };
+  }
+  if (definition.http_method === 'GET') return {};
+  if ('graphql_field' in definition && definition.graphql_field === 'generateReport') return {
+    operationName: 'GenerateReport', query: 'mutation GenerateReport($reportId: Int!) { generateReport(reportId: $reportId) { id state } }',
+    variables: { reportId: query.report_id ?? null },
+  };
+  if ('graphql_field' in definition && definition.graphql_field === 'deleteReports') return {
+    operationName: 'DeleteReports', query: 'mutation DeleteReports($reportIds: [Int!]!) { deleteReports(reportIds: $reportIds) }',
+    variables: { reportIds: query.report_ids ?? [] },
+  };
+  if ('report_id' in query) {
+    const pdfPath = 'task_id' in query ? ' pdfPath' : '';
+    return { operationName: 'ReportingTasks',
+      query: `query ReportingTasks($reportId: Int!) { me { reports(limit: 1, where: {ids: [$reportId]}) { totalCount nodes { id tasks(limit: 30) { id filename state createdAt${pdfPath} } } } } }`,
+      variables: { reportId: query.report_id ?? null },
+    };
+  }
   const where: Query = {};
   if (query.ownership === 'own') where.ownedByMe = true;
   if (query.ownership === 'shared') Object.assign(where, { ownedByMe: false, isVirtualShare: false });
@@ -64,7 +140,8 @@ function reportingParameters(query: Query): Query {
 export function reportParameters(definition: Report, q: Query): Query {
   const family = definition.transport;
   if (family === 'onpage_web') return onpageParameters(definition, q);
-  if (family === 'reporting_web') return reportingParameters(q);
+  if (family === 'reporting_web') return reportingParameters(definition, q);
+  if (family === 'reporting_pdf') return keywordPDFParameters(q);
   if (family === 'bla') return backlinkAuditParameters(definition, q);
   if (family === 'notes_web') return noteParameters(definition, q);
   if (family === 'ksb') return domainStrategyParameters(definition, q);
@@ -436,7 +513,18 @@ export function webRequest(definition: Report, query: Query): WebRequest {
   if (definition.transport === 'bla') return { method: 'POST', path: '/backlink_audit/rpc/?method=' + encodeURIComponent(definition.method), body: rpcBody(definition.method, reportParameters(definition, query)) };
   if (definition.transport === 'kwm' || definition.transport === 'ksb') return { method: 'POST', path: definition.transport === 'ksb' ? '/ksb/rpc' : '/kwm/rpc', body: rpcBody(definition.method, reportParameters(definition, query)) };
   const parameters = reportParameters(definition, query);
-  const path = definition.method.replace(/\{([a-z_]+)\}/g, (_match, key: string) => encodeURIComponent(String(query[key])));
+  // SAFETY: reporting-save's schema requires a document object with an integer ID.
+  // A saved document's ID is its single path and payload identity.
+  const identifiers: Query = definition.transport === 'reporting_web' && definition.method.endsWith('/{document_id}')
+    ? { ...query, document_id: (query.document as { id: number }).id } : query;
+  const path = definition.method.replace(/\{([a-z_]+)\}/g, (_match, key: string) => encodeURIComponent(String(identifiers[key])));
+  if (definition.transport === 'sharing_web') {
+    // Sharing takes arrays at the top level, unlike the folder settings API.
+    const body = definition.http_method === 'GET' ? {} : definition.method.endsWith('/share/project-smb')
+      ? (Array.isArray(query.emails) ? query.emails : []).map(email => ({ email, object_id: query.folder_id ?? null, role: query.role ?? null }))
+      : query.share_ids ?? [];
+    return { method: definition.http_method, path, body };
+  }
   if ('request_encoding' in definition && definition.request_encoding === 'multipart') {
     const prepared: WebRequest = { method: definition.http_method, path, body: parameters, encoding: 'multipart' };
     if ('file_field' in definition) {
@@ -476,7 +564,13 @@ export function previewMutation(name: string, definition: Report, query: Query) 
   for (const [key, property] of Object.entries(definition.schema.properties)) {
     if ('writeOnly' in property && property.writeOnly === true && key in visible) visible[key] = redactInput(visible[key]);
   }
-  return { dry_run: true, report: name, request: webRequest(definition, visible) };
+  const preview = { dry_run: true, report: name, request: webRequest(definition, visible) };
+  if (definition.transport === 'reporting_pdf') return { ...preview, preparation: [{ action: 'create_essential_report' }, { action: 'generate_pdf' }, { action: 'download_ready_task' }], retains_report: true };
+  if (name === 'reporting_generate') return { ...preview, preparation: [
+    { action: 'read_report', report_id: query.report_id },
+    { action: 'save_current_document', commonPrivacyAccepted: true, timezone: query.timezone ?? 0 },
+  ] };
+  return preview;
 }
 
 

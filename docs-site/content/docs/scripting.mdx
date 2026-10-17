@@ -1,43 +1,54 @@
 ---
 title: Output and scripting
-description: JSON, pagination, large identifiers and exit codes.
+description: Parse JSON output, handle pagination, manage numeric identifiers, and check exit codes.
 ---
+
+`semrush-cli` is designed for reliable execution in shell scripts, automation pipelines, and cron jobs.
+
+## JSON output format
+
+Successful authenticated reports return a JSON object with `authenticated: true`, the snake_case `report` name, and a `data` field holding the result object or array. Pass `--json` to produce compact, single-line JSON suitable for Unix pipes:
 
 ```sh
 semrush keyword-overview --keyword 'email marketing' --json > keyword.json
-semrush domain-keywords --domain openai.com --page 2 --page-size 20 --json
-semrush keyword-gap --domains '["openai.com","anthropic.com"]' --json
-semrush backlink-links --domain openai.com --filters '+|type||nofollow' --json
-semrush keyword-magic --keyword 'email marketing' --questions-only --descending false --json
+jq '.data.vol' keyword.json
 ```
 
-Objects and arrays are JSON arguments. Booleans accept a bare positive flag or `true` / `false`. Required arguments and numeric bounds appear in each command's help. `--json` works before or after the command.
+## Passing arguments in automation
+
+- **Arrays and objects**: Pass valid JSON strings.
+  ```sh
+  semrush keyword-gap --domains '["example.com","competitor.com"]' --json
+  semrush position-keywords-add --campaign-id 456_789 --keywords '["typescript"]' --confirm
+  ```
+- **Booleans**: Flags accept bare `--confirm`, `--confirm true`, or `--confirm false`.
+- **Large identifiers**: Identifiers outside JavaScript's safe integer range are preserved as decimal strings.
+
+## Pagination conventions
+
+Different endpoints use distinct pagination models based on provider contracts:
+- **1-based page indexing**: Used by `domain-keywords`, `keyword-magic`, `keyword-lists`, and `onpage-pages`.
+- **0-based page indexing**: Used by `backlink-links`, `backlink-referring-domains`, `audit-pages`, and `backlink-audit-disavow`.
+- **Limit and offset**: Used by `saved-keywords`, `domain-strategies`, `position-pages`, and `reporting-overview`.
+
+Inspect pagination parameters for any command with `semrush <command> --help`.
+
+## Exit codes and error handling
+
+Automation scripts should check exit status codes:
+- **`0`**: Success.
+- **`1`**: Service, authentication or report failure, including timeouts and denied account permissions.
+- **`2`**: Invalid arguments or flags. Diagnostics are written to standard error.
+- **`130`**: Process terminated by SIGINT (`Ctrl+C`).
+
+In Bash automation scripts, enforce strict error checking:
 
 ```sh
-semrush domain-keywords --help
-semrush reports --json
+#!/usr/bin/env bash
+set -euo pipefail
+
+output=$(semrush keyword-overview --keyword typescript --json)
+printf '%s\n' "$output" | jq '.data'
 ```
 
-Successful reports return:
-
-```json
-{"authenticated":true,"report":"keyword_overview","data":{}}
-```
-
-The example shows the envelope only. `data` contains the provider's actual response. Domain keyword and page reports contain rows, provider totals and the requested page. Other nesting follows the Semrush report. Integers outside JavaScript's safe range become decimal strings. Credential fields and echoed secrets are removed recursively.
-
-Keyword Magic and organic report pages start at 1. Backlink pages start at 0. Gaps use `offset` or a zero-based backlink page. Provider caps remain visible. There is no automatic pagination or unlimited-export promise.
-
-Exit codes are 0 for success, 1 for authentication/service/report failures, 2 for invalid usage and 130 for an interrupted CLI command (Ctrl+C). Errors go to stderr. Commands never prompt for terminal input. Reports are not automatically retried, because repeated requests can consume allowances.
-
-Historical timestamps come from `snapshot-dates`:
-
-```sh
-semrush snapshot-dates --database us --json
-semrush domain-keywords --domain openai.com --database mobile-us --date 1789430400 --date-type monthly --json
-```
-
-Account access determines which historical and mobile reports are available.
-
-See [save and track keyword selections](/docs/keyword-workflows) for a tested
-workflow across research reports, Saved Keywords, the builder and tracking.
+Commands never prompt for interactive terminal input. All mutation operations require the explicit `--confirm` flag to execute.

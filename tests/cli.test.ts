@@ -91,6 +91,9 @@ test('keyword exports require a destination and validate formats before acquirin
     const selection = name === 'keyword-bulk-export' ? ['--keywords', '["typescript"]'] : ['--keyword', 'typescript'];
     await expect(cli([name, ...selection])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('--output') });
   }
+  await expect(cli(['keyword-overview-pdf', '--keyword', 'typescript', '--confirm'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('--output') });
+  const pdfPreview = JSON.parse((await cli(['keyword-overview-pdf', '--keyword', 'typescript', '--output', 'overview.pdf', '--dry-run', '--json'])).stdout);
+  expect(pdfPreview).toMatchObject({ dry_run: true, retains_report: true, preparation: [{ action: 'create_essential_report' }, { action: 'generate_pdf' }, { action: 'download_ready_task' }] });
   await expect(cli(['keyword-bulk', '--keywords', '[]'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('Invalid keyword_bulk') });
   await expect(cli(['keyword-overview', '--keyword', 'typescript', '--date', '202613'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('Invalid keyword_overview') });
 });
@@ -156,8 +159,8 @@ test('Core Web Vitals URL-list previews stay offline and invalid IDs or unconfir
 test('built catalog distinguishes read reports and project writes', async () => {
   const { stdout, stderr } = await cli(['reports', '--json']);
   const listed = JSON.parse(stdout);
-  expect(listed).toHaveLength(336);
-  expect(listed.filter((entry: { read_only: boolean }) => !entry.read_only)).toHaveLength(101);
+  expect(listed).toHaveLength(349);
+  expect(listed.filter((entry: { read_only: boolean }) => !entry.read_only)).toHaveLength(110);
   expect(stderr).toBe('');
 });
 test('invalid usage fails before attempting authentication', async () => {
@@ -186,7 +189,7 @@ test('MCP advertises write safety and previews without an authenticated runtime'
     expect((await client.listResourceTemplates()).resourceTemplates[0]?.uriTemplate).toBe('semrush-export://{export_id}{?offset,limit}');
     await expect(client.readResource({ uri: 'semrush-export://unknown' })).rejects.toThrow('Download an export first');
     const listed = await client.listTools();
-    expect(listed.tools).toHaveLength(336);
+    expect(listed.tools).toHaveLength(349);
     for (const name of ['domain_position_changes_presets', 'domain_position_changes_daily_trend', 'domain_position_changes_monthly_trend', 'keyword_magic_access', 'keyword_magic_groups_summary', 'keyword_magic_topic_suggestions']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: true });
     expect(listed.tools.find(tool => tool.name === 'keyword_domain_prepare')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false, idempotentHint: false });
     for (const name of ['keyword_domain_suggestions', 'keyword_domain_root', 'keyword_domain_status', 'keyword_ai_databases', 'keyword_ai_summary', 'keyword_ai_topics']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: true });
@@ -210,6 +213,10 @@ test('MCP advertises write safety and previews without an authenticated runtime'
     for (const name of ['position_alert_read', 'position_alert_mark_all_read']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false, idempotentHint: false });
     expect(listed.tools.find(tool => tool.name === 'position_alert_delete')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true, idempotentHint: false });
     for (const name of ['audit_js_impact_guide', 'audit_js_impact_changed_pages', 'audit_js_impact_pages', 'audit_export_js_impact', 'audit_export_all', 'keyword_list_export_mindmap', 'reporting_overview']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: true, destructiveHint: false });
+    for (const name of ['reporting_create', 'reporting_save', 'reporting_clone', 'reporting_generate']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false, idempotentHint: false });
+    expect(listed.tools.find(tool => tool.name === 'keyword_overview_pdf')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false, idempotentHint: false });
+    expect(listed.tools.find(tool => tool.name === 'reporting_delete')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true, idempotentHint: false });
+    for (const name of ['reporting_get', 'reporting_tasks', 'reporting_download']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: true, destructiveHint: false });
     const preview = await client.callTool({ name: 'project_create', arguments: { name: 'example', dry_run: true } });
     expect(preview.isError).not.toBe(true);
     expect(preview.content).toEqual([{ type: 'text', text: JSON.stringify({ dry_run: true, report: 'project_create', request: { method: 'POST', path: '/apis/v4-raw/folders/api/v0/folders', body: { properties: [{ name: { value: 'example' } }] } } }) }]);

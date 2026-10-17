@@ -1,19 +1,19 @@
 ---
-title: Keyword lists
-description: Manage Keyword Strategy Builder lists, keywords, tags and clustering.
+title: Keyword lists and Strategy Builder
+description: Manage Keyword Strategy Builder baskets, domain strategies, keyword clustering, and exports.
 ---
 
-These commands use the Keyword Strategy Builder API. Use `BasketID` and
-`Owner.ID` from `keyword-lists` when selecting a basket. Regular collections
-can also appear in Saved Keywords with the same underlying ID; that API uses
-decimal-string `list_id` fields. Project folder IDs remain a different identifier. Shared
-lists retain their owner's ID. Semrush enforces the list's access permissions.
+Semrush provides two Keyword Strategy Builder workflows: domain-based strategies and seed-based keyword baskets.
+
+## Identifier requirements
+
+- **Domain strategy ID (`strategy_id`)**: A numeric integer returned by `domain-strategy-create`.
+- **Basket ID (`basket_id`) and Owner ID (`owner_id`)**: Numeric integers returned by `keyword-lists`. Both are required when targeting a seed-based list.
+- **Saved Keywords list ID (`list_id`)**: A decimal string used by the [Saved Keywords](/docs/saved-keywords) commands.
 
 ## Domain-based strategies
 
-The domain-based workflow uses a separate strategy resource. It does not create
-a seed-based basket or project. Creation starts generation and uses your normal
-account allowance.
+Generate high-level content strategies around an existing root domain:
 
 ```sh
 semrush domain-strategies --limit 20 --offset 0 --json
@@ -22,239 +22,94 @@ semrush domain-strategy-create --domain example.com --database us --dry-run
 semrush domain-strategy-create --domain example.com --database us --confirm --json
 ```
 
-Creation returns `data.id`. Use that numeric ID for these commands:
+Creation initiates strategy generation and returns `data.id`. Check completion status before inspecting pages:
 
 ```sh
-semrush domain-strategy-get --strategy-id 123 --json
 semrush domain-strategy-status --strategy-ids '[123]' --json
-semrush domain-strategy-rename --strategy-id 123 --name 'domain research' --confirm
-semrush domain-strategies --name-filter 'domain research' --ownership own --json
+semrush domain-strategy-get --strategy-id 123 --json
+semrush domain-strategy-rename --strategy-id 123 --name 'Q4 Strategy' --confirm
 semrush domain-strategy-delete --strategy-ids '[123]' --confirm
 ```
 
-Status reads return a `statuses` array in the requested ID order. Inspect details
-for the domain, state, result availability and page count. Read status again
-explicitly while generation runs. No command retries writes or polls
-automatically. Delete has no CLI undo command.
+### Inspecting domain page opportunities
 
-Domain strategy IDs must be safe JSON integers. They are not project folder IDs
-or a basket selector. Basket operations below use both `BasketID` and `Owner.ID`.
-Geographic-marker search from the client is unavailable on the current backend;
-the CLI does not expose those dormant methods.
-
-## Read domain opportunities and export
-
-Wait until generation has results before reading page opportunities. Presets
-are `all`, `improve` and `create`. Page results use `data.pages`; each page has
-its own numeric `id`, distinct from the strategy ID.
+Once generation finishes, inspect page recommendations by preset (`all`, `improve`, or `create`):
 
 ```sh
 semrush domain-strategy-presets --strategy-id 123 --json
 semrush domain-strategy-pages --strategy-id 123 --preset improve --limit 20 --offset 0 --json
 semrush domain-strategy-pages-summary --strategy-id 123 --preset improve --json
 semrush domain-strategy-page --page-id 456 --json
-semrush domain-strategy-page-urls --page-id 456 --json
-semrush domain-strategy-page-serp --page-id 456 --json
 semrush domain-strategy-existing-keywords --page-id 456 --json
 semrush domain-strategy-recommended-keywords --page-id 456 --json
 ```
 
-Page reads and summaries accept `--text`, `--volume-min`, `--volume-max`,
-`--difficulty-min`, `--difficulty-max` and `--primary-intents`. Pass intents
-as a JSON array, such as `'["commercial","transactional"]'`. Supported values
-are `informational`, `navigational`, `commercial` and `transactional`. Difficulty
-ranges from 0 to 100. Minimum bounds cannot exceed maximum bounds. Advance
-`--offset` explicitly to read later pages.
+Filter opportunities by keyword volume and intent using `--volume-min`, `--volume-max`, `--difficulty-min`, and `--primary-intents '["commercial","transactional"]'`.
 
-Delete only selected numeric keyword IDs returned by the keyword reads:
+Export the strategy to disk:
 
 ```sh
-semrush domain-strategy-keywords-delete --keyword-ids '[789]' --dry-run
-semrush domain-strategy-keywords-delete --keyword-ids '[789]' --confirm
-semrush domain-strategy-export --strategy-id 123 --filename research --format csv --output research.csv
-semrush domain-strategy-export --strategy-id 123 --filename research --format xlsx --output research.xlsx
+semrush domain-strategy-export --strategy-id 123 --format csv --output strategy.csv
 ```
 
-Keyword deletion has no CLI undo command. Export supports `csv`,
-`csv_semicolon` and `xlsx`, plus the same text, volume, difficulty and intent
-filters. It exports the whole filtered strategy and does not accept a preset.
-`--output` is required. An existing destination is preserved; choose a new
-path to save another export. MCP returns a downloadable resource instead of a
-local path. See [MCP exports](/docs/mcp#read-an-export).
+The CLI verifies that `strategy.csv` does not already exist before initiating download.
 
-## Create and manage lists
+## Seed-based lists (baskets)
+
+Create and manage custom keyword baskets:
 
 ```sh
 semrush keyword-list-limits --json
-semrush keyword-lists --page 1 --page-size 100 --json
-semrush keyword-list-create --name 'research' --dry-run
-semrush keyword-list-create --name 'research' --confirm --json
+semrush keyword-lists --page 1 --page-size 50 --json
+semrush keyword-list-create --name 'TypeScript Tools' --confirm --json
 semrush keyword-list-get --basket-id 456 --owner-id 123 --json
-semrush keyword-list-rename --basket-id 456 --owner-id 123 --name 'new name' --confirm
+semrush keyword-list-rename --basket-id 456 --owner-id 123 --name 'Dev Tools' --confirm
+semrush keyword-list-delete --basket-id 456 --confirm
 ```
 
-Regular list creation adds an empty list. It does not start strategy generation
-or clustering. List reads support a name filter, ownership bitmask, pagination
-and sorting. The default ownership value `7` includes owned and shared lists.
-`keyword-list-delete --basket-id 456 --confirm` permanently deletes one of your
-lists. The MCP tool carries a destructive annotation.
-
-Every write requires `--confirm`, or MCP `confirm:true`. Use `--dry-run` or
-`dry_run:true` to inspect the request before authentication. RPC previews omit
-runtime credentials. No command accepts API keys or arbitrary RPC methods.
-
-## Keywords and tags
+### Importing and managing keywords
 
 ```sh
-semrush keyword-list-import --basket-id 456 --owner-id 123 --keywords '["email marketing","seo"]' --database us --confirm
-semrush keyword-list-keywords --basket-id 456 --owner-id 123 --page 1 --page-size 20 --json
+semrush keyword-list-import --basket-id 456 --owner-id 123 \
+  --keywords '["typescript framework","deno runtime"]' --database us --confirm
+semrush keyword-list-keywords --basket-id 456 --owner-id 123 --json
 semrush keyword-list-summary --basket-id 456 --owner-id 123 --json
-semrush keyword-list-add-tags --basket-id 456 --owner-id 123 --keywords '["seo"]' --tags '["opportunity"]' --confirm
-semrush keyword-list-tags --basket-id 456 --owner-id 123 --json
-semrush keyword-list-remove-tags --basket-id 456 --owner-id 123 --keywords '["seo"]' --tags '["opportunity"]' --confirm
+semrush keyword-list-add-tags --basket-id 456 --owner-id 123 \
+  --keywords '["deno runtime"]' --tags '["runtime"]' --confirm
+semrush keyword-list-update-metrics --basket-id 456 --owner-id 123 \
+  --keywords '["typescript framework"]' --confirm
 ```
 
-Keyword selections use a JSON array of phrases and a database flag. Import can
-also attach a common tag array with `--tags`. Account keyword limits apply.
-Keyword reads support pagination, sorting and the web API's `--filters` object.
-Omitted filter fields become empty arrays. Available fields are `ClusterIDs`,
-`Databases`, `Phrase`, `CompetitionLevel`, `Cpc`, `Difficulty`, `SERPFeatures`,
-`Volume`, `ClickPotential`, `Tags` and `Intents`.
-
-To remove phrases, use `keyword-list-delete-keywords` with the same selection
-flags and `--confirm`. It returns an `UndoID`. Restore that deletion with
-`keyword-list-undo-delete --undo-id <UndoID> --confirm`. Restoration uses the
-current account's permissions and the provider's undo lifetime.
-
-## Generation and metric refresh
+To delete phrases from a list:
 
 ```sh
-semrush keyword-strategy-create --name 'example strategy' --domain example.com --dry-run
-semrush keyword-strategy-create --name 'topic strategy' --seed-keywords '["email marketing"]' --database us --confirm
-semrush keyword-list-update-metrics --basket-id 456 --owner-id 123 --keywords '["seo"]' --confirm
-semrush keyword-list-cluster --basket-id 456 --owner-id 123 --confirm
+semrush keyword-list-delete-keywords --basket-id 456 --owner-id 123 \
+  --keywords '["deno runtime"]' --confirm --json
+```
+
+Deleting keywords returns an `undo_id`. Restore deleted phrases using:
+
+```sh
+semrush keyword-list-undo-delete --undo-id 'undo-id-placeholder' --confirm
+```
+
+### Clustering keyword lists
+
+Group phrases into semantically coherent topic clusters:
+
+```sh
+semrush keyword-list-cluster-forecast --basket-id 456 --owner-id 123 --json
+semrush keyword-list-cluster --basket-id 456 --owner-id 123 --confirm --json
 semrush keyword-list-cluster-status --basket-id 456 --owner-id 123 --json
-```
-
-Strategy generation accepts a domain, seed phrases, or both, plus optional
-competitors and database selection. It creates a structured list and consumes
-the clustering allowance. Metric refresh consumes the update allowance. These
-operations are asynchronous. `keyword-list-cluster-forecast` reads the seed
-forecast of a structured strategy; a plain manual list has no generation
-forecast and returns a provider error. Use the strategy basket ID returned by
-`keyword-strategy-create` for that read. Read their status or refreshed data explicitly;
-the CLI does not retry writes or poll automatically.
-
-List IDs and owner IDs must be exact JSON integers within JavaScript's safe
-integer range. The input schema rejects larger numbers rather than rounding.
-Project folder IDs keep their separate decimal-string representation.
-
-
-## Read seed-based pages and clusters
-
-Use the basket and owner IDs from a completed structured strategy. These
-operations use the seed-based API, with different page filters and preset codes
-from domain strategies. Read native preset counts first. Preset `1` includes all
-pages; pass another returned numeric code explicitly when needed.
-
-```sh
-semrush keyword-list-page-presets --basket-id 456 --owner-id 123 --json
-semrush keyword-list-pages --basket-id 456 --owner-id 123 --json
-semrush keyword-list-clusters --basket-id 456 --owner-id 123 --page 1 --page-size 20 --json
-semrush keyword-list-clusters --basket-id 456 --owner-id 123 --parent-id 789 --json
-semrush keyword-list-clusters-get --basket-id 456 --owner-id 123 --cluster-ids '[789]' --json
-semrush keyword-list-page --basket-id 456 --owner-id 123 --page-id 789 --json
+semrush keyword-list-clusters --basket-id 456 --owner-id 123 --json
 semrush keyword-list-cluster-keywords --basket-id 456 --owner-id 123 --cluster-id 789 --json
 ```
 
-Page results return `data.Pages` and `data.Topics`. Each page has a numeric `ID`.
-Use that ID as `page_id` or `cluster_id`; neither is a domain strategy page ID.
-Cluster pagination starts at page 1. Page reads return the native topic/page
-structure without CLI pagination. Sorting supports `seed_relevancy`,
-`metrics_score_v2`, `kdv`, `volume`, `kd` and `keywords`.
+### Exporting lists and mind maps
 
-`--page-filters` accepts `Phrase`, `TopicName`, `Volume`, `Difficulty`, `Intents`,
-`Includes` and `IsFavorite`. These differ from the keyword-row `--filters` used
-by `keyword-list-keywords`. For example:
+Export keywords or visual cluster diagrams:
 
 ```sh
-semrush keyword-list-pages --basket-id 456 --owner-id 123 --page-filters '{"Phrase":[{"IsInverted":false,"Operation":1,"Value":"email"}]}' --json
-semrush keyword-list-pages --basket-id 456 --owner-id 123 --page-filters '{"IsFavorite":{"Value":true}}' --json
-semrush keyword-list-page-favorite --basket-id 456 --owner-id 123 --page-id 789 --confirm
-semrush keyword-list-page-unfavorite --basket-id 456 --owner-id 123 --page-id 789 --confirm
-semrush keyword-list-clusters-update-metrics --basket-id 456 --owner-id 123 --cluster-ids '[789]' --confirm
-semrush keyword-list-clusters-updated --basket-id 456 --owner-id 123 --cluster-ids '[789]' --json
-```
-
-String predicates use `IsInverted`, `Operation` and `Value`; operation 0 is exact
-matching and 1 is contains matching. Numeric predicates use the same fields;
-operation 1 is a lower bound and 0 is an upper bound. Metric refresh consumes
-the account's update allowance. Read refreshed values explicitly; the CLI does
-not poll automatically. `keyword-list-clusters-delete --basket-id 456
---owner-id 123 --cluster-ids '[789]' --confirm` deletes selected clusters and
-their keywords. The CLI has no cluster-delete undo command.
-
-## Export seed-based keywords
-
-Choose one of four native selections. All support `csv`, `csv_semicolon` and
-`xlsx`. They require `--output` and refuse an existing destination.
-
-```sh
-semrush keyword-list-export --basket-id 456 --owner-id 123 --output keywords.csv
-semrush keyword-list-export --basket-id 456 --owner-id 123 --filters '{"ClusterIDs":[789]}' --format xlsx --output keywords.xlsx
-semrush keyword-list-export-keywords --basket-id 456 --owner-id 123 --keywords '["email marketing"]' --database us --output selected.csv
-semrush keyword-list-export-pages --basket-id 456 --owner-id 123 --page-filters '{"IsFavorite":{"Value":true}}' --output favorites.csv
-semrush keyword-list-export-clusters --basket-id 456 --owner-id 123 --cluster-ids '[789]' --format csv_semicolon --output cluster.csv
-```
-
-`keyword-list-export` exports matching keyword rows. Its `--filters` uses the
-same contract as `keyword-list-keywords`. `keyword-list-export-pages` exports
-keywords matching native page filters, while `keyword-list-export-clusters`
-selects explicit numeric cluster IDs. `keyword-list-export-keywords` selects
-phrases in one database. Exports do not change collection membership.
-MCP returns chunked resources; it never returns the download address or its
-runtime credentials. See [MCP exports](/docs/mcp#read-an-export).
-
-## Export a mind map
-
-Use a completed structured strategy's basket and owner IDs. The native web
-client creates the image. Export does not generate or cluster keywords.
-
-```sh
-semrush keyword-list-export-mindmap --basket-id 456 --owner-id 123 --output mindmap.jpg
+semrush keyword-list-export --basket-id 456 --owner-id 123 --format csv --output list.csv
 semrush keyword-list-export-mindmap --basket-id 456 --owner-id 123 --format png --output mindmap.png
 ```
-
-JPG is the default and has a white background. PNG preserves the native
-transparent background. Both use Semrush's 4336 x 2228 overview, including its
-seven-topic limit; use the keyword and page table exports for all rows.
-`--output` is required and an existing destination is preserved. The CLI
-returns the saved-file receipt. MCP returns `data:null` and one artifact with
-its native filename, MIME type, byte size and chunked resource URI. See
-[MCP exports](/docs/mcp#read-an-export).
-
-A list without an available mind map fails with a report error. Inspect
-`keyword-list-pages` and verify that the strategy has finished and that your
-account can access it. Exports do not retry or start generation automatically.
-
-## Copy or move selected keywords and clusters
-
-Both source and destination require their basket and owner IDs. Copy retains
-source keywords. Move removes the selected keywords from the source after
-transferring them. A destination cannot be the source basket. Normal access
-permissions and destination keyword limits apply.
-
-```sh
-semrush keyword-list-keywords-copy --basket-id 456 --owner-id 123 --target-basket-id 457 --target-owner-id 123 --keywords '["email marketing"]' --database us --confirm
-semrush keyword-list-keywords-move --basket-id 456 --owner-id 123 --target-basket-id 457 --target-owner-id 123 --keywords '["seo"]' --database us --confirm
-semrush keyword-list-clusters-copy --basket-id 456 --owner-id 123 --target-basket-id 457 --target-owner-id 123 --cluster-ids '[789]' --confirm
-semrush keyword-list-clusters-move --basket-id 456 --owner-id 123 --target-basket-id 457 --target-owner-id 123 --cluster-ids '[790]' --confirm
-```
-
-Read cluster IDs from the seed-based page or cluster reports. Cluster transfer
-selects those clusters' keywords; it does not copy a generated strategy resource.
-There is no implicit all-keywords selection. Use `--dry-run` to inspect each
-owner-aware selection without authentication.
-
-See [save and track keyword selections](/docs/keyword-workflows) for a tested
-workflow across research reports, Saved Keywords, the builder and tracking.

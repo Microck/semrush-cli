@@ -1,30 +1,28 @@
 ---
 title: Backlink Audit
-description: Create an audit, inspect backlinks and prepare a disavow export.
+description: Audit inbound links, assess toxic markers, manage disavow lists, and export records.
 ---
 
-Backlink Audit is separate from Backlink Analytics. It stores a campaign under
-an SEO project and analyzes that project's backlink profile. It uses your web
-session and account allowance.
+Backlink Audit analyzes the link profile of an SEO project to detect spam, identify toxic referring domains, and manage disavow records.
 
-## Check the project and scope
+## Identifier hierarchy
 
-Create a [project](/docs/projects) and enable SEO first. Use its SEO project ID,
-not the folder ID, for setup and campaign discovery.
+- **SEO project ID (`project_id`)**: The numeric integer returned by `project-enable-seo`. Used to create campaigns and discover scopes.
+- **Audit campaign ID (`audit_id`)**: The numeric `userDomainId` returned when creating an audit or querying `backlink-audit-info`. Used for all report and link management commands.
+
+## Campaign creation and discovery
+
+Inspect account limits and valid domain scopes before starting an audit:
 
 ```sh
-semrush project-enable-seo --folder-id 123 --confirm
 semrush backlink-audit-limits
 semrush backlink-audit-project --project-id 456
 semrush backlink-audit-scopes --project-id 456
 ```
 
-Replace `123` with your folder ID and `456` with the SEO project ID returned
-by `project-enable-seo`. The scope report shows which variants exist and whether
-your account permits them: `root`, `both`, `www` and `nonwww`. Semrush rejects a
-nonexistent website rather than creating an empty audit.
+Permitted scope options include `root`, `both`, `www`, and `nonwww`.
 
-## Create and wait for analysis
+Create and launch the audit:
 
 ```sh
 semrush backlink-audit-create --project-id 456 --scope root --dry-run
@@ -32,27 +30,19 @@ semrush backlink-audit-create --project-id 456 --scope root --confirm
 semrush backlink-audit-info --project-id 456
 ```
 
-Creation immediately starts analysis and consumes your account's allowance.
-It refuses an existing audit. Semrush's recommended brands, categories and
-countries apply unless you supply them. The dry run shows supplied options;
-execution fills those recommendations from the project's native setup metadata.
+Creating an audit starts link analysis immediately and consumes account allowances. Extract the returned `userDomainId` and pass it as `--audit-id` in subsequent commands.
 
-Recurring analysis defaults to `never`. Recurring notification emails and
-Majestic refresh default to false. No external service is connected.
-
-Copy the returned `userDomainId` and pass it as `--audit-id`. This identifier is
-different from both the folder ID and SEO project ID.
+Check analysis progress:
 
 ```sh
 semrush backlink-audit-status --audit-id 789
 ```
 
-Replace `789` with that `userDomainId`. `domain.statusId: 1` means ready.
-`domain.statusId: 2` means processing. The response also contains progress,
-checked-link counts and import state. Reports can contain preliminary data
-while processing; export requires a ready, unlocked audit.
+A status ID of `1` indicates analysis is complete and ready.
 
-## Inspect the profile
+## Profile summaries and toxicity analysis
+
+Retrieve aggregate toxicity metrics, referring domain statistics, and anchor types:
 
 ```sh
 semrush backlink-audit-links-summary --audit-id 789
@@ -65,250 +55,79 @@ semrush backlink-audit-changes --audit-id 789 --list lost
 semrush backlink-audit-recommendations --audit-id 789
 ```
 
-The commands return native JSON. History commands expose link, domain and
-authority time series. Overview commands accept the native target URL hash and
-path for target-page selection. They do not render charts or mark recommendations
-as read. See the [command reference](/docs/reports) for all report options.
+## Reviewing links and moving entries
 
-## Review links and move selections
+List audited links and apply workflow categorizations:
 
 ```sh
 semrush backlink-audit-links --audit-id 789 --mode for-review
-semrush backlink-audit-links --audit-id 789 --by-domain false
-semrush backlink-audit-links-count --audit-id 789 --category-id 6
+semrush backlink-audit-links --audit-id 789 --by-domain false --page-size 50
 ```
 
-The default table groups links by referring domain. Use `--by-domain false` for
-individual links. Filters include authority, anchor type, link attributes, toxic
-markers, category and source. The native `id` identifies each selected row;
-`urlHash` identifies a URL for other filters and must not be used as a row ID.
+By default, links are grouped by referring domain. Pass `--by-domain false` to view individual link records.
 
-Copy a domain-grouped row's `id` before moving a domain:
+Move domains or individual links to `whitelist`, `to-remove`, `disavow`, or back to `for-review`:
 
 ```sh
 semrush backlink-audit-move-domains --audit-id 789 \
-  --ids '["00000000-0000-0000-0000-000000000001"]' --list whitelist --confirm
-```
+  --ids '["00000000-0000-4000-8000-000000000001"]' --list whitelist --confirm
 
-Replace the example ID with a real row ID. Use `backlink-audit-move-links` with
-IDs from the individual-link table. Network moves use numeric `linkNetworkId`
-values from a row's `linkNetworks` array:
+semrush backlink-audit-move-links --audit-id 789 \
+  --ids '["00000000-0000-4000-8000-000000000002"]' --list disavow --confirm
 
-```sh
 semrush backlink-audit-move-networks --audit-id 789 \
-  --ids '[19387720322]' --list whitelist --dry-run
+  --ids '[19387720322]' --list disavow --confirm
 ```
 
-Replace the example network ID with your selected network. Destinations are
-`for-review`, `whitelist`, `to-remove` and `disavow`. Pass the original list to
-the same command to reverse a move. Moving to remove queues items in Semrush;
-it does not contact website owners. Moving to disavow prepares the list in
-Semrush; it does not upload to Google.
+Replace the example UUIDs with the exact row string `id` from `backlink-audit-links`. Do not pass `urlHash` values as row IDs.
 
-Table reads also accept `all`, `new`, `broken` and `lost` modes. New, broken and
-lost accept `--range-days`. Use the command reference for filter codes.
+## Disavow workflow and file export
 
-## Inspect target pages
+Manage disavow entries directly in Semrush:
 
 ```sh
-semrush backlink-audit-target-pages --audit-id 789
-semrush backlink-audit-target-pages-count --audit-id 789
-semrush backlink-audit-target-pages --audit-id 789 \
-  --query /docs --query-mode targetUrl --sort-field lost --descending false
+semrush backlink-audit-disavow --audit-id 789 --page 0 --page-size 50
+semrush backlink-audit-disavow-count --audit-id 789
 ```
 
-Rows contain URL variants and parallel metric arrays. Use a value from `urls`
-when labeling a target page. Pagination starts at zero. The default metrics
-count referring domains; `--by-domain false` counts individual backlinks.
-Google Analytics fields remain empty without a connected account.
-
-## Label target pages
+Export a formatted disavow text file ready for Google Search Console:
 
 ```sh
-semrush backlink-audit-target-tag-add --audit-id 789 \
-  --target-url https://example.com/ --label review --confirm
-semrush backlink-audit-target-pages --audit-id 789 --labels '["review"]'
-semrush backlink-audit-tags --audit-id 789
-semrush backlink-audit-tag-counts --audit-id 789
-```
-
-Replace the example URL with a native target URL. Remove one association with
-`backlink-audit-target-tag-remove`, using the same URL and label. Other
-associations remain. `backlink-audit-tag-delete --label review --confirm`
-deletes that label across the campaign. Both commands also need `--audit-id`.
-
-## Add domain comments
-
-```sh
-semrush backlink-audit-comment-save --audit-id 789 \
-  --domain example.net --comment 'check this domain' --confirm
-semrush backlink-audit-comments --audit-id 789 --ids '[321]'
-semrush backlink-audit-comment-delete --audit-id 789 --comment-id 321 --confirm
-```
-
-Use the backlink row's `source` value for the referring domain. Save returns a
-numeric comment ID; replace `321` with that ID. Saving again for the same domain
-replaces its text. The editor limit is 500 characters. Deletion clears the
-comment's association with the domain.
-
-## Change selected settings
-
-```sh
-semrush backlink-audit-configure --audit-id 789 \
-  --brands '["Example", "Example Company"]' --confirm
-
-semrush backlink-audit-configure --audit-id 789 --recrawl never --confirm
-```
-
-Only supplied fields change. Omitted brands, categories, countries, recurring
-settings and integrations remain intact. An empty array explicitly clears the
-selected field. Semrush omits `params.brands` when it is empty.
-`backlink-audit-categories` and `backlink-audit-countries` return
-the provider's category IDs and country codes.
-
-## Rerun an audit
-
-```sh
-semrush backlink-audit-rerun --audit-id 789 --confirm
-semrush backlink-audit-status --audit-id 789
-```
-
-Rerun requires `statusId:1`, `isLocked:false`, `isLockedSettings:false` and
-`incImportAvailable:true`. Status 1 alone does not mean incremental import is
-unlocked.
-It starts native analysis while preserving recurring settings. Poll the status
-to observe processing and completion.
-
-## Replace an audit's scope
-
-```sh
-semrush backlink-audit-replace-scope --project-id 123 --scope both --dry-run
-semrush backlink-audit-replace-scope --project-id 123 --scope both --confirm
-semrush backlink-audit-info --project-id 123
-```
-
-Use the SEO project ID, not its folder ID or current audit ID. Choose `root`,
-`both`, `www` or `nonwww` from the native scope options. The command requires
-permission to edit a ready, unlocked audit and rejects its current scope.
-
-This is destructive. Semrush creates a new audit ID and discards the previous
-analysis. The command copies the current settings into that one creation request,
-including empty brands, categories and countries, manual scheduling and disabled
-notifications. It does not reset the audit and restore settings afterward.
-Do not assume comments, labels or list selections carry into the replacement.
-
-Read `backlink-audit-info` to find the new audit ID, then use it with
-`backlink-audit-status` to observe analysis. A lost response does not trigger
-another write. Inspect the selected audit before deciding whether to try again.
-The dry run shows the request plan; settings are read only during execution.
-
-## Import backlinks from CSV
-
-Put each source page URL in the first column of a CSV file. A one-column file
-with quoted URLs works:
-
-```csv
-"https://example.net/page-linking-to-your-site"
-```
-
-Replace that URL with a page linking to your audited site, then submit the file:
-
-```sh
-semrush backlink-audit-import --audit-id 789 --contents-file backlinks.csv --dry-run
-semrush backlink-audit-import --audit-id 789 --contents-file backlinks.csv --confirm
-semrush backlink-audit-status --audit-id 789
-```
-
-The audit must have `statusId:1`, `isLocked:false` and `isLockedSettings:false`.
-The command preserves your CSV bytes, stages the file and checks that Semrush
-found at least one source URL before committing. An Audit CSV export is not an
-import template; the tested export staged with zero source URLs.
-
-The response's `file.urls` is the staged URL count. `result:true` acknowledges
-submission, not completion. Semrush crawls imported links asynchronously and
-may keep `statusId:1` while `isLocked:true`. Read status until it unlocks, then
-inspect the backlink table. Recurring settings remain unchanged.
-
-[Semrush's import guide](https://www.semrush.com/kb/580-auditing-your-backlinks)
-says this process cannot be stopped in the interface once started. Sources
-without HTTP 200 and JavaScript-wrapped links are not added. The CLI does not
-retry staging or commit calls; inspect status after an uncertain result before
-submitting the file again.
-
-## Import an existing disavow file
-
-```sh
-semrush backlink-audit-disavow-import --audit-id 789 \
-  --contents-file current-disavow.txt --confirm
-semrush backlink-audit-status --audit-id 789
-semrush backlink-audit-disavow --audit-id 789
-```
-
-Import can remove prior file-imported entries that the new file omits. Export
-the existing list first and include entries you want to retain. The upload
-acknowledgement does not mean parsing has finished; inspect the status and list.
-
-Semrush marks imported entries as disavowed, native status 5. That reflects its
-interpretation of an existing disavow file. The command makes no upload to Google.
-
-## Manage disavow entries
-
-Use each disavow row's numeric `id` as `--item-id`. These IDs differ from the
-backlink table's string row IDs.
-
-```sh
-semrush backlink-audit-disavow --audit-id 789
-semrush backlink-audit-disavow-move --audit-id 789 \
-  --item-id 101 --list for-review --confirm
-semrush backlink-audit-disavow-delete --audit-id 789 --item-id 102 --confirm
-```
-
-Replace the example item IDs with actual IDs. Moving returns the item's
-associated backlinks to review, whitelist or remove. Deleting removes the
-selected Semrush disavow item.
-
-Bulk clearing requires an explicit source selection:
-
-```sh
-semrush backlink-audit-disavow-clear --audit-id 789 --with-file --dry-run
-semrush backlink-audit-disavow-clear --audit-id 789 --with-file --confirm
-```
-
-`--with-file` removes file-imported items. `--with-gdt` removes items imported
-from the Google Disavow Tool. `--with-manual` moves manually added links back
-to Audit and Lost & Found. All choices default to false; select at least one.
-Deletion and bulk clearing are destructive operations. None of these commands
-updates a disavow file already uploaded to Google.
-
-## Export the disavow file
-
-After preparing a list in Semrush, download its native TXT file:
-
-```sh
-semrush backlink-audit-disavow-export --audit-id 789 \
+semrush backlink-audit-disavow-export --audit-id 789 --format txt \
   --output disavow.txt --confirm
 ```
 
-Export updates Semrush's exported-entry metadata, so it requires confirmation.
-The CLI refuses an existing output file. MCP returns a file artifact that you
-can read through the [export resource](/docs/mcp). This command does not upload
-the file to Google or send outreach.
+This marks the entries as exported in Semrush. It does not transmit the file to Google automatically.
 
-## Export backlinks as CSV
+To import an existing disavow file into Semrush:
 
 ```sh
-semrush backlink-audit-export --audit-id 789 --output backlinks.csv
-semrush backlink-audit-export --audit-id 789 --by-domain false \
-  --query example.net --query-mode url --output selected-backlinks.csv
+semrush backlink-audit-disavow-import --audit-id 789 \
+  --contents-file disavow.txt --confirm
 ```
 
-CSV export uses the audit table's filters and exports all matching rows,
-rather than the current page. It creates one native export job, polls pending
-downloads every two seconds and waits up to five minutes. It saves the native
-bytes and refuses an existing destination. MCP returns an export resource URI.
-Allow a request timeout of at least five minutes in clients that enforce one.
+## Reruns and scope replacement
 
-The verification account confirms Guru and also reports an active trial.
-Its CSV button opens a trial upgrade dialog. The native CSV API permits export
-with that same session, and the CLI uses the verified API workflow. No
-subscription change is required for the tested account.
+Re-crawl backlinks using existing campaign settings:
+
+```sh
+semrush backlink-audit-rerun --audit-id 789 --confirm
+```
+
+To permanently replace the audit target scope with a different domain variant:
+
+```sh
+semrush backlink-audit-replace-scope --project-id 456 --scope both --confirm
+```
+
+Target replacement permanently clears historical analysis and launches fresh crawling under the new scope.
+
+## Exporting backlink audit data
+
+Export the full filtered backlink table to CSV:
+
+```sh
+semrush backlink-audit-export --audit-id 789 --format csv --output backlinks.csv
+```
+
+The command checks that `backlinks.csv` does not exist before initiating the export.

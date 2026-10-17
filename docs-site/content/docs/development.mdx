@@ -1,27 +1,35 @@
 ---
 title: Development
-description: Build the TypeScript and Effect implementation.
+description: Build the TypeScript and Effect implementation from source.
 ---
+
+`semrush-cli` is implemented in TypeScript using the Effect library, with a background daemon for session persistence.
+
+## Prerequisites
+
+Building from source requires:
+- Node.js 22 or newer
+- Go 1.23 or newer (required to compile the local Galleton daemon from source; end users installing from npm do not need Go)
+- Standard Unix utilities (`tar`, `patch`)
+
+## Setup and build
+
+Clone the repository and install dependencies:
 
 ```sh
 git clone https://github.com/Microck/semrush-cli
 cd semrush-cli
 npm ci
 npm run check
+```
+
+To build the documentation site locally:
+
+```sh
 npm --prefix docs-site ci
 npm --prefix docs-site run build
 ```
 
-Development builds require Node.js 22 or newer, Go 1.23 or newer, `tar` and `patch` to compile the pinned Galleton daemon with its documented static-provider extension. Published npm users do not need Go. `scripts/build-daemon.mjs` downloads one pinned Galleton source archive and caches the resulting platform binaries in the OS temporary directory.
+## Architecture
 
-`src/report-catalog.json` records 209 operations: 142 reads and 67 writes. The original 48 research schemas come from `semrush-web-mcp`; the additional project, keyword-list and audit contracts come from the web clients. CLI options, MCP tools and input validation derive from this catalog. `src/report-parameters.ts` maps validated queries to fixed request shapes. Differential cases in `tests/reference-cases.json` preserve the Python reference's wire contract.
-
-Effect service contracts live in `session-service.ts` and `browser-service.ts`. Their layers own the Galleton SDK and browser lifecycle. Browser reports serialize within each runtime. The CLI and MCP are transport boundaries around the same service. Expected failures use tagged Effect errors. Browser resources close when their scope ends.
-
-The Galleton TypeScript SDK is the published `galleton@0.1.0` npm dependency. The daemon remains pinned separately because it includes the storage-only extension. See `src/vendor/README.md` for provenance. Its license ships in the npm package.
-
-Run `npm run docs:generate` after changing the catalog. The generated [command reference](/docs/reports) and operation count must match it; `npm run check` rejects drift.
-
-For service boundaries and session ownership, read the [architecture explanation](https://github.com/Microck/semrush-cli/blob/main/docs/architecture.md).
-
-Tests use real implementations and local fixtures. Live account verification is reported separately in the repository's verification document. No production credentials belong in fixtures or CI.
+The CLI commands and stdio MCP server share a single service layer and operation catalog. For details on architectural boundaries, session handling, and credential isolation, see [docs/architecture.md](https://github.com/Microck/semrush-cli/blob/main/docs/architecture.md) in the project repository.

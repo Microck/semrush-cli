@@ -34,6 +34,23 @@ The optional `--domain` adds a domain to a project that has none. Semrush reject
 changes to an existing domain, as in the web UI.
 `project-delete --folder-id <id> --confirm` permanently deletes that project.
 `project-leave --folder-id <id> --confirm` leaves a shared project.
+
+Project sharing uses the native SharingModal contract:
+`project-shares --folder-id <id>` reads `/share/json/shares/project-smb/{folder_id}`.
+`project-share --folder-id <id> --emails '["person@example.com"]' --role viewer|editor --confirm`
+sends one array entry per email to `/share/json/share/project-smb` with
+`email`, `object_id` and `role`. It sends sharing notifications and grants access
+to all configured project tools. The role is required; no privilege level is implicit.
+`project-share-set-role --share-ids '["0123456789abcdef01234567"]' --role viewer|editor --confirm`
+posts the exact share-ID array to `/share/json/set-role/{role}`.
+`project-share-revoke --share-ids '["0123456789abcdef01234567"]' --confirm`
+posts that array to `/share/json/stop-sharing`. Revocation removes access.
+Share IDs are the native 24-character hexadecimal strings returned as `share_id`.
+These commands retain the native `is_success`, `errors` and `data` envelope inside
+the CLI/MCP result. Literal `is_success: true` is required. A share creation also
+requires one valid receipt per requested email. Writes never retry; missing or
+lost receipts require `project-shares` readback before another write.
+
 `project-set-tags --folder-id <id> --tags '["client"]' --confirm` replaces its tags.
 `project-pin --folder-id <id> --pinned [true|false] --confirm` changes pin state.
 `project-limits`, `project-tags`, `project-check-domain --domain <domain>`,
@@ -856,7 +873,7 @@ artifact with MIME type `image/png` or `image/jpeg`; existing resource chunking
 applies. The renderer page and its browser download close after success, failure
 or cancellation. Runtime-owned export files follow the existing scoped lifetime.
 
-## My Reports discovery
+## My Reports
 
 `reporting-overview` reads reporting access, native quota counters, privacy
 acknowledgment state, Essential/Premium capabilities, system templates and the
@@ -880,16 +897,32 @@ session's cookies. It returns the native `data.me` object under the usual
 authenticated envelope. GraphQL errors, including partial-data errors, and
 missing or null account data fail instead of returning an empty success.
 
-This operation does not create or save reports, generate a PDF or AI summary,
-change a schedule, send email, accept a policy or activate a trial. Reporting
-product flags describe this reporting service; generic `isPaid:false` does not
-override the account's verified SEO Guru subscription.
+Confirmed reporting writes use the authenticated web account without purchases or
+trial activation. Template creation sends the fixed system-template creation
+request with a validated template name and JSON parameters. It creates a saved
+report without generating a PDF. Clone creates a separate report with its own ID.
+Read and save operate on complete native document JSON. Save requires a populated
+content array, derives its path ID from the validated document ID, preserves the
+editable configuration and includes the reporting privacy acknowledgment. The read record is serialized into the native editor save model: scheduling becomes reportPeriod/reportValue, stored mail fields become the emailing delivery object, and read-only document/widget metadata is omitted. Unknown widget settings and nested layout content remain intact. The same serializer handles explicit save and generation preparation.
 
-The native My Reports grid and constructor supplied the query fields. The same
-Guru session returned 34 templates, zero reports and an Essential report limit
-of three. Both the constructor and Keyword Overview PDF dialogs require an
-explicit Privacy Policy acknowledgment before submission. It remains unset;
-report creation, saving, generation and downloads remain unsupported.
+Generation follows the current UI: read the document, save it with the privacy
+acknowledgment, validate the save receipt, then send GenerateReport exactly once.
+A failed or lost save stops generation. A failed generation is never replayed;
+task listing provides readback. Generation respects the document's existing
+settings, including configured delivery. Verification uses only owned reports
+with no recipients and scheduling disabled.
+
+Task listing returns current native task metadata. Downloads select an existing
+ready task by its ID, resolve its provider PDF path inside the adapter, restrict
+the destination to the reporting download path on the authenticated origin and
+validate PDF bytes. Provider download capabilities never appear in public tool
+output. CLI files refuse overwrites; MCP uses existing private artifact resources.
+No read operation creates, saves, accepts policies or starts generation.
+
+Generation dry runs also list the read/save preparation, including the privacy
+acknowledgment and timezone, without reading account state or saving a document.
+
+`reporting-delete --report-ids '[123]' --confirm` permanently deletes the explicitly selected My Reports documents through the native fixed DeleteReports mutation. It requires a nonempty array of unique positive 32-bit report IDs and a literal true receipt. A missing, false or lost receipt is an error; deletion is never retried. Inspect reporting-overview before any further deletion.
 
 ## Core Web Vitals
 
@@ -1235,3 +1268,19 @@ strings and appends `15` to six-digit monthly values. Read-only Guru probes
 returned three rows for daily, monthly and mobile ranges, positive preset
 counts, 28 daily trend points and 24 monthly trend points. Native CSV/XLSX
 exports remain unsupported under the restrictions recorded above.
+
+## Keyword Overview PDF export
+
+`keyword-overview-pdf --keyword <phrase> --output <file> --confirm` creates an
+Essential My Reports document through the fixed CreateLiteOrder mutation,
+generates that report once, waits only on task metadata, then downloads the native
+PDF. It accepts the reporting Privacy Policy and uses reporting allowance. Email,
+scheduling, public dashboards and AI summaries remain disabled for this export.
+The document stays in My Reports, matching the native Download PDF action.
+The receipt includes report_id and task_id for inspection and explicit deletion.
+
+Dry runs show the credential-free creation request and generation/download steps.
+Runtime template credentials enter only inside the browser adapter. A lost or
+invalid creation receipt stops generation. A lost generation is never replayed;
+errors identify the saved report when known. Task reads can poll for two minutes;
+provider errors stop immediately. An unfinished or failed task publishes no file.

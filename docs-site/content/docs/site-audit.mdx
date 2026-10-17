@@ -1,315 +1,127 @@
 ---
 title: Site Audit
-description: Configure, start and inspect bounded crawls.
+description: Configure, schedule, launch, and inspect bounded website technical audits.
 ---
 
-Enable SEO on a project first. Use the returned numeric `id` as `campaign_id`.
-The project's `folder_id` is a different identifier.
+Site Audit executes technical health checks, crawls pages, detects SEO issues, and evaluates JavaScript rendering impacts.
+
+## Campaign identifier requirements
+
+Site Audit commands use the numeric SEO project identifier (`campaign_id`), returned when running `semrush project-enable-seo --folder-id <id> --confirm`. This numeric ID is separate from the project's folder ID.
+
+Check your crawl allowances before creating an audit:
 
 ```sh
-semrush project-enable-seo --folder-id 123 --confirm
 semrush audit-limits
 ```
 
-Replace the example folder ID `123` with your project folder ID and campaign ID
-`456` with the SEO project ID returned above. A fresh SEO project has no audit
-configuration: `audit-info` returns HTTP 404 until you create one.
+## Configuring an audit
 
-## Create before starting
-
-`audit-create` creates audit settings and refuses an existing audit.
-It does not launch a crawl. To replace an existing configuration, use
-`audit-configure` with every option you want to retain. Omitted options use
-the documented defaults. Its domain must match the project's `projectDomain`.
+`semrush audit-create` initializes audit settings on an unconfigured SEO project. It refuses to overwrite an existing configuration and does not launch a crawl. To update an existing audit, use `semrush audit-configure`.
 
 ```sh
 semrush audit-create \
   --campaign-id 456 --domain example.com \
-  --page-limit 100 --dry-run
-
-semrush audit-create \
-  --campaign-id 456 --domain example.com \
-  --page-limit 100 --confirm
+  --page-limit 200 --confirm
 ```
 
-Defaults: manual scheduling, email disabled, no subdomains, mobile SiteAuditBot,
-website discovery, HTTPS, normal crawl delay and JavaScript rendering disabled.
-Robots.txt disallow rules remain respected.
+Key configuration options:
+- `--page-limit`: Maximum pages crawled per run.
+- `--schedule-day`: `0` for manual runs only, `1` to `7` for Monday through Sunday, or `8` for daily crawls.
+- `--notify`: Send email notification when the crawl finishes (default: `false`).
+- `--crawl-source-type`: `0` for full website discovery (default), `1` for sitemaps in robots.txt, `2` for a custom sitemap URL, or `3` for an uploaded URL list.
+- `--crawl-source-url`: Used only when `--crawl-source-type` is set to `2`.
+- `--js-rendering`: Set to `RENDER_ALL` to evaluate client-rendered DOM, or `DISABLED` (default).
+- `--ignore-robots-disallow`: Bypass robots.txt rules when authorized (default: `false`).
 
-Optional settings include allow/disallow paths, removed URL parameters, excluded
-checks, sitemap discovery, user agent, JavaScript rendering and crawl speed.
-Use `audit-configure --help` for the full list and your plan's `audit-limits` for
-allowances. JavaScript rendering can require a higher plan.
+### Crawling an uploaded URL list
 
-`schedule_day`: 0 manual, 1-7 Monday-Sunday, 8 daily. Selecting a recurring schedule
-creates future crawl runs. `--notify` explicitly enables completion emails.
-
-The project owns the audit name. Use `project-update --folder-id 123 --name
-'Example project' --confirm` to rename it.
-
-## Crawl a URL list
-
-Upload a text or CSV file before selecting file discovery. This replaces the
-campaign's stored URL list and requires confirmation.
+To audit an explicit list of URLs, upload the file first, then set crawl source type to 3:
 
 ```sh
-semrush audit-urls-upload --campaign-id 456 --contents-file urls.txt --dry-run
 semrush audit-urls-upload --campaign-id 456 --contents-file urls.txt --confirm
 semrush audit-configure --campaign-id 456 --domain example.com \
-  --page-limit 100 --crawl-source-type 3 --confirm
+  --page-limit 200 --crawl-source-type 3 --confirm
 ```
 
-The returned filename is display metadata. Do not pass it as
-`--crawl-source-url`. File discovery uses the list stored for that campaign.
-Discovery modes are 0 website, 1 robots.txt sitemap, 2 custom sitemap URL and
-3 uploaded URL list. Only custom sitemap discovery takes a sitemap URL.
-Use `audit-create` instead of `audit-configure` for a fresh audit.
+### Authentication for staging sites
 
-## Audit a site with HTTP Basic authentication
+For password-protected testing environments:
 
-Create a password file with restricted permissions. The CLI reads its contents
-and removes one final line ending. Use `-` to read the password from stdin.
-
+**HTTP Basic Authentication**:
 ```sh
-semrush audit-create --campaign-id 456 --domain example.com \
-  --page-limit 100 --auth-enabled true --auth-username crawler \
+semrush audit-configure --campaign-id 456 --domain staging.example.com \
+  --page-limit 100 --auth-enabled true --auth-username devuser \
   --auth-password-file password.txt --confirm
 ```
 
-Supply both username and password when creating or replacing credentials.
-When editing an existing protected audit, include `--auth-enabled true` to
-keep its current credentials, or supply both credentials to replace them.
-Use `--auth-enabled false` to disable authentication. These settings edits
-replace other options with their defaults unless you supply them again.
-Passwords never appear in previews or returned credential fields. MCP accepts
-`auth_password` directly as a write-only string.
-
-## Audit a site with Web Bot Auth
-
-Obtain the three header values from the service that authorizes your crawler.
-Store them in a JSON file with restricted permissions:
-
-```json
-{
-  "signature_agent": "<Signature-Agent>",
-  "signature_input": "<Signature-Input>",
-  "signature": "<Signature>"
-}
-```
-
+**Web Bot Authentication**:
+Provide a JSON file containing the three required headers:
 ```sh
-semrush audit-configure --campaign-id 456 --domain example.com \
+semrush audit-configure --campaign-id 456 --domain staging.example.com \
   --page-limit 100 --web-bot-auth-enabled true \
-  --web-bot-auth-file web-bot-auth.json --confirm
+  --web-bot-auth-file bot-auth.json --confirm
 ```
 
-Use `audit-create` for a fresh audit. All three nonempty, single-line values are
-required when creating, enabling or replacing credentials. Use `-` as the file
-path to read JSON from stdin. MCP accepts the same object as `web_bot_auth`.
-Previews and returned credential fields redact all three values.
+## Launching and managing crawls
 
-For an audit that already uses Web Bot Auth, explicitly pass
-`--web-bot-auth-enabled true` without a credential file to keep its saved
-headers. If Semrush cannot return the header metadata needed for retention,
-the command fails before saving. Supply all three values to replace them, or
-pass `--web-bot-auth-enabled false` to disable this authentication.
-
-The CLI does not create, renew or validate signatures. Check their expiry and
-the target site's verification rules before starting a crawl. Settings edits
-use defaults for other omitted options. HTTP Basic authentication has its own
-explicit keep/disable choice when both methods are enabled.
-
-Google Analytics connections still require the web UI. The CLI refuses settings
-replacement while that connection exists.
-
-## Start and inspect
+Starting an audit consumes page-crawl allowances:
 
 ```sh
-semrush audit-start --campaign-id 456 --dry-run
 semrush audit-start --campaign-id 456 --confirm
 semrush audit-status --campaign-id 456
-semrush audit-info --campaign-id 456
-semrush audit-snapshots --campaign-id 456
-semrush audit-snapshot --campaign-id 456 --snapshot-id '<snapshot_id>'
+semrush audit-execution --campaign-ids '[456]'
 ```
 
-Replace `<snapshot_id>` with the exact string returned by `audit-start` or
-`audit-snapshots`. Keep it quoted; snapshot IDs are not campaign IDs.
+To stop an active crawl:
+- `semrush audit-finalize --campaign-id 456 --confirm`: Halts crawling while preserving already collected page records.
+- `semrush audit-abort --campaign-id 456 --confirm`: Cancels the crawl and discards partial data.
 
-Starting consumes crawl allowance and uses the saved schedule and notification
-settings. Inspect `audit-info` first when using an existing campaign.
-
-Responses retain Semrush's native JSON fields. `audit-start` returns an opaque string
-`snapshot_id`; an unfinished snapshot may not have final metrics yet. Historical
-snapshots and summaries are available after Semrush finishes processing.
-
-## Inspect pages and issues
+To re-crawl a single page after deploying a fix:
 
 ```sh
-semrush audit-pages --campaign-id 456 --page 0 --limit 20
-semrush audit-page --campaign-id 456 --page-id '<page_id>'
-semrush audit-issue --campaign-id 456 --snapshot-id '<snapshot_id>' --issue-id 2
+semrush audit-recrawl --campaign-id 456 --page-id 'page-id-string' --confirm
+```
+
+## Inspecting audit results
+
+Retrieve health scores, crawled pages, and issue breakdowns:
+
+```sh
+semrush audit-info --campaign-id 456
+semrush audit-snapshots --campaign-id 456
+semrush audit-pages --campaign-id 456 --page 0 --limit 50
+semrush audit-page --campaign-id 456 --page-id 'page-id-string'
+semrush audit-issue --campaign-id 456 --snapshot-id 'snapshot-id' --issue-id 101 --page 1 --limit 20
 semrush audit-structure --campaign-id 456
 semrush audit-performance --campaign-id 456
 semrush audit-linking --campaign-id 456
 semrush audit-history --campaign-id 456
 ```
 
-Copy opaque page IDs from `audit-pages`. They change after a new crawl.
-The page table starts at page 0; issue rows start at page 1. Issue IDs are the
-numeric check IDs in the snapshot. `audit-recrawl --campaign-id 456 --page-id
-'<page_id>' --confirm` queues a page recrawl and consumes allowance.
+Note: `audit-pages` uses 0-based pagination; `audit-issue` uses 1-based page numbers.
 
-## Stop a running crawl
+## JavaScript rendering impact
 
-```sh
-semrush audit-execution --campaign-ids '[456]'
-semrush audit-abort --campaign-id 456 --confirm
-```
-
-Wait until `is_allowed_stopping` is true. Both stop commands check this flag
-before writing. `audit-abort` cancels the crawl; `audit-finalize` stops collecting
-pages and processes the collected results. Choose one action. A successful
-response has `data:null`. Read `audit-info` until processing finishes, then use
-its `current_snapshot.snapshot_id` to inspect or export the saved results.
-
-## Download results
-
-```sh
-semrush audit-export-pages --snapshot-id '<snapshot_id>' --output pages.csv
-semrush audit-export-page-issues --campaign-id 456 --output page-issues.csv
-semrush audit-export-markup --snapshot-id '<snapshot_id>' --format xlsx --output markup.xlsx
-semrush audit-export-issues --snapshot-id '<snapshot_id>' --format xlsx --output issues.xlsx
-semrush audit-export-issue --snapshot-id '<snapshot_id>' --issue-id 2 --output broken-pages.csv
-```
-
-The CLI requires `--output` and refuses an existing file. Each export uses
-Semrush's native CSV/XLSX download. See [MCP](./mcp) for retrieving downloads
-from an agent.
-
-| Web report | Command | Selected crawl |
-| --- | --- | --- |
-| Crawled Pages | `audit-export-pages` | Explicit snapshot ID |
-| Crawled Pages with all Issues | `audit-export-page-issues` | Campaign's latest completed snapshot |
-| Crawled Pages with markup | `audit-export-markup` | Explicit snapshot ID |
-| Issues | `audit-export-issues` | Explicit snapshot ID |
-| Pages affected by one issue | `audit-export-issue` | Snapshot and issue IDs |
-| Compare Crawls | `audit-export-compare` | Two explicit snapshot IDs |
-
-Page, page/issue matrix and markup exports accept `--relative`, `--sort` and
-`--filter` with the native field values. The matrix has one column per issue;
-markup exports contain structured-data fields. Use a snapshot-based export when
-you need a specific historical crawl.
-
-The current native spreadsheet menu does not offer Crawled Links. A bundle
-URL constant for that export returned HTTP 404 in both formats,
-`no endpoint for the requested path`, while page exports from the same snapshot
-succeeded. This is an endpoint failure, not evidence of a Guru plan restriction.
-
-## Download all reports
-
-```sh
-semrush audit-export-all --campaign-id 456 --output reports.zip
-semrush audit-export-all --campaign-id 456 --format xlsx --output reports-xlsx.zip
-```
-
-The web UI starts separate downloads. This command collects the same native
-files into a CLI-created ZIP with `manifest.json`. It preserves each file's
-bytes and includes pages, the page/issue matrix, markup and issues. Compare
-Crawls is included when an earlier completed snapshot exists; JS Impact is
-included when the current crawl advertises available data. The manifest names
-omitted reports and explains why.
-
-The manifest records snapshot IDs, comparison order, format, filenames, MIME
-types and byte sizes. The CLI receipt also returns it under `data.manifest`.
-`--relative`, `--sort` and `--filter` apply to the three page exports. Other
-reports use their native defaults. The command fails without saving an archive
-if any required download fails or the current snapshot changes during export.
-MCP returns the same manifest with one ZIP artifact; staged files are private.
-
-## Compare two crawls
-
-Use `audit-snapshots` to choose two different completed snapshots from the same
-campaign. The web UI defaults the first selection to the previous crawl and the
-second to the latest crawl.
-
-```sh
-semrush audit-export-compare \
-  --first-snapshot-id '<previous_snapshot_id>' \
-  --second-snapshot-id '<latest_snapshot_id>' \
-  --output comparison.csv
-```
-
-Use `--format xlsx --output comparison.xlsx` for Excel. Both snapshot IDs are
-required. The CLI preserves your selection order and Semrush's native file.
-Its columns put the second crawl before the first, followed by provider-computed
-deltas. The CLI does not reorder columns or recalculate changes. This download
-leaves campaign settings and crawl allowance unchanged.
-
-Use the web UI for connected integrations.
-Deleting a project also deletes its attached audit.
-
-## Request evidence
-
-The configuration and launch contracts come from the current
-[Site Audit wizard](https://static.semrush.com/siteaudit/index/6543.8fd07665f4ecb251ca39.js),
-[settings module](https://static.semrush.com/siteaudit/index/5444.c73f5f9232917b1e67fc.js)
-and [API client](https://static.semrush.com/siteaudit/index/910.743a405979e048d96c5e.js).
-A disposable account project verified configuration, launch, status and snapshot
-reads with manual scheduling, email disabled and a 10-page cap. Live checks also
-verified page/issue details, page recrawling, abort, finalize, the saved finalized
-snapshot and native CSV/XLSX exports.
-
-The protected-audit pass uploaded a one-URL list through both the native UI and
-the CLI/MCP request. A ten-page cap finished at six pages, including HTTP 200
-for the protected HTML page. Credential creation, replacement, retention and
-explicit disabling passed readbacks. The owned projects were deleted afterward.
-
-Web Bot Auth passed source and fresh public npm CLI enabling, MCP retention and
-native settings readback on a new owned audit. Its ten-page crawl finished at five pages,
-including HTTP 200 for a protected page whose server verified an Ed25519
-signature. Independent unsigned and invalid-signature requests returned 401.
-MCP replacement and re-enabling, CLI disabling and settings readbacks passed.
-The owned audit project and signed verification site were deleted afterward.
-
-The comparison download and default snapshot order follow the current
-[native export module](https://static.semrush.com/siteaudit/review/3909.2dd2f158589125911115.js).
-Both formats passed native, CLI and MCP checks on two existing completed
-23-page crawls. The checks left their settings and saved results intact.
-
-
-## Inspect JavaScript rendering impact
-
-JS Impact compares page values before and after JavaScript rendering. A Guru or
-Business account needs a completed rendering-enabled crawl with
-`jsImpactReportDataAvailable: true` in `audit-info`. The read commands do not
-turn rendering on or start another crawl.
+Inspect how client-side JavaScript execution affects metadata and indexable content:
 
 ```sh
 semrush audit-js-impact-guide --campaign-id 456
 semrush audit-js-impact-changed-pages --campaign-id 456
-semrush audit-js-impact-pages --campaign-id 456 --status unchanged --page 0 --limit 10
-semrush audit-js-impact-pages --campaign-id 456 --status changed --parameters '["title","canonical"]'
-semrush audit-export-js-impact --campaign-id 456 --status changed --format xlsx --output js-impact.xlsx
+semrush audit-js-impact-pages --campaign-id 456 --status changed
+semrush audit-export-js-impact --campaign-id 456 --format csv --output js-impact.csv
 ```
 
-Page numbers start at zero. Use `--query` to search URLs, `--status` to choose
-`all`, `changed` or `unchanged`, and `--sort asc|desc` for native order.
-Parameter filters require `--status changed`. Their keys are `clientSideRedirect`,
-`metaRobots`, `title`, `metaDescription`, `linksCount`, `wordsCount`, `canonical`
-and `googleStructuredData`.
+## Exporting audit datasets
 
-Guide results include per-parameter counts and examples. The page table returns
-Semrush's before/after values and pagination metadata. Exports accept the same
-filters and download up to 100,000 matching rows, starting at page zero; they do
-not export only the current table page. CSV is the default format. Files use the
-same destination and MCP resource rules as other audit exports.
+Export detailed tables or complete audit archives to disk:
 
-Empty reports can mean the crawl has no JS Impact data. Check the availability
-flag rather than treating an empty response as proof of a subscription limit.
+```sh
+semrush audit-export-pages --snapshot-id 'snapshot-id' --format csv --output pages.csv
+semrush audit-export-issues --snapshot-id 'snapshot-id' --format csv --output issues.csv
+semrush audit-export-page-issues --campaign-id 456 --format csv --output matrix.csv
+semrush audit-export-compare --first-snapshot-id 'old-id' --second-snapshot-id 'new-id' --format csv --output comparison.csv
+semrush audit-export-all --campaign-id 456 --format csv --output full-audit.zip
+```
 
-## Core Web Vitals
-
-Read score, page metrics, history, Lighthouse recommendations and the saved URL
-selection, or replace that selection for the next audit. See the
-[Core Web Vitals guide](/docs/web-vitals).
+The CLI checks the destination path before download and refuses to overwrite existing files.

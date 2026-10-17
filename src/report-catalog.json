@@ -15844,7 +15844,7 @@
   },
   "reporting_overview": {
     "method": "/my_reports/graphql/",
-    "description": "Read My Reports access, limits, privacy acknowledgment, native templates and a filtered 30-report page by latest update. Does not create reports, accept policies or generate PDFs.",
+    "description": "Read reporting access, templates and a filtered page of saved reports.",
     "transport": "reporting_web",
     "total_method": "",
     "web_report": "",
@@ -15897,7 +15897,8 @@
           "description": "Native report-name Contains search, combined with other filters."
         }
       }
-    }
+    },
+    "graphql_field": "me"
   },
   "audit_web_vitals_status": {
     "method": "/siteaudit/api/campaigns/{campaign_id}/page-speed-metrics/status",
@@ -18755,5 +18756,821 @@
     "mutation": false,
     "destructive": false,
     "http_method": ""
+  },
+  "reporting_create": {
+    "method": "/my_reports/api/v1/template/system/{template}/create-document",
+    "description": "Create a saved report from a system template. Does not generate a PDF or start a trial.",
+    "transport": "reporting_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "template": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_]+(?![\\s\\S])",
+          "description": "System template type from reporting-overview."
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Template parameters, such as domain and database for Organic Search Positions."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "template",
+        "parameters"
+      ]
+    }
+  },
+  "reporting_get": {
+    "method": "/my_reports/api/v1/document/{report_id}",
+    "description": "Read the complete saved report document for inspection or editing.",
+    "transport": "reporting_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "report_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "report_id"
+      ]
+    }
+  },
+  "reporting_save": {
+    "method": "/my_reports/api/v1/document/{document_id}",
+    "description": "Save a complete existing report document and accept the reporting Privacy Policy. Does not generate a PDF.",
+    "transport": "reporting_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "document": {
+          "type": "object",
+          "contentMediaType": "application/json",
+          "additionalProperties": true,
+          "properties": {
+            "id": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2147483647
+            },
+            "content": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/widget"
+              }
+            },
+            "orientation": {
+              "type": "string"
+            },
+            "isSystem": {
+              "type": "boolean"
+            },
+            "name": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "topHeaderText": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "topHeaderLogoId": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "topHeaderLogo": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "titleLogoId": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "titleLogo": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "title": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "subtitle": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "isScheduled": {
+              "type": "boolean"
+            },
+            "isBranded": {
+              "type": "boolean"
+            },
+            "isBuilderCreated": {
+              "type": "boolean"
+            },
+            "isTemplateCreated": {
+              "type": "boolean"
+            },
+            "tableOfContents": {
+              "type": "boolean"
+            },
+            "generationStartHour": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "areSettingsTouched": {
+              "type": "boolean"
+            },
+            "themeId": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "state": {
+              "type": "string"
+            },
+            "titlePageTexts": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
+            },
+            "headerTexts": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
+            },
+            "footerTexts": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
+            },
+            "publicDashboard": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true,
+              "properties": {
+                "url": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            },
+            "schedulePeriod": {
+              "type": "string",
+              "enum": [
+                "daily",
+                "weekly",
+                "monthly"
+              ]
+            },
+            "scheduleDayOfPeriod": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "recipients": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "emailing": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "mailSubject": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "mailMessageText": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "emailToReplyTo": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "senderName": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "senderEmailName": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "signText": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "signImageId": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "mailSubject",
+                "mailMessageText",
+                "emailToReplyTo",
+                "senderName",
+                "senderEmailName",
+                "signText",
+                "signImageId"
+              ]
+            }
+          },
+          "required": [
+            "orientation",
+            "isSystem",
+            "id",
+            "name",
+            "type",
+            "topHeaderText",
+            "topHeaderLogoId",
+            "topHeaderLogo",
+            "titleLogoId",
+            "titleLogo",
+            "title",
+            "subtitle",
+            "isScheduled",
+            "isBranded",
+            "isBuilderCreated",
+            "isTemplateCreated",
+            "tableOfContents",
+            "generationStartHour",
+            "areSettingsTouched",
+            "themeId",
+            "state",
+            "content",
+            "titlePageTexts",
+            "headerTexts",
+            "footerTexts",
+            "publicDashboard",
+            "schedulePeriod",
+            "scheduleDayOfPeriod",
+            "recipients",
+            "emailing"
+          ],
+          "description": "Complete document object from reporting-get. CLI accepts a JSON file."
+        },
+        "timezone": {
+          "type": "number",
+          "minimum": -12,
+          "maximum": 14,
+          "default": 0,
+          "description": "UTC offset in hours used by the reporting service."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "document"
+      ],
+      "$defs": {
+        "widget": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "widgetType": {
+              "type": "string"
+            },
+            "publicId": {
+              "type": "string"
+            },
+            "isSetup": {
+              "type": "boolean"
+            },
+            "isEditable": {
+              "type": "boolean"
+            },
+            "settings": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "content": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/widget"
+              }
+            },
+            "ownerId": {
+              "type": [
+                "integer",
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "widgetType",
+            "publicId",
+            "isSetup",
+            "isEditable",
+            "settings",
+            "content",
+            "ownerId"
+          ]
+        }
+      }
+    }
+  },
+  "reporting_clone": {
+    "method": "/my_reports/api/v1/document/{report_id}/clone",
+    "description": "Clone an existing report under a new name. Does not generate a PDF.",
+    "transport": "reporting_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "report_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^(?=[\\s\\S]*\\S)[\\s\\S]+(?![\\s\\S])"
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "report_id",
+        "name"
+      ]
+    }
+  },
+  "reporting_tasks": {
+    "method": "/my_reports/graphql/",
+    "description": "List the most recent 30 generation tasks for one saved report.",
+    "transport": "reporting_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "graphql_field": "me",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "report_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "report_id"
+      ]
+    }
+  },
+  "reporting_generate": {
+    "method": "/my_reports/graphql/",
+    "description": "Save and generate a PDF with the reporting Privacy Policy accepted. Uses saved report settings, including configured delivery.",
+    "transport": "reporting_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "graphql_field": "generateReport",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "report_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "timezone": {
+          "type": "number",
+          "minimum": -12,
+          "maximum": 14,
+          "default": 0,
+          "description": "UTC offset in hours used when saving before generation."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "report_id"
+      ]
+    }
+  },
+  "reporting_download": {
+    "method": "/my_reports/graphql/",
+    "description": "Download an existing ready report task as a native PDF. Does not generate another report.",
+    "transport": "reporting_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "POST",
+    "graphql_field": "me",
+    "response_type": "download",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "report_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "task_id": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*(?![\\s\\S])",
+          "maxLength": 30,
+          "description": "Exact task ID from reporting-tasks or reporting-generate."
+        }
+      },
+      "required": [
+        "report_id",
+        "task_id"
+      ]
+    }
+  },
+  "reporting_delete": {
+    "method": "/my_reports/graphql/",
+    "description": "Permanently delete the explicitly selected saved reports.",
+    "transport": "reporting_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "POST",
+    "graphql_field": "deleteReports",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "report_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "description": "Exact saved report IDs from reporting-overview."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "report_ids"
+      ]
+    }
+  },
+  "keyword_overview_pdf": {
+    "method": "/my_reports/graphql/",
+    "description": "Generate the native Keyword Overview PDF and save its Essential report in My Reports. Uses reporting allowance; no email or schedule.",
+    "transport": "reporting_pdf",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "response_type": "download_job",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "keyword": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Keyword",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^[a-z]{2}(?![\\s\\S])",
+          "title": "Database",
+          "type": "string"
+        },
+        "device": {
+          "type": "string",
+          "enum": [
+            "desktop",
+            "mobile"
+          ],
+          "default": "desktop",
+          "description": "Native desktop or mobile search results."
+        },
+        "date": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(?:|[0-9]{4}(?:0[1-9]|1[0-2]))(?![\\s\\S])",
+          "description": "Monthly YYYYMM snapshot; empty selects the current data. Account access applies."
+        },
+        "currency": {
+          "type": "string",
+          "default": "USD",
+          "pattern": "^[A-Z]{3}(?![\\s\\S])",
+          "description": "Three-letter currency code supported by Semrush."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm report creation, privacy acceptance and PDF generation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Preview the export without account access."
+        }
+      },
+      "required": [
+        "keyword"
+      ]
+    }
+  },
+  "project_shares": {
+    "method": "/share/json/shares/project-smb/{folder_id}",
+    "description": "Read a project's shared access, including exact share IDs and roles.",
+    "transport": "sharing_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "folder_id": {
+          "type": "string",
+          "pattern": "^[0-9]+$",
+          "maxLength": 30,
+          "description": "Current web project folder ID, as a decimal string."
+        }
+      },
+      "required": [
+        "folder_id"
+      ]
+    }
+  },
+  "project_share": {
+    "method": "/share/json/share/project-smb",
+    "description": "Grant project access and send sharing notifications to the specified email addresses.",
+    "transport": "sharing_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "folder_id": {
+          "type": "string",
+          "pattern": "^[0-9]+$",
+          "maxLength": 30,
+          "description": "Current web project folder ID, as a decimal string."
+        },
+        "emails": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "maxLength": 254,
+            "pattern": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+(?![\\s\\S])"
+          },
+          "description": "Recipients who will receive access and sharing notifications."
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "viewer",
+            "editor"
+          ],
+          "description": "Explicit permission for every selected share."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "folder_id",
+        "emails",
+        "role"
+      ]
+    }
+  },
+  "project_share_set_role": {
+    "method": "/share/json/set-role/{role}",
+    "description": "Change viewer/editor permissions for existing project shares.",
+    "transport": "sharing_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "share_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}(?![\\s\\S])"
+          },
+          "description": "Exact share_id strings from project-shares, not project folder IDs."
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "viewer",
+            "editor"
+          ],
+          "description": "Explicit permission for every selected share."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "share_ids",
+        "role"
+      ]
+    }
+  },
+  "project_share_revoke": {
+    "method": "/share/json/stop-sharing",
+    "description": "Revoke existing project shares and remove the recipients' access.",
+    "transport": "sharing_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "share_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}(?![\\s\\S])"
+          },
+          "description": "Exact share_id strings from project-shares, not project folder IDs."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "share_ids"
+      ]
+    }
   }
 }

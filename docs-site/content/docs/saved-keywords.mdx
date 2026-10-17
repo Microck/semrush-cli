@@ -1,117 +1,115 @@
 ---
 title: Saved Keywords
-description: Manage manual keyword collections, selections, tags and exports.
+description: Organize manual keyword collections, assign tags and workflow labels, and export lists.
 ---
 
-Complete [setup and authentication](/docs/authentication) first. Use these
-commands for the manual collections in Semrush's Saved Keywords UI.
-Regular collections can also appear in [Keyword Strategy Builder](/docs/keyword-lists)
-with the same underlying ID. Saved Keywords uses decimal strings for `list_id`
-and `keyword_id`; the builder's basket commands use numeric `BasketID` and
-`Owner.ID`. Project folder IDs identify a different resource.
+Saved Keywords commands manage the manual keyword lists found in Semrush's Saved Keywords tool.
 
-## Create a collection
+## Identifier format
+
+Saved Keywords operations use decimal string identifiers:
+- `list_id`: A decimal string (for example, `"123456"`).
+- `keyword_id`: A decimal string for individual keywords within a list.
+
+Keep these values as strings in commands and JSON arguments.
+
+## Creating and managing collections
+
+Check your account collection allowances and list active collections:
 
 ```sh
 semrush saved-keyword-limits --json
 semrush saved-keyword-lists --limit 20 --offset 0 --json
-semrush saved-keyword-list-create --name 'research' --dry-run
-semrush saved-keyword-list-create --name 'research' --confirm --json
+semrush saved-keyword-list-create --name 'Core Products' --confirm --json
+semrush saved-keyword-list-get --list-id 123456 --json
+semrush saved-keyword-list-rename --list-id 123456 --name 'Primary Products' --confirm
 ```
 
-Creation returns `data.list_id`. Discovery returns `data.lists`, whose entries
-include `id` and `name`. Keep IDs as strings, including inside JSON arrays.
-Replace the example IDs below with your own collection and keyword IDs.
+Import keywords into a collection:
 
 ```sh
-semrush saved-keyword-list-get --list-id 123 --json
-semrush saved-keyword-list-rename --list-id 123 --name 'email research' --confirm
-semrush saved-keywords-import --list-id 123 \
-  --keywords '["email marketing","seo"]' --database us \
-  --tags '["research"]' --confirm
-semrush saved-keywords --list-id 123 --limit 20 --offset 0 --json
-semrush saved-keywords-summary --list-id 123 --json
+semrush saved-keywords-import --list-id 123456 \
+  --keywords '["cloud hosting","vps server"]' --database us \
+  --tags '["infrastructure"]' --confirm
 ```
 
-Import accepts country database codes. Account limits apply. Metric refresh is
-an explicit write with `saved-keywords-update-metrics`; it consumes the account's
-update allowance and may finish asynchronously. Read the keywords again to see
-the resulting metrics. The CLI does not retry writes or poll automatically.
+## Reading keywords and summary metrics
 
-## Select keywords
-
-Keyword writes require either a nonempty `--keyword-ids` array or a nonempty
-`--filter`, and reject requests that supply both. This applies to deletion,
-metric refresh, tags, labels, copying and moving. All writes require `--confirm`;
-`--dry-run` validates and previews without authentication.
+Query keywords with pagination and sorting:
 
 ```sh
-semrush saved-keywords-add-tags --list-id 123 \
-  --keyword-ids '["456","789"]' --tags '["opportunity"]' --confirm
-semrush saved-keywords-remove-tags --list-id 123 \
-  --filter 'phrase = "seo"' --tags '["research"]' --dry-run
-semrush saved-keywords --list-id 123 \
-  --filter 'volume >= 100 AND phrase CONTAINS "seo"' \
+semrush saved-keywords --list-id 123456 --limit 50 --offset 0 --json
+semrush saved-keywords-summary --list-id 123456 --json
+```
+
+Use FilterQL syntax to filter phrases by volume or text:
+
+```sh
+semrush saved-keywords --list-id 123456 \
+  --filter 'volume >= 200 AND phrase CONTAINS "server"' \
   --sort-field volume --descending true --json
 ```
 
-Filters use the web UI's FilterQL syntax. String values use double quotes;
-embedded double quotes are doubled. Inspect filtered rows before using a filter
-for a write. Read operations default to all rows within their page; writes
-never choose all keywords implicitly. Use `--descending false` for ascending
-order. Keyword pagination uses `--limit` and `--offset`.
+## Updating keywords, tags, and labels
 
-Collection metadata has separate reads: `saved-keyword-list-tags`,
-`saved-keyword-list-labels`, `saved-keyword-list-topics`,
-`saved-keyword-list-subtopics` and `saved-keyword-list-databases`.
-Use `saved-keywords-top-competitors` for a collection selection or
-`saved-keyword-competitors --keyword-id 456` for one keyword.
-
-## Copy, move and mark workflow status
+Keyword mutation commands require either an explicit `--keyword-ids` array or a `--filter` string. Supplying both or omitting both returns an error before network dispatch.
 
 ```sh
-semrush saved-keywords-copy --list-id 123 --target-list-id 321 \
-  --keyword-ids '["456"]' --confirm
-semrush saved-keywords-move --list-id 123 --target-list-id 321 \
-  --keyword-ids '["789"]' --confirm
-semrush saved-keywords-label --list-id 321 --keyword-ids '["456"]' \
-  --labels '["brief_generated"]' --confirm
+semrush saved-keywords-add-tags --list-id 123456 \
+  --keyword-ids '["987654"]' --tags '["priority"]' --confirm
+
+semrush saved-keywords-remove-tags --list-id 123456 \
+  --filter 'phrase = "vps server"' --tags '["infrastructure"]' --confirm
+
+semrush saved-keywords-update-metrics --list-id 123456 \
+  --keyword-ids '["987654"]' --confirm
 ```
 
-Copy preserves the source keywords. Move removes the selected source keywords.
-Source and destination must differ. Semrush handles duplicates and access
-permissions. Labels are `position_tracking`, `content_written` and
-`brief_generated`. They mark workflow status only. Adding a label does not
-create a tracking target, write content or generate a brief.
+Updating metrics consumes your account metric refresh allowance.
 
-## Delete and undo
+### Setting workflow progress labels
+
+Annotate phrases with workflow milestone labels (`position_tracking`, `content_written`, or `brief_generated`):
 
 ```sh
-semrush saved-keywords-delete --list-id 123 --keyword-ids '["456"]' --confirm --json
-semrush saved-keywords-undo-delete --undo-id '<returned undo_id>' --confirm
-semrush saved-keyword-list-delete --list-ids '["123"]' --confirm --json
-semrush saved-keyword-list-undo-delete --undo-id '<returned undo_id>' --confirm
+semrush saved-keywords-label --list-id 123456 \
+  --keyword-ids '["987654"]' --labels '["content_written"]' --confirm
 ```
 
-Each deletion returns `data.undo_id`. Use the matching keyword or collection
-undo command. Undo depends on Semrush's retention period and permissions.
+Labels provide tracking metadata inside Semrush; setting a label does not launch automated tracking or write external content.
 
-## Export
+## Copying and moving keywords
+
+Transfer phrases between collections:
 
 ```sh
-semrush saved-keywords-export --list-id 123 --output ./keywords.csv
-semrush saved-keywords-export --list-id 123 --format csv_semicolon --output ./keywords-semicolon.csv
-semrush saved-keywords-export --list-id 123 --format xlsx --output ./keywords.xlsx
+semrush saved-keywords-copy --list-id 123456 --target-list-id 654321 \
+  --keyword-ids '["987654"]' --confirm
+
+semrush saved-keywords-move --list-id 123456 --target-list-id 654321 \
+  --keyword-ids '["987654"]' --confirm
 ```
 
-Exports accept the same filter and sorting options as keyword reads. The CLI
-requires `--output` and refuses to overwrite an existing file. Export permissions
-and quotas apply. The browser buffers the provider file as a Blob before saving.
+Copy leaves the source list unchanged; move removes the selected keywords from the source list.
 
-MCP exposes the same commands with underscores and JSON arguments. Call
-`saved_keywords_export` without a local output path, then read the returned
-artifact through [MCP resources](/docs/mcp#read-an-export). Chunks default to
-64 KiB and allow up to 1 MiB per request. Files exist only for that MCP process.
+## Deletion and undo recovery
 
-See [save and track keyword selections](/docs/keyword-workflows) for a tested
-workflow across research reports, Saved Keywords, the builder and tracking.
+Both keyword and list deletions return an `undo_id` that can be used to restore the deleted items:
+
+```sh
+semrush saved-keywords-delete --list-id 123456 --keyword-ids '["987654"]' --confirm --json
+semrush saved-keywords-undo-delete --undo-id 'undo-token-placeholder' --confirm
+
+semrush saved-keyword-list-delete --list-ids '["123456"]' --confirm --json
+semrush saved-keyword-list-undo-delete --undo-id 'undo-token-placeholder' --confirm
+```
+
+## Exporting collections
+
+Export filtered or full collections to CSV, semicolon-delimited CSV, or XLSX:
+
+```sh
+semrush saved-keywords-export --list-id 123456 --format csv --output keywords.csv
+```
+
+The CLI checks that the target file does not already exist before downloading.

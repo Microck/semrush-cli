@@ -1,126 +1,93 @@
 ---
 title: Organic Research
-description: Select rankings, compare changes across dates and read native trends.
+description: Analyze organic search rankings, top pages, position changes, and competitor movements.
 ---
 
-These commands read existing Semrush reports. Complete [authentication](/docs/authentication)
-first. Account permissions and available snapshots apply to every selection.
+Organic Research commands read ranking metrics, URL performance, and historical search volatility for any domain or subfolder.
 
-## Read organic and SERP-feature rankings
+## Domain overview and rankings
+
+Inspect search visibility, top organic keywords, and ranking distributions:
 
 ```sh
-semrush domain-keywords --domain example.com --page-size 10 --json
+semrush domain-overview --domain example.com --database us --json
+semrush domain-keywords --domain example.com --positions-type all --json
 semrush domain-keywords --domain example.com --positions-type organic --json
 semrush domain-keywords --domain example.com --positions-type serp --json
 semrush domain-keywords --domain example.com --database mobile-us --json
 ```
 
-`--positions-type all` is the default. `organic` selects organic rankings, and
-`serp` selects SERP-feature positions. Results include native rows and a matching
-`total`, plus `page` and `page_size`. A total describes the selected report,
-not just the returned page.
+Key ranking selectors:
+- `--positions-type`: Choose `all` (default), `organic` for standard listings, or `serp` for SERP-feature positions.
+- `--search-type`: Target scope, either `domain`, `subdomain`, `subfolder`, or `url` (default: `domain`).
+- `--database`: Target country database (for example, `us` or `mobile-us`).
+- `--page` and `--page-size`: Control pagination (1-based indexing).
+- `--sort-field` and `--descending`: Sort by specific metrics such as `trafficPercent` or `position`.
 
-Use `--page` and `--page-size` to read another page. `--sort-field` selects a
-native column, and `--descending false` chooses ascending order. The
-[command reference](/docs/reports#domain-keywords) lists the other selectors.
+## Top pages, subdomains, and competitors
 
-## Compare daily changes
+Analyze which sections of a site generate the highest traffic:
 
-Inspect available snapshots, then select two calendar dates:
+```sh
+semrush domain-pages --domain example.com --page-size 20 --json
+semrush domain-subdomains --domain example.com --json
+semrush domain-competitors --domain example.com --page-size 10 --json
+```
+
+## Tracking position changes
+
+Inspect keyword movements between two historical snapshots:
 
 ```sh
 semrush snapshot-dates --database us --json
 semrush domain-position-changes --domain example.com \
   --date-range '{"start_date":"20261015","end_date":"20261016"}' \
-  --page-size 10 --json
+  --page-size 20 --json
 ```
 
-Daily comparisons use `YYYYMMDD`. Both endpoints are required. The start must
-not follow the end, and each value must be a valid calendar date. A missing
-range keeps Semrush's native default comparison.
-
-Choose either a comparison range or the existing snapshot `--date` selector.
-A command containing a non-null snapshot date and a range fails before
-loading credentials.
-
-## Compare monthly changes
+For daily comparisons, provide both dates in `YYYYMMDD` format. For monthly comparisons, use `YYYYMM` with `--date-type monthly`:
 
 ```sh
-semrush domain-position-changes --domain example.com --date-type monthly \
-  --date-range '{"start_date":"202608","end_date":"202609"}' --json
-semrush domain-position-changes --domain example.com --database mobile-us \
+semrush domain-position-changes --domain example.com \
   --date-type monthly \
   --date-range '{"start_date":"202608","end_date":"202609"}' --json
 ```
 
-Monthly ranges use `YYYYMM` with `--date-type monthly`. Mixing daily and monthly
-values fails before authentication. The selected database applies to the rows
-and their total. A mobile database uses the `mobile-` prefix.
+### Filtering specific change movements
 
-## Select change types
+Limit results to specific movement classifications:
 
 ```sh
 semrush domain-position-changes --domain example.com \
   --date-range '{"start_date":"20261015","end_date":"20261016"}' \
-  --change-types '["new","improved"]' --positions-type organic --json
+  --change-types '["new","improved"]' --json
 ```
 
-`--change-types` accepts unique `new`, `improved`, `declined` and `lost` values.
-An empty array or omitted selection includes all change types. Combine it with
-`--positions-type`, table filters, sorting and pagination. The result's total
-uses that same selection. Zero counts and empty rows remain native data.
+Accepted change types in the array are `new`, `improved`, `declined`, and `lost`.
 
-## Read change-preset totals
+## Change presets and historical trends
+
+Retrieve aggregate totals across dropping, trending, and SERP-feature position buckets:
 
 ```sh
 semrush domain-position-changes-presets --domain example.com \
   --date-range '{"start_date":"20261015","end_date":"20261016"}' --json
 ```
 
-The native response includes `positionsDropping`, `positionsTrending`,
-`positionsSerpChanges` and `positionsTotal`. These presets cover the whole
-selected target and date range. Use the row result's `total` for a filtered
-selection. The preset command accepts the same daily/monthly range and mobile
-database controls.
-
-## Read daily and monthly trends
+Inspect long-term ranking trends without table pagination:
 
 ```sh
 semrush domain-position-changes-daily-trend --domain example.com --json
 semrush domain-position-changes-monthly-trend --domain example.com --json
-semrush domain-position-changes-daily-trend --domain example.com \
-  --database mobile-us --json
+semrush domain-trends --domain example.com --date-type monthly --json
 ```
 
-Each command returns the complete native array, including dates, dropping and
-trending position counts, traffic and any additional fields. Its context is
-the target, database and `--search-type`. Trend commands do not accept a
-comparison range or table pagination.
+## AI visibility metrics
 
-## Use the same selection through MCP
+Inspect how frequently a domain appears in AI overviews and conversational citation sources:
 
-Tool names use underscores and retain the same inputs:
-
-```json
-{
-  "name": "domain_position_changes",
-  "arguments": {
-    "domain": "example.com",
-    "date_type": "monthly",
-    "date_range": {"start_date": "202608", "end_date": "202609"},
-    "positions_type": "organic",
-    "change_types": ["new", "improved"]
-  }
-}
+```sh
+semrush domain-ai-visibility --domain example.com --json
+semrush domain-ai-countries --domain example.com --json
+semrush domain-ai-sources --domain example.com --limit 20 --json
 ```
-
-The new preset and trend tools are reads. They do not start exports, create
-reports or change account settings. Native access errors remain errors.
-
-## Export availability
-
-Native Organic Research CSV/XLSX exports remain unsupported. The export menu
-showed an export limit with the verified Guru session, and a bounded CSV API
-request returned an auth error without a job identifier or file. See
-[coverage](/docs/coverage#account-and-provider-limits) for that restriction and
-[PDF access](/docs/coverage#native-pdf-access).

@@ -1,0 +1,198 @@
+{
+  "source": "https://www.semrush.com/my_reports/react/main/mainBootstrap.Ba_tV-ML.js",
+  "read": {
+    "id": 71,
+    "createdAt": "2026-10-17T00:00:00.000Z",
+    "updatedAt": "2026-10-17T00:00:00.000Z",
+    "deletedAt": null,
+    "orientation": "portrait",
+    "title": "Organic Search Positions",
+    "name": "Report fixture",
+    "isSystem": false,
+    "isBuilderCreated": false,
+    "isTemplateCreated": true,
+    "subtitle": "example.com",
+    "companyLogo": null,
+    "companyName": null,
+    "companyAddress": null,
+    "companyEmail": null,
+    "type": "tc_organic_search_positions",
+    "bottomHeaderText": null,
+    "tableOfContents": false,
+    "content": [
+      {
+        "widgetType": "header",
+        "ownerId": null,
+        "publicId": "00000000-0000-4000-8000-000000000001",
+        "isSetup": true,
+        "settings": {
+          "text": "Organic Search Positions",
+          "align": "left"
+        },
+        "content": [],
+        "isEditable": true,
+        "isDeprecated": false
+      },
+      {
+        "widgetType": "richText",
+        "ownerId": null,
+        "publicId": "00000000-0000-4000-8000-000000000002",
+        "isSetup": true,
+        "settings": {
+          "richText": "<p><strong class=\"ql-size-small\">Domain:</strong><span class=\"ql-size-small\"> example.com</span></p><p><strong class=\"ql-size-small\">Location:</strong><span class=\"ql-size-small\"> us</span></p><p><strong class=\"ql-size-small\">Device:</strong><span class=\"ql-size-small\"> Desktop</span></p>"
+        },
+        "content": [],
+        "isEditable": true,
+        "isDeprecated": false
+      },
+      {
+        "widgetType": "OrganicSearchPositions",
+        "ownerId": null,
+        "publicId": "00000000-0000-4000-8000-000000000003",
+        "isSetup": true,
+        "settings": {
+          "scope": "domain",
+          "device_type": "Desktop",
+          "database": "us",
+          "database_date": "current",
+          "positions_type": "organic",
+          "currency": "usd",
+          "display_sort": "tr_desc",
+          "display_page": "1",
+          "domain": "example.com"
+        },
+        "content": [],
+        "isEditable": true,
+        "isDeprecated": false
+      }
+    ],
+    "rawParameters": {},
+    "isScheduled": false,
+    "schedulePeriod": "weekly",
+    "scheduleDayOfPeriod": null,
+    "ownerId": 1234,
+    "titleLogoId": 0,
+    "topHeaderLogoId": 0,
+    "topHeaderText": "800 Boylston Street, Suite 2475, Boston, MA 02199\nwww.semrush.com",
+    "valid": true,
+    "isBranded": true,
+    "mailMessageAlign": "ltr",
+    "titlePageTexts": null,
+    "headerTexts": null,
+    "footerTexts": null,
+    "themeId": 1,
+    "areSettingsTouched": false,
+    "generationStartHour": null,
+    "currentPeriodStartDate": null,
+    "currentPeriodPreset": "LAST_SEVEN_DAYS",
+    "currentPeriodEndDate": null,
+    "comparePeriodStartDate": null,
+    "comparePeriodPreset": "PREVIOUS_PERIOD",
+    "comparePeriodEndDate": null,
+    "userPreferences": null,
+    "timezone": null,
+    "emailing": {
+      "mailSubject": null,
+      "mailMessageText": null,
+      "senderName": null,
+      "senderEmailName": null,
+      "emailToReplyTo": null,
+      "signText": null,
+      "signImageId": null,
+      "signImageSrc": null
+    },
+    "titleLogo": "/my_reports/images/logo-front-page.svg",
+    "topHeaderLogo": "/my_reports/images/logo-front-page.svg",
+    "state": "essential",
+    "advancedFeatures": [],
+    "recipients": null,
+    "publicDashboard": null
+  },
+  "save": {
+    "orientation": "portrait",
+    "isSystem": false,
+    "id": 71,
+    "name": "Report fixture",
+    "type": "tc_organic_search_positions",
+    "topHeaderText": "800 Boylston Street, Suite 2475, Boston, MA 02199\nwww.semrush.com",
+    "topHeaderLogoId": 0,
+    "topHeaderLogo": "/my_reports/images/logo-front-page.svg",
+    "titleLogoId": 0,
+    "titleLogo": "/my_reports/images/logo-front-page.svg",
+    "title": "Organic Search Positions",
+    "subtitle": "example.com",
+    "isScheduled": false,
+    "isBranded": true,
+    "isBuilderCreated": false,
+    "isTemplateCreated": true,
+    "tableOfContents": false,
+    "content": [
+      {
+        "widgetType": "header",
+        "publicId": "00000000-0000-4000-8000-000000000001",
+        "isSetup": true,
+        "isEditable": true,
+        "settings": {
+          "text": "Organic Search Positions",
+          "align": "left"
+        },
+        "content": [],
+        "ownerId": null
+      },
+      {
+        "widgetType": "richText",
+        "publicId": "00000000-0000-4000-8000-000000000002",
+        "isSetup": true,
+        "isEditable": true,
+        "settings": {
+          "richText": "<p><strong class=\"ql-size-small\">Domain:</strong><span class=\"ql-size-small\"> example.com</span></p><p><strong class=\"ql-size-small\">Location:</strong><span class=\"ql-size-small\"> us</span></p><p><strong class=\"ql-size-small\">Device:</strong><span class=\"ql-size-small\"> Desktop</span></p>"
+        },
+        "content": [],
+        "ownerId": null
+      },
+      {
+        "widgetType": "OrganicSearchPositions",
+        "publicId": "00000000-0000-4000-8000-000000000003",
+        "isSetup": true,
+        "isEditable": true,
+        "settings": {
+          "device_type": "Desktop",
+          "domain": "example.com",
+          "display_page": "1",
+          "positions_type": "organic",
+          "currency": "usd",
+          "database_date": "current",
+          "scope": "domain",
+          "database": "us",
+          "display_sort": "tr_desc"
+        },
+        "content": [],
+        "ownerId": null
+      }
+    ],
+    "reportValue": 1,
+    "reportPeriod": "weekly",
+    "generationStartHour": null,
+    "areSettingsTouched": true,
+    "themeId": 1,
+    "titlePageTexts": {
+      "title": "Organic Search Positions",
+      "subtitle": "example.com"
+    },
+    "footerTexts": {},
+    "headerTexts": {},
+    "emailing": {
+      "isEnabled": false,
+      "emails": [],
+      "subject": "",
+      "message": "",
+      "emailToReplyTo": null,
+      "senderName": null,
+      "senderEmailName": null,
+      "signText": null,
+      "signImageId": null
+    },
+    "state": "essential",
+    "publicDashboard": null
+  }
+}

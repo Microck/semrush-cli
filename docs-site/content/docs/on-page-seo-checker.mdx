@@ -1,102 +1,103 @@
 ---
 title: On Page SEO Checker
-description: Set up page and keyword assignments, run analysis and read optimization ideas.
+description: Assign landing pages and target keywords, run analysis, and inspect optimization recommendations.
 ---
 
-Use your existing [authenticated session](/docs/authentication) and an SEO
-project's campaign ID from [projects](/docs/projects). Account limits apply.
-These commands share the web UI's On Page SEO Checker configuration.
+On Page SEO Checker evaluates landing pages against top SERP competitors to generate actionable optimization ideas, page details, and competitor SERP comparisons.
 
-## Inspect or set up a campaign
+## Setup and campaign creation
+
+Operations require a numeric SEO project identifier (`campaign_id`). Verify allowances before creating a configuration:
 
 ```sh
 semrush onpage-campaigns --json
 semrush onpage-limits --campaign-id 12345678 --json
 semrush onpage-settings --campaign-id 12345678 --json
-semrush onpage-create --campaign-id 12345678 --landings '[{"url":"https://example.com/","keywords":["example domain"]}]' --dry-run
 ```
 
-Replace the example campaign ID with your own. Review the preview, then replace
-`--dry-run` with `--confirm` to save. Creation requires an existing, unconfigured
-SEO project. It refuses to reset a configured or busy campaign. Defaults are
-United States, English, desktop, UTC, manual runs, no email and SemrushBot.
-Creation saves configuration without starting analysis.
+Initialize an unconfigured project by assigning landing pages and target keywords:
 
-A landing contains an absolute HTTP(S) URL and a nonempty array of keywords.
-Each keyword can belong to only one landing in a batch. Batch URLs must also
-be unique. The input cap is 1,000 keywords across all rows; your account's native
-allowance can be lower. Use `onpage-limits` to inspect it.
+```sh
+semrush onpage-create --campaign-id 12345678 \
+  --landings '[{"url":"https://example.com/docs","keywords":["documentation framework"]}]' \
+  --confirm
+```
 
-## Start analysis and read results
+Creation saves the target landing pairs without immediately starting an analysis run. Each landing requires an absolute HTTP(S) URL and a non-empty array of keywords. A keyword can belong to only one landing page per campaign.
+
+## Starting analysis and reading results
+
+Initiate an analysis run:
 
 ```sh
 semrush onpage-run --campaign-id 12345678 --confirm --json
-semrush onpage-info --campaign-id 12345678 --json
-semrush onpage-overview --campaign-id 12345678 --json
-semrush onpage-pages --campaign-id 12345678 --json
-semrush onpage-progress --campaign-id 12345678 --json
-semrush onpage-serps --campaign-id 12345678 --json
-semrush onpage-serp --campaign-id 12345678 --keyword 'example domain' --json
 ```
 
-`onpage-info` includes native running and collection metadata. `onpage-progress`
-returns optimization ideas and daily trends, rather than a job completion
-percentage. Analysis starts once; the command does not poll or replay it.
-Product access comes from the authenticated native account metadata.
-
-The pages report retains all native rows, including the special `ORPHANS` row.
-Copy a real page's `id` and its completed `snapshot.id` for detailed reports:
+Monitor progress and inspect overview metrics:
 
 ```sh
-semrush onpage-page-ideas --campaign-id 12345678 --page-id 111111111111111111111111 --snapshot-id 222222222222222222222222 --json
-semrush onpage-page-keywords --campaign-id 12345678 --page-id 111111111111111111111111 --snapshot-id 222222222222222222222222 --json
-semrush onpage-page-details --campaign-id 12345678 --page-id 111111111111111111111111 --snapshot-id 222222222222222222222222 --detail density --json
-semrush onpage-page-keyword-details --campaign-id 12345678 --page-id 111111111111111111111111 --snapshot-id 222222222222222222222222 --detail serp --keyword 'example domain' --json
+semrush onpage-info --campaign-id 12345678 --json
+semrush onpage-overview --campaign-id 12345678 --json
+semrush onpage-progress --campaign-id 12345678 --json
+semrush onpage-pages --campaign-id 12345678 --json
 ```
 
-The IDs above illustrate the format. Page details accept `density`, `related`,
-`backlinks`, `length`, `video` or `readability`. Keyword details accept `serp`,
-`length` or `video`. Results preserve native ordering, empty values and analysis
-statuses. A stale snapshot remains an error; read current pages before choosing
-another snapshot.
+The `onpage-pages` response includes all configured URLs as well as the native `ORPHANS` row. Copy the string `id` of a specific page and its associated `snapshot_id` to inspect granular recommendations.
 
-## Change settings and pages
+## Granular page recommendations
+
+Replace the example page and snapshot IDs with the 24-character hexadecimal IDs from your results:
+
+```sh
+semrush onpage-page-ideas --campaign-id 12345678 \
+  --page-id '0123456789abcdef01234567' --snapshot-id '89abcdef0123456701234567' --json
+
+semrush onpage-page-keywords --campaign-id 12345678 \
+  --page-id '0123456789abcdef01234567' --snapshot-id '89abcdef0123456701234567' --json
+
+semrush onpage-page-details --campaign-id 12345678 \
+  --page-id '0123456789abcdef01234567' --snapshot-id '89abcdef0123456701234567' \
+  --detail length --json
+```
+
+Accepted `--detail` options for `onpage-page-details`: `density`, `related`, `backlinks`, `length`, `video`, and `readability`.
+
+Inspect competitor SERP details for a specific keyword on that page:
+
+```sh
+semrush onpage-page-keyword-details --campaign-id 12345678 \
+  --page-id '0123456789abcdef01234567' --snapshot-id '89abcdef0123456701234567' \
+  --detail serp --keyword 'documentation framework' --json
+```
+
+## Updating campaign settings and pages
+
+Modify general scheduling, crawlers, or geographic targeting:
 
 ```sh
 semrush onpage-configure --campaign-id 12345678 --schedule weekly --crawler googlebot --confirm --json
-semrush onpage-location-set --campaign-id 12345678 --country-code es --location Spain --language es --device mobile --confirm --json
-semrush onpage-page-add --campaign-id 12345678 --url https://example.com/about --keywords '["example website"]' --dry-run
-semrush onpage-pages-add --campaign-id 12345678 --landings '[{"url":"https://example.com/about","keywords":["example website"]}]' --dry-run
+semrush onpage-location-set --campaign-id 12345678 --country-code us --location 'United States' --device desktop --confirm --json
 ```
 
-Settings updates preserve omitted native settings, including location. Schedules
-are `manual` or `weekly`; crawlers are `semrushbot` or `googlebot`. Timezone
-uses minutes west of UTC. Creation uses a human country name; location updates
-use a two-letter lowercase country code. Both accept `desktop` or `mobile`.
+Partial updates preserve omitted fields.
 
-Adding a keyword already assigned elsewhere moves that assignment. Semrush can
-remove its previous landing when it has no remaining keywords. Review previews
-before confirming. Page and location edits do not run analysis automatically.
+### Modifying landing pages and keywords
 
-`onpage-page-update` replaces one page's URL and keyword assignments. Its
-`--switch-scheme` option requests the native HTTP/HTTPS scheme change.
-`onpage-pages-delete` removes selected page IDs. `onpage-page-run` explicitly
-starts analysis for one page. Consult the [operation reference](/docs/reports)
-for their required options.
+```sh
+semrush onpage-page-add --campaign-id 12345678 \
+  --url https://example.com/features --keywords '["cli tools"]' --confirm
 
-## Check a write before repeating it
+semrush onpage-page-update --campaign-id 12345678 \
+  --page-id '0123456789abcdef01234567' \
+  --url https://example.com/pricing --keywords '["software pricing"]' \
+  --confirm
 
-Creation, campaign runs, page runs, batch additions and deletions can return
-an empty success acknowledgment. This does not mean the write did nothing.
-Use settings, info and pages to read back the resulting state.
+semrush onpage-pages-delete --campaign-id 12345678 \
+  --page-ids '["0123456789abcdef01234567"]' --confirm
+```
 
-A transport failure can occur after Semrush commits a write. The adapter never
-retries it automatically. Inspect native state before submitting another write.
-PDF reports and Google service connections remain outside this workflow.
+To re-analyze a single updated landing page without running the full campaign:
 
-## Use MCP
-
-MCP uses underscore operation names and JSON arguments. For example,
-`onpage_page_ideas` takes `campaign_id`, `page_id` and `snapshot_id`.
-Writes require `confirm: true` or an offline `dry_run: true` preview. The CLI
-and MCP use the same validation and native requests.
+```sh
+semrush onpage-page-run --campaign-id 12345678 --page-id '0123456789abcdef01234567' --confirm
+```

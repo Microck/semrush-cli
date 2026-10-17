@@ -1,3 +1,4 @@
+import reportingNative from './fixtures/reporting-document.json' with { type: 'json' };
 import { Effect, Schema } from 'effect';
 import { readFile } from 'node:fs/promises';
 import { expect, test } from 'vitest';
@@ -7,6 +8,8 @@ import { webRequest, previewMutation, reportParameters } from '../src/report-par
 
 // Request contracts from the current Site Audit components and Position Tracking wizard.
 // See docs/contract.md; the live probe uses the same bounded public-domain fixture.
+const reportingRead = { ...reportingNative.read, content: Schema.decodeUnknownSync(Schema.Array(Schema.JsonObject))(reportingNative.read.content) };
+
 const preview = async (name: string, input: Query) => {
   const parsed = await Effect.runPromise(parseReport(name, input));
   return webRequest(parsed.definition, parsed.query);
@@ -782,4 +785,95 @@ test('invalid JS Impact selections fail at the public boundary', async () => {
   for (const invalid of invalidInputs) {
     await expect(preview('audit_js_impact_pages', { campaign_id: 123, ...invalid })).rejects.toThrow();
   }
+});
+
+test('My Reports lifecycle uses fixed native template, document and generation requests', async () => {
+  const parameters = { domain: 'example.com', database: 'us' };
+  expect(await preview('reporting_create', { template: 'tc_organic_search_positions', parameters, dry_run: true })).toEqual({ method: 'POST', path: '/my_reports/api/v1/template/system/tc_organic_search_positions/create-document', body: { parameters } });
+  expect(await preview('reporting_get', { report_id: 71 })).toEqual({ method: 'GET', path: '/my_reports/api/v1/document/71', body: {} });
+  const document = { ...reportingRead, areSettingsTouched: true };
+  expect(await preview('reporting_save', { document, timezone: 5.5, dry_run: true })).toEqual({ method: 'POST', path: '/my_reports/api/v1/document/71', body: { document: reportingNative.save, timezone: 5.5, commonPrivacyAccepted: true } });
+  expect(await preview('reporting_clone', { report_id: 71, name: 'Copied report', dry_run: true })).toEqual({ method: 'POST', path: '/my_reports/api/v1/document/71/clone', body: { documentName: 'Copied report' } });
+  expect((await preview('reporting_generate', { report_id: 71, dry_run: true })).body).toEqual({ operationName: 'GenerateReport', query: 'mutation GenerateReport($reportId: Int!) { generateReport(reportId: $reportId) { id state } }', variables: { reportId: 71 } });
+  const generated = await Effect.runPromise(parseReport('reporting_generate', { report_id: 71, dry_run: true }));
+  expect(previewMutation(generated.name, generated.definition, generated.query)).toHaveProperty('preparation', [{ action: 'read_report', report_id: 71 }, { action: 'save_current_document', commonPrivacyAccepted: true, timezone: 0 }]);
+  expect((await preview('reporting_delete', { report_ids: [71, 72], dry_run: true })).body).toEqual({ operationName: 'DeleteReports', query: 'mutation DeleteReports($reportIds: [Int!]!) { deleteReports(reportIds: $reportIds) }', variables: { reportIds: [71, 72] } });
+  expect((await preview('reporting_tasks', { report_id: 71 })).body).not.toHaveProperty('query', expect.stringContaining('pdfPath'));
+  expect((await preview('reporting_download', { report_id: 71, task_id: '1001' })).body).toHaveProperty('query', expect.stringContaining('pdfPath'));
+});
+
+test('My Reports rejects invalid identities, empty documents, injected paths and unconfirmed writes before authentication', async () => {
+  const invalid: [string, Query][] = [
+    ['reporting_delete', { report_ids: [], confirm: true }], ['reporting_delete', { report_ids: [71, 71], confirm: true }],
+    ['reporting_delete', { report_ids: [2147483648], confirm: true }],
+    ['reporting_get', { report_id: 0 }], ['reporting_get', { report_id: 2147483648 }],
+    ['reporting_create', { template: '../outside', parameters: {}, confirm: true }],
+    ['reporting_create', { template: 'valid\n', parameters: {}, confirm: true }],
+    ['reporting_save', { document: { ...reportingRead, content: [] }, confirm: true }],
+    ['reporting_save', { document: { ...reportingRead, id: '71' }, confirm: true }],
+    ['reporting_save', { document: { id: 71, content: [{}] }, confirm: true }],
+    ['reporting_save', { document: { ...reportingRead, content: [{ widgetType: 'vsplit', publicId: 'nested', isSetup: true, isEditable: true, ownerId: null, settings: {}, content: [{ widgetType: 'header' }] }] }, confirm: true }],
+    ['reporting_download', { report_id: 71, task_id: '1001\n' }],
+    ['reporting_download', { report_id: 71, task_id: '1001', url: 'https://example.com' }],
+  ];
+  for (const [name, query] of invalid) await expect(Effect.runPromise(parseReport(name, query))).rejects.toThrow('Invalid reporting_');
+  await expect(Effect.runPromise(parseReport('reporting_generate', { report_id: 71 }))).rejects.toThrow('Use --confirm');
+  await expect(Effect.runPromise(parseReport('reporting_delete', { report_ids: [71] }))).rejects.toThrow('Use --confirm');
+});
+
+
+test('My Reports save preserves explicit delivery, schedule and nested widget settings without stored metadata', async () => {
+  const document = structuredClone(reportingRead);
+  document.isScheduled = true; document.schedulePeriod = 'monthly';
+  Object.assign(document, { scheduleDayOfPeriod: 15, generationStartHour: 8.5, recipients: 'first@example.invalid,second@example.invalid',
+    titlePageTexts: { title: 'Custom title', subtitle: 'Custom subtitle', extra: { preserve: true } },
+    publicDashboard: { url: 'https://example.invalid/native-dashboard', readOnlyMetadata: true } });
+  Object.assign(document.emailing, { mailSubject: 'Monthly SEO', mailMessageText: 'Attached report', senderName: 'Sender', emailToReplyTo: 'reply@example.invalid', signText: 'Thanks' });
+  const settings = { preserve: { exactId: '9223372036854775807' }, layout: { x: '0', y: '2', w: '4', h: '1' } };
+  const leaf = { widgetType: 'header', publicId: 'leaf', isSetup: true, isEditable: true, ownerId: null, settings, content: [], isDeprecated: false };
+  const container = { widgetType: 'vsplit', publicId: 'columns', isSetup: true, isEditable: true, ownerId: null, settings: { columns: '2' }, content: [leaf] };
+  const input = { ...document, content: [container] };
+  const request = await preview('reporting_save', { document: input, dry_run: true });
+  expect(request.body).toMatchObject({ document: { isScheduled: true, reportPeriod: 'monthly', reportValue: 15, generationStartHour: 8.5,
+    titlePageTexts: { title: 'Custom title', subtitle: 'Custom subtitle', extra: { preserve: true } }, publicDashboard: {},
+    emailing: { isEnabled: true, emails: ['first@example.invalid', 'second@example.invalid'], subject: 'Monthly SEO', message: 'Attached report', senderName: 'Sender', emailToReplyTo: 'reply@example.invalid', signText: 'Thanks' },
+    content: [{ content: [{ settings }] }] } });
+  expect(request.body).not.toHaveProperty('document.createdAt'); expect(request.body).not.toHaveProperty('document.ownerId');
+  expect(request.body).not.toHaveProperty('document.content.0.content.0.isDeprecated');
+  expect(input.content[0]?.content[0]?.isDeprecated).toBe(false);
+});
+
+
+test('Keyword Overview PDF previews preserve the selected context, disable delivery and expose no template key', async () => {
+  await expect(preview('keyword_overview_pdf', { keyword: 'typescript' })).rejects.toThrow('--confirm');
+  const input = { keyword: 'café', database: 'es', device: 'mobile', date: '202609', currency: 'EUR', dry_run: true };
+  const parsed = await Effect.runPromise(parseReport('keyword_overview_pdf', input));
+  const plan = previewMutation(parsed.name, parsed.definition, parsed.query);
+  expect(plan).toMatchObject({ retains_report: true, preparation: [{ action: 'create_essential_report' }, { action: 'generate_pdf' }, { action: 'download_ready_task' }], request: {
+    method: 'POST', path: '/my_reports/graphql/', body: { operationName: 'CreateLiteOrder', variables: { templateType: 'keyword_overview', input: {
+      commonPrivacyAccepted: true, emailing: { recipients: [] }, scheduling: { isScheduled: false },
+      templateParameters: { action: 'report', phrase: 'café', db: 'es', db_date: '202609', device_type: 'Mobile', currency: 'eur' }, state: 'essential',
+    } } },
+  } });
+  expect(JSON.stringify(plan)).not.toContain('"key"');
+  await expect(preview('keyword_overview_pdf', { ...input, recipients: ['outside@example.invalid'] })).rejects.toThrow('additional properties');
+});
+
+test('project sharing plans preserve native array bodies, explicit roles and opaque share IDs', async () => {
+  expect(await preview('project_shares', { folder_id: '9223372036854775807' })).toEqual({ method: 'GET', path: '/share/json/shares/project-smb/9223372036854775807', body: {} });
+  expect(await preview('project_share', { folder_id: '9223372036854775807', emails: ['first@example.com', 'second@example.com'], role: 'viewer', dry_run: true })).toEqual({ method: 'POST', path: '/share/json/share/project-smb', body: [
+    { email: 'first@example.com', object_id: '9223372036854775807', role: 'viewer' },
+    { email: 'second@example.com', object_id: '9223372036854775807', role: 'viewer' },
+  ] });
+  const share_ids = ['0123456789abcdef01234567'];
+  expect(await preview('project_share_set_role', { share_ids, role: 'editor', dry_run: true })).toEqual({ method: 'POST', path: '/share/json/set-role/editor', body: share_ids });
+  expect(await preview('project_share_revoke', { share_ids, dry_run: true })).toEqual({ method: 'POST', path: '/share/json/stop-sharing', body: share_ids });
+  const invalidInputs: Query[] = [
+    { folder_id: '123', emails: ['first@example.com'] },
+    { folder_id: '123', emails: ['not-an-email'], role: 'viewer' },
+    { folder_id: '123', emails: ['first@example.com\n'], role: 'viewer' },
+    { folder_id: '123', emails: ['first@example.com', 'first@example.com'], role: 'viewer' },
+  ];
+  for (const input of invalidInputs) await expect(preview('project_share', { ...input, dry_run: true })).rejects.toThrow();
+  await expect(preview('project_share_revoke', { share_ids: ['123'], dry_run: true })).rejects.toThrow();
 });

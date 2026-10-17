@@ -1,9 +1,17 @@
 ---
-title: MCP
-description: Connect agents to the same research and project operations.
+title: Model Context Protocol (MCP)
+description: Connect Claude Desktop, Cursor, and autonomous agents to Semrush operations via stdio.
 ---
 
-First complete `semrush setup` and authentication. Add this to your MCP client's configuration:
+`semrush-cli` includes a Model Context Protocol (MCP) server that exposes all research, audit, project, and tracking report operations as native tools for AI agents. Authentication and setup commands are CLI-only operations and are not exposed as MCP tools.
+
+## Client configuration
+
+The MCP server communicates exclusively over standard input/output (stdio). Add `semrush` to your client configuration:
+
+### Claude Desktop
+
+In `claude_desktop_config.json`:
 
 ```json
 {
@@ -16,9 +24,7 @@ First complete `semrush setup` and authentication. Add this to your MCP client's
 }
 ```
 
-If your client cannot find global npm executables, use the absolute path printed
-by `command -v semrush` on macOS/Linux or `Get-Command semrush` in PowerShell.
-Alternatively, configure:
+If the global `semrush` executable is not in your client's default system path, provide its absolute path or invoke via npx:
 
 ```json
 {
@@ -31,61 +37,54 @@ Alternatively, configure:
 }
 ```
 
-Tool names use underscores, such as `domain_overview`, `keyword_magic` and `backlink_gap`. Their inputs use the same schema keys as the CLI, with underscores instead of hyphens.
+## Tool naming and conventions
+
+Every report command has a direct MCP tool equivalent:
+- **Names**: Hyphens in CLI verbs become underscores (for example, `domain-overview` becomes `domain_overview`, and `keyword-magic` becomes `keyword_magic`).
+- **Arguments**: Argument keys use snake_case (for example, `page_size`, `basket_id`, `campaign_id`).
+- **Read tools**: Annotated with `readOnlyHint: true`.
+- **Write tools**: Annotated with `readOnlyHint: false` and require `confirm: true` to execute. Pass `dry_run: true` to preview mutations without modifying account data.
+- **Destructive tools**: Annotated with `destructiveHint: true` for operations that permanently delete data or clear ranking history.
+
+Example read tool invocation:
 
 ```json
 {
-  "name": "keyword_magic",
+  "name": "keyword_overview",
   "arguments": {
-    "keyword": "email marketing",
-    "database": "us",
-    "page": 2,
-    "page_size": 20
+    "keyword": "typescript",
+    "database": "us"
   }
 }
 ```
 
-The server sends only MCP protocol messages to stdout. Read tools have
-`readOnlyHint:true`. Write tools have
-`readOnlyHint:false` and require `confirm:true`. Delete and leave also have
-`destructiveHint:true`. Use `dry_run:true` to validate and inspect a write without
-connecting to Semrush. A write without confirmation fails before authentication.
-Login, daemon management, arbitrary URLs and JavaScript execution are not exposed. Report calls can still consume normal account allowances.
+Example write mutation:
 
-Tool errors have `isError: true`. Reimport an expired session and restart or reconnect the MCP process. Each process owns and cleans up its transient browser.
+```json
+{
+  "name": "project_create",
+  "arguments": {
+    "name": "New Client",
+    "domain": "example.com",
+    "confirm": true
+  }
+}
+```
 
-Native report requests allow 90 seconds and make one attempt. If your client
-sets a tool timeout, allow time for that request and browser startup. Export
-jobs can take longer.
+A write call without `confirm: true` fails immediately before sending network requests.
 
+## Request timeouts
 
-## Read an export
+Native Semrush report queries can take up to 90 seconds to execute. If your MCP client enforces tool call timeouts, ensure it allows sufficient headroom for browser initialization and long-running queries. Export tasks can take longer.
 
-Call `keyword_list_export`, `keyword_list_export_pages`,
-`keyword_list_export_keywords` or `keyword_list_export_clusters` with
-`basket_id` and `owner_id` to export a seed-based basket. Each uses the
-selection documented in [keyword lists](/docs/keyword-lists#read-seed-based-pages-and-clusters).
+## File exports and resources
 
-Call `domain_strategy_export` with a numeric `strategy_id` and a basename
-`filename`, or `saved_keywords_export` with a decimal-string `list_id`. Both
-support `csv`, `csv_semicolon` and `xlsx`. Domain export includes the whole
-filtered strategy; it does not accept a page preset. Alternatively, call
-`audit_export_pages`, `audit_export_issues` or `audit_export_issue` with a
-`snapshot_id` and optional `format:"xlsx"`. Tool inputs do not include the CLI's
-local `output` path. The result includes an `artifact` with `uri`, `filename`,
-`mime_type` and `size_bytes`.
+Export tools (such as `domain_strategy_export`, `saved_keywords_export`, or `audit_export_all`) return an `artifact` object with `uri`, `filename`, `mime_type`, and `size_bytes`:
 
-Call `audit_export_all` with `campaign_id` and optional `format:"xlsx"` to
-collect available Site Audit reports into one ZIP. Its `data` contains the
-manifest, and `artifact` identifies the ZIP resource. The archive contains the
-same manifest as `manifest.json`; individual staged downloads are not resources.
-
-Use MCP `resources/read` with that URI. Each response contains up to 65536 bytes
-as base64. For larger files, request `?offset=65536&limit=65536` and continue
-until the total matches `size_bytes`. Decode each chunk and concatenate the
-bytes, including for XLSX files. The maximum chunk is 1048576 bytes.
-
-`resources/list` lists downloads created by this MCP process. Files live in a
-private temporary directory and disappear when the process exits. URIs from a
-previous process cannot be reopened. Download tools are reads, but account
-export permissions and quotas still apply.
+1. The client reads exported content using standard MCP `resources/read`.
+2. File contents are transferred as base64-encoded chunks. Chunks default to 64 KiB (65,536 bytes) and support a maximum chunk size of 1 MiB (1,048,576 bytes).
+3. To read a large file in successive slices, append `offset` and `limit` query parameters to the resource URI:
+   ```
+   semrush-export://<export-id>?offset=65536&limit=65536
+   ```
+4. Continue requesting slices until the total bytes read matches `size_bytes`.

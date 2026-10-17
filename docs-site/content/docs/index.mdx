@@ -1,40 +1,71 @@
 ---
 title: Get started
-description: Install the CLI and read your first Semrush report.
+description: Install the CLI, pair your Semrush web account, and run your first query.
 ---
 
-This walkthrough installs the CLI, saves your web session and reads a report.
-You need a Semrush account and a graphical desktop for the sign-in step.
+`semrush-cli` connects your terminal and AI agents to your Semrush web account for keyword research, rank tracking, site audits, and project management.
 
-Requires Node.js 22 or newer. The npm package includes Galleton binaries for Linux x64/arm64, macOS x64/arm64 and Windows x64. No Python or Go installation is needed.
+## Prerequisites
+
+- Node.js 22 or newer
+- An active Semrush web account
+
+Interactive browser sign-in requires a graphical desktop. Headless servers can import an existing browser session instead (see [authentication](/docs/authentication)).
+
+The package includes precompiled Galleton daemon binaries for Linux (x64, arm64), macOS (Apple silicon, Intel), and Windows (x64). No Go compiler or Python installation is required.
+
+## Quickstart
+
+### 1. Install the CLI
+
+Install the executable globally using npm:
 
 ```sh
 npm install -g semrush-cli
-semrush setup
-semrush auth login
-semrush domain-overview --domain openai.com --json
 ```
 
-`setup` installs Chromium and starts a private, authenticated Galleton daemon at `127.0.0.1:8771`. It stores encrypted credentials under `~/.local/share/semrush-cli/galleton`. On Linux, Chromium may need system libraries. Install them with `npx patchright install-deps chromium` if the browser fails to launch.
+### 2. Initialize dependencies
 
-`auth login` opens a browser. Complete Semrush sign-in there. The CLI verifies your session, stores it in Galleton, and closes the window. It does not ask for your password in the terminal.
-
-On a headless host with an existing signed-in browser, see [authentication](/docs/authentication).
+Download the headless browser and start the background session daemon:
 
 ```sh
-semrush keyword-overview --keyword 'email marketing' --json
-semrush domain-keywords --domain openai.com --page-size 20 --json
-semrush backlink-links --domain openai.com --json
-semrush reports
+semrush setup
+```
+
+### 3. Sign in to Semrush
+
+Launch interactive sign-in:
+
+```sh
+semrush auth login
+```
+
+Complete sign-in in the browser window that opens. The CLI stores your session cookies in an encrypted local vault and closes the browser. The terminal never handles your password.
+
+### 4. Verify your environment
+
+Check that the local daemon, browser, and session are operational:
+
+```sh
 semrush doctor
 ```
 
-Reports print JSON even without `--json`; that flag makes it compact. A successful
-report has `authenticated: true`, its underscore-style report name and a `data`
-field containing the result. If setup or authentication fails, run
-`semrush doctor` and follow [troubleshooting](/docs/troubleshooting).
+### 5. Run your first queries
 
-Next, [create a project](/docs/projects), [manage keyword lists](/docs/keyword-lists),
-[connect an MCP client](/docs/mcp) or browse the [command reference](/docs/reports).
+Query keyword metrics or inspect domain rankings:
 
-This is an independent project, not an official Semrush integration. Your account permissions and report allowances apply. Web endpoints may change. No developer API key is required.
+```sh
+semrush keyword-overview --keyword typescript --json
+semrush domain-keywords --domain example.com --json
+```
+
+## Output format
+
+Commands return a JSON object containing `authenticated: true`, the snake_case `report` name, and a `data` field holding the result object or array. Pass `--json` to output compact, single-line JSON. When a command fails, error diagnostics are written to standard error and the process exits with status code 2.
+
+## Next steps
+
+- [Authentication](/docs/authentication): Import existing browser sessions or configure headless environments.
+- [Projects](/docs/projects): Create and configure tracked web properties.
+- [Model Context Protocol](/docs/mcp): Connect Claude Desktop, Cursor, or autonomous agents via stdio.
+- [Command reference](/docs/reports): Browse the full catalog of research and audit commands.

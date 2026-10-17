@@ -1,81 +1,98 @@
 ---
 title: My Reports
-description: Inspect reporting access, templates and saved report metadata.
+description: Create reports, edit saved documents and download their PDFs.
 ---
 
-```sh
-semrush reporting-overview --json
-```
-
-The command reads your My Reports account with the same encrypted web session
-as other commands. MCP exposes `reporting_overview` with the same filters.
-
-## Read the result
-
-| Native field | Meaning |
-| --- | --- |
-| `hasProduct`, `productTier`, `isPaid` | Reporting service account metadata |
-| `availableActions` | Actions the reporting service currently offers |
-| `newReportProperties` | Default report state and capabilities |
-| `isCommonPrivacyAccepted` | Current reporting Privacy Policy acknowledgment |
-| `limits` | Essential/Premium report counters, upgrades, AI summary and trial allowances |
-| `systemTemplates` | Native template types, titles, groups and data sources |
-| `reports.totalCount` | Total reports matching the current filters |
-| `reports.nodes` | Up to 30 reports, ordered by latest update first |
+## Find a template
 
 ```sh
 semrush reporting-overview --json > reporting.json
-jq '.data.limits.reports_essential' reporting.json
 jq '.data.systemTemplates[] | {type, title, isPremium}' reporting.json
 ```
 
-Report rows preserve their native IDs, names, states, timestamps, available
-actions and schedule settings. `readyTasks` contains at most one ready task per
-report. Its filename is metadata; this command does not download that PDF.
+The result includes your reporting actions, allowances and saved reports.
+My Reports has its own product settings. Its `isPaid` field does not describe
+your SEO subscription.
 
-## Page and filter reports
+## Create a report
 
-The default reads the first 30 reports, newest update first. Use `--offset 30`
-for the next page, then 60, 90 and so on. Stop when the page is empty or the next
-offset reaches `reports.totalCount`. Keep the same filters across pages.
-Requests read current data, so concurrent report edits can change page order.
+Use a template type from the overview and the parameters that template needs.
+This example creates an Organic Search Positions report without generating a PDF:
 
 ```sh
-semrush reporting-overview --offset 30 --json
-semrush reporting-overview --ownership own --branding standard --schedule weekly --search seo --json
+semrush reporting-create \
+  --template tc_organic_search_positions \
+  --parameters '{"domain":"example.com","database":"us"}' \
+  --confirm --json
 ```
 
-| Option | Values | Default |
-| --- | --- | --- |
-| `--offset` | Integer from 0 to 2147483647 | `0` |
-| `--ownership` | `all`, `own`, `shared`, `team` | `all` |
-| `--branding` | `all`, `branded`, `standard` | `all` |
-| `--schedule` | `all`, `daily`, `weekly`, `monthly` | `all` |
-| `--search` | Native report-name Contains search | Empty |
+The saved report ID is in `data.userDocumentId`. Use that ID in later commands.
+Templates that need connected services or a different reporting tier require
+that access in your Semrush account.
 
-Filters combine. `shared` selects reports owned by another user and directly
-shared with you; `team` selects native team sharing. The result's total is the
-filtered count. Pages keep the native fixed size of 30. Search text stays in
-GraphQL variables and cannot change the query.
+## Edit a saved report
 
-For MCP, use arguments such as
-`{"offset":30,"ownership":"own","schedule":"weekly","search":"seo"}`.
-Pagination and filters only read data; they do not change saved schedules.
-Report downloads remain unsupported.
+Read the complete document, change the fields you need and save the full object:
 
-## Account access and PDF limits
+```sh
+semrush reporting-get --report-id 123 --json > report.json
+jq '.data.document | .name = "Monthly SEO"' report.json > document.json
+semrush reporting-save --document-file document.json --confirm --json
+```
 
-Reporting flags describe this service. `isPaid:false` alone does not mean your
-SEO Guru subscription is missing. Inspect the native actions and quota counters
-for reporting access.
+Keep the document's `id`, populated `content` and other saved settings.
+Saving replaces the submitted document and accepts the reporting Privacy Policy.
+It does not generate a PDF. Review recipients and scheduling before saving or
+generating a report.
 
-The verification account returned 34 system templates, zero saved reports and
-three available Essential report slots. Both its Keyword Overview export dialog
-and My Reports constructor require an explicit Privacy Policy acknowledgment
-before submission. It was left unset. Editing a new draft's title stayed local
-and did not create a saved report.
+To copy a report:
 
-Report creation, saving, PDF generation and downloads remain unsupported. The
-overview does not accept policies, activate trials, change schedules, generate
-AI summaries or send email. GraphQL failures and partial-data errors remain
-errors rather than successful empty results.
+```sh
+semrush reporting-clone --report-id 123 --name "Monthly SEO copy" --confirm --json
+```
+
+The new ID is in `data.document.id`.
+
+## Generate and download a PDF
+
+```sh
+semrush reporting-generate --report-id 123 --confirm --json
+semrush reporting-tasks --report-id 123 --json
+```
+
+Generation saves the current document and accepts the reporting Privacy Policy
+before starting the native PDF task. It uses the report's saved delivery settings.
+It can consume reporting allowance.
+
+Find a task with `state: "ready"` in `data.reports.nodes[].tasks`, then use its
+exact string ID:
+
+```sh
+semrush reporting-download --report-id 123 --task-id 456 --output monthly-seo.pdf
+```
+
+Downloading reads an existing PDF. It does not generate another report. The
+output file must not already exist. MCP returns an artifact resource containing
+the same PDF bytes. See [file resources](/docs/mcp#file-exports-and-resources).
+
+## Find and delete reports
+
+The overview returns up to 30 reports, newest update first. Keep filters the same
+and increase `--offset` by 30 for each page:
+
+```sh
+semrush reporting-overview --ownership own --search "Monthly" --json
+semrush reporting-overview --ownership own --search "Monthly" --offset 30 --json
+```
+
+Delete only the IDs you intend to remove. Deletion is permanent:
+
+```sh
+semrush reporting-delete --report-ids '[123,124]' --dry-run
+semrush reporting-delete --report-ids '[123,124]' --confirm --json
+```
+
+Writes do not retry. If a response is lost, inspect the overview, saved document
+or task list before sending another write.
+
+See the [My Reports command reference](/docs/reference/reporting) for every option.
