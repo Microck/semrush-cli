@@ -80,7 +80,7 @@ const onpageFixture = makeOnpageFixture();
 const organicResearchFixture = makeOrganicResearchFixture();
 const sharingFixture = makeSharingFixture();
 // Match specific system/custom template paths before the generic reporting API prefix.
-const fixtureHandlers = new Map([...archivePaths.map(path => [path, auditArchiveFixture.serve] as const), [folderPath, serveProjectFixture], [savedPath, serveSavedFixture], ['/notes/api/', serveNotesFixture], ['/siteaudit/api/campaigns/789/js-impact/', serveJSImpactFixture], ['/siteaudit/export/js-impact/', serveJSImpactFixture], ['/analytics/keywordmanager/list', mindmapFixture.serve], ['/mindmap-download', mindmapFixture.serve], [auditAuthPath, webBotAuthFixture.serve], ['/my_reports/graphql/', reportingFixture.serve], ['/my_reports/api/v1/template/system/', reportingFixture.lifecycle.serve], ['/my_reports/api/v1/template/', reportingTemplateFixture.serve], ['/my_reports/api/v1/templates/', reportingTemplateFixture.serve], ['/my_reports/api/v1/', reportingFixture.lifecycle.serve], ['/my_reports/reports/', reportingFixture.lifecycle.serve], [webVitalsPath, webVitalsFixture.serve], [keywordDownloadPath, keywordResearchFixture.serveDownload], [onpagePath, onpageFixture.serve]]);
+const fixtureHandlers = new Map([...archivePaths.map(path => [path, auditArchiveFixture.serve] as const), [folderPath, serveProjectFixture], [savedPath, serveSavedFixture], ['/notes/api/', serveNotesFixture], ['/siteaudit/api/campaigns/789/js-impact/', serveJSImpactFixture], ['/siteaudit/export/js-impact/', serveJSImpactFixture], ['/analytics/keywordmanager/list', mindmapFixture.serve], ['/mindmap-download', mindmapFixture.serve], [auditAuthPath, webBotAuthFixture.serve], ['/siteaudit/api/campaigns/794/info', reportingFixture.lifecycle.serve], ['/my_reports/graphql/', reportingFixture.serve], ['/my_reports/api/v1/template/system/', reportingFixture.lifecycle.serve], ['/my_reports/api/v1/template/', reportingTemplateFixture.serve], ['/my_reports/api/v1/templates/', reportingTemplateFixture.serve], ['/my_reports/api/v1/', reportingFixture.lifecycle.serve], ['/my_reports/reports/', reportingFixture.lifecycle.serve], [webVitalsPath, webVitalsFixture.serve], [keywordDownloadPath, keywordResearchFixture.serveDownload], [onpagePath, onpageFixture.serve]]);
 /** Serve the native authentication checks separately from report fixtures. */
 function serveAuthenticationFixture(request: IncomingMessage, response: ServerResponse, url: URL): boolean {
   if (url.pathname === '/robots.txt') { response.end('User-agent: *\nDisallow: /'); return true; }
@@ -2469,12 +2469,13 @@ test('cancelling an All reports download removes staged files and releases the b
 }, 30000);
 
 
-test('Keyword Overview PDF creates and generates once, polls only task reads and preserves native PDF resource bytes', async () => {
+test.each(['keyword_overview_pdf', 'audit_web_vitals_pdf'] as const)('%s creates and generates once, polls only task reads and preserves native PDF resource bytes', async name => {
   reportingFixture.lifecycle.reset(); reportingFixture.lifecycle.use('pdf-task-pending');
   try {
     await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
       const semrush = yield* Semrush;
-      const result = yield* semrush.report(yield* parseReport('keyword_overview_pdf', { keyword: 'typescript', confirm: true }));
+      const result = yield* semrush.report(yield* parseReport(name, name === 'keyword_overview_pdf' ? { keyword: 'typescript', confirm: true } : { campaign_id: 794, confirm: true }));
+      expect(reportingFixture.lifecycle.metadataReads()).toBe(name === 'audit_web_vitals_pdf' ? 1 : 0);
       expect(result.data).toEqual({ report_id: 71, task_id: '1001' });
       expect(result.artifact).toMatchObject({ mime_type: 'application/pdf', size_bytes: reportingPDFBytes.length });
       const store = yield* Exports;
@@ -2485,13 +2486,13 @@ test('Keyword Overview PDF creates and generates once, polls only task reads and
   } finally { reportingFixture.lifecycle.reset(); }
 });
 
-test('Keyword Overview PDF never repeats lost initializers or generates without a valid creation receipt', async () => {
+test.each(['keyword_overview_pdf', 'audit_web_vitals_pdf'] as const)('%s never repeats lost initializers or generates without a valid creation receipt', async name => {
   try {
     await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
       const semrush = yield* Semrush;
       for (const scenario of ['pdf-create-lost', 'pdf-create-missing', 'pdf-create-denied', 'generate-lost', 'generate-missing', 'pdf-task-failed'] as const) {
         reportingFixture.lifecycle.reset(); reportingFixture.lifecycle.use(scenario);
-        const error = yield* semrush.report(yield* parseReport('keyword_overview_pdf', { keyword: 'typescript', confirm: true })).pipe(Effect.flip);
+        const error = yield* semrush.report(yield* parseReport(name, name === 'keyword_overview_pdf' ? { keyword: 'typescript', confirm: true } : { campaign_id: 794, confirm: true })).pipe(Effect.flip);
         expect(error.message).toMatch(/not retried|Inspect reporting-tasks/); expect(error.message).not.toContain('fixture-secret');
         expect(reportingFixture.lifecycle.counts()).toMatchObject({ creates: 1, saves: 0, generations: ['generate-lost', 'generate-missing', 'pdf-task-failed'].includes(scenario) ? 1 : 0, downloads: 0 });
         expect((yield* (yield* Exports).list())).toEqual([]);
@@ -2516,4 +2517,34 @@ test('cancelling a Keyword Overview PDF after initialization stops polling witho
     controller.abort(); await cancelled;
     expect(reportingFixture.lifecycle.counts()).toMatchObject({ creates: 1, generations: 1, saves: 0, downloads: 0, taskReads: 1 });
   } finally { controller.abort(); reportingFixture.lifecycle.reset(); }
+});
+
+
+test('Core Web Vitals PDF refuses missing, denied and mismatched campaign metadata before any report writes', async () => {
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const semrush = yield* Semrush;
+      for (const scenario of ['pdf-metadata-denied', 'pdf-metadata-missing', 'pdf-metadata-wrong-id'] as const) {
+        reportingFixture.lifecycle.reset(); reportingFixture.lifecycle.use(scenario);
+        const error = yield* semrush.report(yield* parseReport('audit_web_vitals_pdf', { campaign_id: 794, confirm: true })).pipe(Effect.flip);
+        expect(error.message).toMatch(/campaign|HTTP 403/);
+        expect(reportingFixture.lifecycle.metadataReads()).toBe(1);
+        expect(reportingFixture.lifecycle.counts()).toEqual({ creates: 0, clones: 0, saves: 0, generations: 0, downloads: 0, deletions: 0, taskReads: 0 });
+        expect(yield* (yield* Exports).list()).toEqual([]);
+      }
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { reportingFixture.lifecycle.reset(); }
+});
+
+
+test.each(['keyword_overview_pdf', 'audit_web_vitals_pdf'] as const)('%s includes the native AI Summary widget only when requested', async name => {
+  reportingFixture.lifecycle.reset(); reportingFixture.lifecycle.withAISummary();
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const selection: Query = name === 'keyword_overview_pdf' ? { keyword: 'typescript' } : { campaign_id: 794 };
+      const result = yield* (yield* Semrush).report(yield* parseReport(name, { ...selection, ai_summary: true, confirm: true }));
+      expect(result.artifact).toMatchObject({ mime_type: 'application/pdf', size_bytes: reportingPDFBytes.length });
+      expect(reportingFixture.lifecycle.counts()).toMatchObject({ creates: 1, saves: 0, generations: 1, downloads: 1 });
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { reportingFixture.lifecycle.reset(); }
 });

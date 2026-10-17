@@ -19395,12 +19395,18 @@
           "type": "boolean",
           "default": false,
           "description": "Preview the export without account access."
+        },
+        "ai_summary": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include the native AI Summary widget. Uses your account AI summary allowance."
         }
       },
       "required": [
         "keyword"
       ]
-    }
+    },
+    "pdf_template": "keyword_overview"
   },
   "project_shares": {
     "method": "/share/json/shares/project-smb/{folder_id}",
@@ -20025,6 +20031,48 @@
       "required": [
         "template_id",
         "emails"
+      ]
+    }
+  },
+  "audit_web_vitals_pdf": {
+    "method": "/my_reports/graphql/",
+    "description": "Generate the native Core Web Vitals PDF from an existing Site Audit and save its Essential report in My Reports. Uses reporting allowance; no crawl, email or schedule.",
+    "transport": "reporting_pdf",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "response_type": "download_job",
+    "pdf_template": "tc_siteaudit_core_web_vitals",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "SEO project/campaign ID from project-enable-seo, not the folder ID."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm report creation, privacy acceptance and PDF generation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Preview the export without account access."
+        },
+        "ai_summary": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include the native AI Summary widget. Uses your account AI summary allowance."
+        }
+      },
+      "required": [
+        "campaign_id"
       ]
     }
   }

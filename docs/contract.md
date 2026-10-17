@@ -1326,13 +1326,18 @@ returned three rows for daily, monthly and mobile ranges, positive preset
 counts, 28 daily trend points and 24 monthly trend points. Native CSV/XLSX
 exports remain unsupported under the restrictions recorded above.
 
-## Keyword Overview PDF export
+## Native PDF exports
 
-`keyword-overview-pdf --keyword <phrase> --output <file> --confirm` creates an
+`keyword-overview-pdf --keyword <phrase> --output <file> --confirm` and
+`audit-web-vitals-pdf --campaign-id <id> --output <file> --confirm` create an
 Essential My Reports document through the fixed CreateLiteOrder mutation,
-generates that report once, waits only on task metadata, then downloads the native
-PDF. It accepts the reporting Privacy Policy and uses reporting allowance. Email,
-scheduling, public dashboards and AI summaries remain disabled for this export.
+generate that report once, wait only on task metadata, then download the native
+PDF. Each export accepts the reporting Privacy Policy and uses reporting allowance. Email,
+scheduling and public dashboards remain disabled for these exports.
+AI summaries are disabled by default. `--ai-summary` adds the native AI Summary
+widget with its observed 12-column, 14-row settings and consumes the account's
+AI summary allowance. The provider decides whether that allowance is available;
+a failed generation is not replayed.
 The document stays in My Reports, matching the native Download PDF action.
 The receipt includes report_id and task_id for inspection and explicit deletion.
 
@@ -1341,3 +1346,11 @@ Runtime template credentials enter only inside the browser adapter. A lost or
 invalid creation receipt stops generation. A lost generation is never replayed;
 errors identify the saved report when known. Task reads can poll for two minutes;
 provider errors stop immediately. An unfinished or failed task publishes no file.
+
+Core Web Vitals uses the native `tc_siteaudit_core_web_vitals` template and
+English report language. Before creation it reads the selected campaign's
+`audit-info` and requires its matching ID and nonempty `projectDomain`. That
+domain supplies the template domain, header and SiteAuditDatasource title. Dry
+runs show this read and mark the domain as `<audit-info.projectDomain>`.
+Missing or denied campaign metadata stops before any reporting allowance is
+used. Export never edits the campaign, schedules a crawl or refreshes its data.

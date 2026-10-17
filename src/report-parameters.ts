@@ -83,18 +83,24 @@ function reportingDocumentForSave(document: ReportingStoredDocument): Query {
   };
 }
 
-/** Native Download PDF defaults; only the adapter supplies the scoped template key. */
-export function keywordPDFParameters(query: Query, apiKey?: string): Query {
-  const templateParameters: Query = { action: 'report', phrase: query.keyword ?? '', db: query.database ?? 'us',
+/** Fixed native PDF templates; campaign metadata and scoped keys enter only at execution. */
+export function reportingPDFParameters(definition: Report, query: Query, apiKey?: string, domain?: string): Query {
+  const webVitals = 'pdf_template' in definition && definition.pdf_template === 'tc_siteaudit_core_web_vitals';
+  const templateType = webVitals ? 'tc_siteaudit_core_web_vitals' : 'keyword_overview';
+  const campaignDomain = domain ?? '<audit-info.projectDomain>';
+  const templateParameters: Query = webVitals ? { project_id: query.campaign_id ?? null, domain: campaignDomain, language: 'en', header_title: campaignDomain,
+    SiteAuditDatasource: [{ name: 'project', group: 'FIELD', state: { value: String(query.campaign_id), title: campaignDomain } }],
+    report: templateType, type: templateType, report_title: 'Site Audit: Core Web Vitals',
+  } : { action: 'report', phrase: query.keyword ?? '', db: query.database ?? 'us',
     db_date: query.date || 'current', device_type: query.device === 'mobile' ? 'Mobile' : 'Desktop',
     currency: String(query.currency ?? 'USD').toLowerCase() };
-  if (apiKey !== undefined) templateParameters.key = apiKey;
+  if (!webVitals && apiKey !== undefined) templateParameters.key = apiKey;
   return { operationName: 'CreateLiteOrder',
     query: 'mutation CreateLiteOrder($input: LiteOrderInput!, $templateType: String!) { createLiteOrder(input: $input, templateType: $templateType) { ... on Report { id name state } } }',
-    variables: { templateType: 'keyword_overview', input: {
+    variables: { templateType, input: {
       branding: null, emailing: { subject: '', message: '', recipients: [], signImageId: 0, signText: '' },
       scheduling: { isScheduled: false, period: 'monthly', dayOfPeriod: 28, generationStartHour: null },
-      publicDashboard: null, aiSummaryWidget: null, commonPrivacyAccepted: true, isTOCEnabled: false,
+      publicDashboard: null, aiSummaryWidget: query.ai_summary === true ? { settings: { x: 0, y: 0, w: 12, h: 14, minH: 14, maxH: 14, minW: 12, maxW: 12 } } : null, commonPrivacyAccepted: true, isTOCEnabled: false,
       templateParameters, state: 'essential',
     } },
   };
@@ -146,7 +152,7 @@ export function reportParameters(definition: Report, q: Query): Query {
   const family = definition.transport;
   if (family === 'onpage_web') return onpageParameters(definition, q);
   if (family === 'reporting_web') return reportingParameters(definition, q);
-  if (family === 'reporting_pdf') return keywordPDFParameters(q);
+  if (family === 'reporting_pdf') return reportingPDFParameters(definition, q);
   if (family === 'bla') return backlinkAuditParameters(definition, q);
   if (family === 'notes_web') return noteParameters(definition, q);
   if (family === 'ksb') return domainStrategyParameters(definition, q);
@@ -570,7 +576,7 @@ export function previewMutation(name: string, definition: Report, query: Query) 
     if ('writeOnly' in property && property.writeOnly === true && key in visible) visible[key] = redactInput(visible[key]);
   }
   const preview = { dry_run: true, report: name, request: webRequest(definition, visible) };
-  if (definition.transport === 'reporting_pdf') return { ...preview, preparation: [{ action: 'create_essential_report' }, { action: 'generate_pdf' }, { action: 'download_ready_task' }], retains_report: true };
+  if (definition.transport === 'reporting_pdf') return { ...preview, preparation: [...('pdf_template' in definition && definition.pdf_template === 'tc_siteaudit_core_web_vitals' ? [{ action: 'read_campaign', request: webRequest(reports.audit_info, { campaign_id: query.campaign_id ?? null }), resolves: 'audit-info.projectDomain' }] : []), { action: 'create_essential_report' }, { action: 'generate_pdf' }, { action: 'download_ready_task' }], retains_report: true };
   if (name === 'reporting_generate') return { ...preview, preparation: [
     { action: 'read_report', report_id: query.report_id },
     { action: 'save_current_document', commonPrivacyAccepted: true, timezone: query.timezone ?? 0 },

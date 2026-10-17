@@ -8,7 +8,7 @@ import { Semrush } from './browser-service.js';
 import { Sessions } from './session-service.js';
 import { origin } from './session-layer.js';
 import { ReportError, SessionError } from './errors.js';
-import { reportResponseType, reportParameters, keywordPDFParameters, webRequest, rpcBody, reports, type Report, type ReportName, type Query, type WebRequest } from './report-parameters.js';
+import { reportResponseType, reportParameters, reportingPDFParameters, webRequest, rpcBody, reports, type Report, type ReportName, type Query, type WebRequest } from './report-parameters.js';
 import { parseReport, type ReportRequest } from './validation.js';
 import { Exports, type ExportWriter } from './exports.js';
 
@@ -443,8 +443,18 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     return yield* Effect.scoped(downloadExport({ kind: 'file', request: { method: 'GET', path: address.href, body: {} }, headers: {} }, 'pdf', exports));
   });
   /** Create and generate once; polling is limited to the resulting task's read endpoint. */
-  const keywordPDF = Effect.fn('Semrush.keywordPDF')(function* (query: Query) {
-    const created = yield* reportingResult(yield* request('/my_reports/graphql/', keywordPDFParameters(query, auth.apiKey)).pipe(Effect.mapError(error => confirmedWriteError(error,
+  const reportingPDF = Effect.fn('Semrush.reportingPDF')(function* (definition: Report, query: Query) {
+    let domain: string | undefined;
+    if ('pdf_template' in definition && definition.pdf_template === 'tc_siteaudit_core_web_vitals') {
+      const campaignQuery = { campaign_id: query.campaign_id ?? null };
+      const metadata = yield* prepareWebRequest({ name: 'audit_info', definition: reports.audit_info, query: campaignQuery }, webRequest(reports.audit_info, campaignQuery));
+      const campaign = yield* Schema.decodeUnknownEffect(Schema.Struct({
+        id: Schema.Int, projectDomain: Schema.String.check(Schema.isPattern(/\S/)),
+      }))(yield* request(metadata.path, metadata.body, metadata.method, metadata.headers)).pipe(Effect.mapError(() => new ReportError({ message: 'Site Audit campaign metadata is unavailable or does not match the selected campaign. Read audit-info before exporting. No report was created.' })));
+      if (campaign.id !== query.campaign_id) return yield* Effect.fail(new ReportError({ message: 'Site Audit returned a different campaign. Read audit-info before exporting. No report was created.' }));
+      domain = campaign.projectDomain;
+    }
+    const created = yield* reportingResult(yield* request('/my_reports/graphql/', reportingPDFParameters(definition, query, auth.apiKey, domain)).pipe(Effect.mapError(error => confirmedWriteError(error,
       ' PDF report creation may have committed and was not retried. Inspect reporting-overview before another export.'))), 'createLiteOrder');
     const receipt = yield* Schema.decodeUnknownEffect(Schema.Struct({ id: Schema.String.check(Schema.isPattern(/^[1-9][0-9]*(?![\s\S])/)) }))(created)
       .pipe(Effect.mapError(() => new ReportError({ message: 'My Reports returned no valid PDF report creation receipt. Inspect reporting-overview; creation was not retried and no generation was started.' })));
@@ -706,7 +716,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       return { authenticated: true as const, report: name, data: null, artifact };
     }
     if (definition.transport === 'reporting_pdf') {
-      const result = yield* keywordPDF(query);
+      const result = yield* reportingPDF(definition, query);
       yield* captureCookies(context, sessions.capture, browserOrigin);
       return { authenticated: true as const, report: name, ...result };
     }

@@ -67,7 +67,7 @@ export function makeReportingFixture() {
   };
 }
 
-type LifecycleScenario = 'complete' | 'pending' | 'outside' | 'bad-pdf' | 'save-lost' | 'save-missing' | 'generate-lost' | 'create-missing' | 'clone-missing' | 'delete-false' | 'delete-lost' | 'pdf-create-lost' | 'pdf-create-missing' | 'pdf-create-denied' | 'pdf-task-pending' | 'pdf-task-failed' | 'generate-missing' | 'denied';
+type LifecycleScenario = 'complete' | 'pending' | 'outside' | 'bad-pdf' | 'save-lost' | 'save-missing' | 'generate-lost' | 'create-missing' | 'clone-missing' | 'delete-false' | 'delete-lost' | 'pdf-metadata-denied' | 'pdf-metadata-missing' | 'pdf-metadata-wrong-id' | 'pdf-create-lost' | 'pdf-create-missing' | 'pdf-create-denied' | 'pdf-task-pending' | 'pdf-task-failed' | 'generate-missing' | 'denied';
 export const reportingDocument = { ...reportingNative.read, content: Schema.decodeUnknownSync(Schema.Array(Schema.JsonObject))(reportingNative.read.content), marker: { preserve: true, exactId: '9223372036854775807' } };
 
 /** A complete small PDF makes byte/resource assertions independent of the production downloader. */
@@ -91,12 +91,19 @@ export function makeReportingLifecycleFixture() {
   let document: Query = structuredClone(reportingDocument);
   let nextId = 72;
   let liteOrder = false;
+  let metadataReads = 0;
+  let aiSummary = false;
   let taskReadListener: (() => void) | undefined;
   const counts = { creates: 0, clones: 0, saves: 0, generations: 0, downloads: 0, deletions: 0, taskReads: 0 };
-  const reset = () => { scenario = 'complete'; document = structuredClone(reportingDocument); nextId = 72; liteOrder = false; taskReadListener = undefined; Object.assign(counts, { creates: 0, clones: 0, saves: 0, generations: 0, downloads: 0, deletions: 0, taskReads: 0 }); };
+  const reset = () => { scenario = 'complete'; document = structuredClone(reportingDocument); nextId = 72; liteOrder = false; metadataReads = 0; aiSummary = false; taskReadListener = undefined; Object.assign(counts, { creates: 0, clones: 0, saves: 0, generations: 0, downloads: 0, deletions: 0, taskReads: 0 }); };
   const send = (response: ServerResponse, body: Query) => { response.setHeader('Content-Type', 'application/json'); response.end(JSON.stringify(body)); };
   const handle = async (request: IncomingMessage, response: ServerResponse, url: URL, body: Query) => {
     expect(request.headers.cookie).toContain('session=authorized');
+    if (url.pathname === '/siteaudit/api/campaigns/794/info') {
+      expect(request.method).toBe('GET'); expect([...url.searchParams.keys()]).toEqual(['key']); expect(url.searchParams.get('key')).toBe('fixture-secret'); metadataReads++;
+      if (scenario === 'pdf-metadata-denied') { response.statusCode = 403; send(response, { error: 'campaign denied' }); return; }
+      send(response, scenario === 'pdf-metadata-missing' ? { id: 794 } : { id: scenario === 'pdf-metadata-wrong-id' ? 795 : 794, projectDomain: 'example.com' }); return;
+    }
     if (scenario === 'denied') { response.statusCode = 403; send(response, { error: 'reporting denied fixture-secret' }); return; }
     if (url.pathname.startsWith('/my_reports/reports/')) {
       expect(request.method).toBe('GET'); counts.downloads++;
@@ -108,11 +115,15 @@ export function makeReportingLifecycleFixture() {
       expect(body.query).toEqual(expect.any(String));
       if (body.operationName === 'CreateLiteOrder') {
         expect(body.query).toContain('mutation CreateLiteOrder');
-        expect(body.variables).toEqual({ templateType: 'keyword_overview', input: {
+        const webVitals = metadataReads > 0;
+        expect(body.variables).toEqual({ templateType: webVitals ? 'tc_siteaudit_core_web_vitals' : 'keyword_overview', input: {
           branding: null, emailing: { subject: '', message: '', recipients: [], signImageId: 0, signText: '' },
           scheduling: { isScheduled: false, period: 'monthly', dayOfPeriod: 28, generationStartHour: null },
-          publicDashboard: null, aiSummaryWidget: null, commonPrivacyAccepted: true, isTOCEnabled: false,
-          templateParameters: { key: 'fixture-secret', action: 'report', phrase: 'typescript', db: 'us', db_date: 'current', device_type: 'Desktop', currency: 'usd' }, state: 'essential',
+          publicDashboard: null, aiSummaryWidget: aiSummary ? { settings: { x: 0, y: 0, w: 12, h: 14, minH: 14, maxH: 14, minW: 12, maxW: 12 } } : null, commonPrivacyAccepted: true, isTOCEnabled: false,
+          templateParameters: webVitals ? { project_id: 794, domain: 'example.com', language: 'en', header_title: 'example.com',
+            SiteAuditDatasource: [{ name: 'project', group: 'FIELD', state: { value: '794', title: 'example.com' } }],
+            report: 'tc_siteaudit_core_web_vitals', type: 'tc_siteaudit_core_web_vitals', report_title: 'Site Audit: Core Web Vitals',
+          } : { key: 'fixture-secret', action: 'report', phrase: 'typescript', db: 'us', db_date: 'current', device_type: 'Desktop', currency: 'usd' }, state: 'essential',
         } });
         counts.creates++; liteOrder = true;
         if (scenario === 'pdf-create-lost') { request.socket.destroy(); return; }
@@ -165,6 +176,8 @@ export function makeReportingLifecycleFixture() {
     use(value: LifecycleScenario) { scenario = value; }, reset,
     onTaskRead(listener: () => void) { taskReadListener = listener; },
     counts: () => ({ ...counts }),
+    metadataReads: () => metadataReads,
+    withAISummary() { aiSummary = true; },
     handle,
     async serve(request: IncomingMessage, response: ServerResponse, url: URL) {
       const body: Query = request.method === 'GET' ? {} : JSON.parse(await readText(request));

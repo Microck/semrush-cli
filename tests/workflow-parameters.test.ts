@@ -902,3 +902,35 @@ test('custom report templates use distinct template and report IDs with native p
   await expect(preview('reporting_templates', { page: 0 })).rejects.toThrow();
   await expect(preview('reporting_template_share', { template_id: 501, emails: ['person@example.com'], role: 'viewer', dry_run: true })).rejects.toThrow();
 });
+
+
+test('Core Web Vitals PDF requires confirmation and previews its campaign read and native template without credentials', async () => {
+  await expect(preview('audit_web_vitals_pdf', { campaign_id: 794 })).rejects.toThrow('--confirm');
+  const parsed = await Effect.runPromise(parseReport('audit_web_vitals_pdf', { campaign_id: 794, dry_run: true }));
+  expect(previewMutation(parsed.name, parsed.definition, parsed.query)).toHaveProperty('preparation.0.request', { method: 'GET', path: '/siteaudit/api/campaigns/794/info', body: {} });
+  expect(previewMutation(parsed.name, parsed.definition, parsed.query)).toMatchObject({ retains_report: true,
+    preparation: [{ action: 'read_campaign', request: { method: 'GET', path: '/siteaudit/api/campaigns/794/info', body: {} } }, { action: 'create_essential_report' }, { action: 'generate_pdf' }, { action: 'download_ready_task' }],
+    request: { method: 'POST', path: '/my_reports/graphql/', body: { operationName: 'CreateLiteOrder', variables: {
+      templateType: 'tc_siteaudit_core_web_vitals', input: { emailing: { recipients: [] }, scheduling: { isScheduled: false },
+        templateParameters: { project_id: 794, domain: '<audit-info.projectDomain>', language: 'en',
+          SiteAuditDatasource: [{ name: 'project', group: 'FIELD', state: { value: '794', title: '<audit-info.projectDomain>' } }] },
+      },
+    } } },
+  });
+  const invalidInputs: Query[] = [{ campaign_id: 0 }, { campaign_id: '794' }, { campaign_id: 794, recipients: [] }, { campaign_id: 794, domain: 'unrelated.example' }];
+  for (const invalid of invalidInputs) {
+    await expect(preview('audit_web_vitals_pdf', { ...invalid, dry_run: true })).rejects.toThrow('Invalid audit_web_vitals_pdf');
+  }
+});
+
+
+test('native PDF previews include AI summary settings only with explicit opt-in', async () => {
+  for (const name of ['keyword_overview_pdf', 'audit_web_vitals_pdf']) {
+    const selection: Query = name === 'keyword_overview_pdf' ? { keyword: 'typescript' } : { campaign_id: 794 };
+    const disabled = await preview(name, { ...selection, dry_run: true });
+    expect(disabled.body).toHaveProperty('variables.input.aiSummaryWidget', null);
+    const enabled = await preview(name, { ...selection, ai_summary: true, dry_run: true });
+    expect(enabled.body).toHaveProperty('variables.input.aiSummaryWidget', { settings: { x: 0, y: 0, w: 12, h: 14, minH: 14, maxH: 14, minW: 12, maxW: 12 } });
+    await expect(preview(name, { ...selection, ai_summary: 'yes', dry_run: true })).rejects.toThrow('Invalid');
+  }
+});

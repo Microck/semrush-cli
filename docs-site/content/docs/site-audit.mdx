@@ -125,3 +125,28 @@ semrush audit-export-all --campaign-id 456 --format csv --output full-audit.zip
 ```
 
 The CLI checks the destination path before download and refuses to overwrite existing files.
+
+## Core Web Vitals
+
+Inspect scores and Lighthouse recommendations from the current crawl:
+
+```sh
+semrush audit-web-vitals-overview --campaign-id 456
+semrush audit-web-vitals-pages --campaign-id 456
+semrush audit-web-vitals-recommendations --campaign-id 456 --url-id '-1234567890123456789'
+```
+
+Use the exact `urlId` from `audit-web-vitals-pages` for recommendations. Keep it
+as a quoted string, including any leading minus sign.
+
+To download the native PDF:
+
+```sh
+semrush audit-web-vitals-pdf --campaign-id 456 --output web-vitals.pdf --confirm
+```
+
+This uses My Reports allowance and keeps the report there. It uses the existing
+crawl data without starting a crawl, scheduling delivery or sending email.
+Add `--ai-summary` to include the native AI summary. This uses your account's AI
+summary allowance. The result includes `report_id` and `task_id` for later
+downloads or deletion.

@@ -92,6 +92,9 @@ test('keyword exports require a destination and validate formats before acquirin
     await expect(cli([name, ...selection])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('--output') });
   }
   await expect(cli(['keyword-overview-pdf', '--keyword', 'typescript', '--confirm'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('--output') });
+  await expect(cli(['audit-web-vitals-pdf', '--campaign-id', '794', '--confirm'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('--output') });
+  const vitalsPreview = JSON.parse((await cli(['audit-web-vitals-pdf', '--campaign-id', '794', '--output', 'web-vitals.pdf', '--dry-run', '--json'])).stdout);
+  expect(vitalsPreview).toMatchObject({ preparation: [{ action: 'read_campaign' }, { action: 'create_essential_report' }, { action: 'generate_pdf' }, { action: 'download_ready_task' }] });
   const pdfPreview = JSON.parse((await cli(['keyword-overview-pdf', '--keyword', 'typescript', '--output', 'overview.pdf', '--dry-run', '--json'])).stdout);
   expect(pdfPreview).toMatchObject({ dry_run: true, retains_report: true, preparation: [{ action: 'create_essential_report' }, { action: 'generate_pdf' }, { action: 'download_ready_task' }] });
   await expect(cli(['keyword-bulk', '--keywords', '[]'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('Invalid keyword_bulk') });
@@ -159,8 +162,8 @@ test('Core Web Vitals URL-list previews stay offline and invalid IDs or unconfir
 test('built catalog distinguishes read reports and project writes', async () => {
   const { stdout, stderr } = await cli(['reports', '--json']);
   const listed = JSON.parse(stdout);
-  expect(listed).toHaveLength(360);
-  expect(listed.filter((entry: { read_only: boolean }) => !entry.read_only)).toHaveLength(119);
+  expect(listed).toHaveLength(361);
+  expect(listed.filter((entry: { read_only: boolean }) => !entry.read_only)).toHaveLength(120);
   expect(stderr).toBe('');
 });
 test('invalid usage fails before attempting authentication', async () => {
@@ -189,7 +192,7 @@ test('MCP advertises write safety and previews without an authenticated runtime'
     expect((await client.listResourceTemplates()).resourceTemplates[0]?.uriTemplate).toBe('semrush-export://{export_id}{?offset,limit}');
     await expect(client.readResource({ uri: 'semrush-export://unknown' })).rejects.toThrow('Download an export first');
     const listed = await client.listTools();
-    expect(listed.tools).toHaveLength(360);
+    expect(listed.tools).toHaveLength(361);
     for (const name of ['domain_position_changes_presets', 'domain_position_changes_daily_trend', 'domain_position_changes_monthly_trend', 'keyword_magic_access', 'keyword_magic_groups_summary', 'keyword_magic_topic_suggestions']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: true });
     expect(listed.tools.find(tool => tool.name === 'keyword_domain_prepare')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false, idempotentHint: false });
     for (const name of ['keyword_domain_suggestions', 'keyword_domain_root', 'keyword_domain_status', 'keyword_ai_databases', 'keyword_ai_summary', 'keyword_ai_topics']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: true });
@@ -207,7 +210,7 @@ test('MCP advertises write safety and previews without an authenticated runtime'
     for (const name of ['onpage_page_add', 'onpage_page_update', 'onpage_pages_add', 'onpage_pages_delete']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true, idempotentHint: false });
     for (const name of ['keyword_bulk', 'keyword_countries', 'keyword_product_ads', 'keyword_serp_organic_metrics', 'keyword_serp_backlink_metrics']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: true });
     for (const name of ['keyword_bulk_export', 'keyword_serp_export', 'keyword_serp_domains_export']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: true, idempotentHint: false });
-    expect(listed.tools.filter(tool => tool.name.startsWith('audit_web_vitals_'))).toHaveLength(8);
+    expect(listed.tools.filter(tool => tool.name.startsWith('audit_web_vitals_'))).toHaveLength(9);
     expect(listed.tools.filter(tool => tool.name.startsWith('audit_web_vitals_') && tool.annotations?.readOnlyHint)).toHaveLength(7);
     expect(listed.tools.find(tool => tool.name === 'audit_web_vitals_settings_set')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false });
     for (const name of ['position_alert_read', 'position_alert_mark_all_read']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false, idempotentHint: false });

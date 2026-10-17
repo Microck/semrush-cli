@@ -123,3 +123,24 @@ Use `--confirm` to send the change or `--dry-run` to preview it.
 | `--urls` | array |  | Required. One to ten unique absolute HTTP(S) URLs. Replaces the full saved selection. |
 | `--confirm` | boolean | `false` |  |
 | `--dry-run` | boolean | `false` |  |
+
+## audit-web-vitals-pdf
+
+Generate the native Core Web Vitals PDF from an existing Site Audit and save its Essential report in My Reports. Uses reporting allowance; no crawl, email or schedule.
+
+```sh
+semrush audit-web-vitals-pdf --help
+```
+
+MCP tool: `audit_web_vitals_pdf`.
+
+Use `--confirm` to send the change or `--dry-run` to preview it.
+
+Pass `--output <path>` to save the file. Existing files are not overwritten. MCP returns an artifact resource.
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `--campaign-id` | integer |  | Required. SEO project/campaign ID from project-enable-seo, not the folder ID. |
+| `--confirm` | boolean | `false` | Confirm report creation, privacy acceptance and PDF generation. |
+| `--dry-run` | boolean | `false` | Preview the export without account access. |
+| `--ai-summary` | boolean | `false` | Include the native AI Summary widget. Uses your account AI summary allowance. |

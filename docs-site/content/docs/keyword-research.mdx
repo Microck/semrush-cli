@@ -109,8 +109,9 @@ semrush keyword-overview-pdf --keyword typescript --confirm --output overview.pd
 ```
 
 This creates an Essential report in My Reports, accepts its Privacy Policy and
-generates the native PDF. It uses reporting allowance. Email, scheduling and
-AI summaries are disabled for this export.
+generates the native PDF. It uses reporting allowance. Email and scheduling
+are disabled. Add `--ai-summary` to include a summary using your account's
+AI summary allowance.
 
 The CLI receipt includes `data.manifest.report_id` and `data.manifest.task_id`.
 MCP returns those IDs in `data`. The saved report stays
