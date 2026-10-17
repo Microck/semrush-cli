@@ -1,15 +1,13 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-lockup-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="assets/logo-lockup.svg">
-    <img src="assets/logo-lockup.svg" width="720" alt="semrush cli logo">
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-lockup-dark.svg?v=compact">
+    <source media="(prefers-color-scheme: light)" srcset="assets/logo-lockup.svg?v=compact">
+    <img src="assets/logo-lockup.svg?v=compact" width="100%" alt="semrush cli logo">
   </picture>
-</p>
-
-<p align="center">
-  <a href="https://github.com/Microck/semrush-cli/releases"><img src="https://img.shields.io/github/v/release/Microck/semrush-cli?display_name=tag&style=flat-square&label=release&color=000000" alt="release badge"></a>
-  <a href="https://www.npmjs.com/package/semrush-cli"><img src="https://img.shields.io/npm/dt/semrush-cli?style=flat-square&label=downloads&color=000000" alt="npm downloads"></a>
-  <a href="https://github.com/Microck/semrush-cli/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Microck/semrush-cli/ci.yml?branch=main&style=flat-square&label=ci&color=000000" alt="ci badge"></a>
+  <br>
+  <a href="https://github.com/Microck/semrush-cli/releases"><img src="https://img.shields.io/github/v/release/Microck/semrush-cli?display_name=tag&style=flat-square&label=release&color=000000&cacheSeconds=300&v=1.0.0" alt="latest release badge"></a>
+  <a href="https://www.npmjs.com/package/semrush-cli"><img src="https://img.shields.io/npm/dt/semrush-cli?style=flat-square&label=downloads&color=000000&cacheSeconds=300&v=1.0.0" alt="npm downloads"></a>
+  <a href="https://github.com/Microck/semrush-cli/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Microck/semrush-cli/ci.yml?branch=main&style=flat-square&label=ci&color=000000&cacheSeconds=300&v=1.0.0" alt="ci badge"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-mit-000000?style=flat-square" alt="license badge"></a>
 </p>
 
