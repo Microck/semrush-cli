@@ -22,6 +22,25 @@ require an explicit policy acknowledgment, which remained unset. Creation,
 saving, PDF generation and downloads remain unsupported. No report, purchase,
 trial, email or policy acceptance was submitted.
 
+[CI run 38992789628](https://github.com/Microck/semrush-cli/actions/runs/38992789628)
+passed all five jobs, including package installation and setup on Linux, macOS
+and Windows. Fresh CI and public GitHub archive installations repeated the
+native CLI/MCP comparison successfully. The GitHub archive matches the CI
+package exactly, with SHA-256
+`e284763bcc930c1c38f47f5bfa740110e0ffe903315e31f5a4284be010c96439`.
+The production My Reports guide, coverage page, command reference and
+authentication guide passed mobile rendering checks without page errors or
+horizontal overflow. `/llms.txt` includes the new guide.
+
+The normal fresh npm version installation also passed actual CLI and MCP calls
+against the independent native query. Its archive matches CI and GitHub exactly.
+Registry publication initially entered asynchronous processing, then became
+available without republishing. The installed local command reports 0.27.0.
+
+Cleanup verified the original project still exists, forgot the remote session,
+stopped its daemon and removed the remote vault and native account captures.
+No new saved reports or account resources were created during this pass.
+
 ## Version 0.26.0 Web Bot Auth
 
 The catalog remains at 275 operations, 186 reads and 89 confirmed writes.

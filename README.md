@@ -621,7 +621,7 @@ semrush reporting-overview
 
 the result includes the first 30 saved reports, newest update first, with their schedules and at most one ready task per report. task filenames are metadata; this command does not download pdfs. mcp exposes `reporting_overview` with no arguments.
 
-live source cli and mcp checks matched the native query on a guru account with 34 templates, no saved reports and three essential report slots. the account had not accepted reporting's privacy policy. report creation, saving and pdf generation remain unsupported; the native workflow requires an explicit privacy acknowledgment. pagination beyond the first 30 reports is not available.
+live checks verified both the source and a fresh npm install of v0.27.0. cli and mcp matched the native query on a guru account with 34 templates, no saved reports and three essential report slots. the account had not accepted reporting's privacy policy. report creation, saving and pdf generation remain unsupported; the native workflow requires an explicit privacy acknowledgment. pagination beyond the first 30 reports is not available.
 
 ### chart notes
 
