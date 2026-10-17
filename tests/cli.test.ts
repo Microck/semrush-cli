@@ -115,6 +115,14 @@ test('domain preparation previews stay offline and unsupported personalization c
   await expect(cli(['keyword-serp', '--keyword', 'typescript', '--limit', '1001'])).rejects.toMatchObject({ code: 2, stdout: '' });
 });
 
+test('organic comparison CLI rejects invalid selectors before authentication and exposes native controls', async () => {
+  expect((await cli(['domain-position-changes', '--help'])).stdout).toContain('--date-range');
+  expect((await cli(['domain-keywords', '--help'])).stdout).toContain('--positions-type');
+  await expect(cli(['domain-position-changes', '--domain', 'example.com', '--date-range', '{"start_date":"20260230","end_date":"20260301"}'])).rejects.toMatchObject({ code: 2, stdout: '' });
+  await expect(cli(['domain-position-changes-presets', '--domain', 'example.com', '--page', '2'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('unknown option') });
+  await expect(cli(['domain-position-changes-daily-trend', '--domain', 'example.com', '--json'])).rejects.toMatchObject({ code: 1, stdout: '', stderr: expect.stringContaining('semrush setup') });
+});
+
 test('Keyword Magic rejects ignored grouping and invalid domain controls before authentication', async () => {
   expect((await cli(['keyword-magic-groups', '--help'])).stdout).toContain('--group-by');
   expect((await cli(['keyword-magic', '--help'])).stdout).toContain('--domain');
@@ -148,7 +156,7 @@ test('Core Web Vitals URL-list previews stay offline and invalid IDs or unconfir
 test('built catalog distinguishes read reports and project writes', async () => {
   const { stdout, stderr } = await cli(['reports', '--json']);
   const listed = JSON.parse(stdout);
-  expect(listed).toHaveLength(333);
+  expect(listed).toHaveLength(336);
   expect(listed.filter((entry: { read_only: boolean }) => !entry.read_only)).toHaveLength(101);
   expect(stderr).toBe('');
 });
@@ -178,8 +186,8 @@ test('MCP advertises write safety and previews without an authenticated runtime'
     expect((await client.listResourceTemplates()).resourceTemplates[0]?.uriTemplate).toBe('semrush-export://{export_id}{?offset,limit}');
     await expect(client.readResource({ uri: 'semrush-export://unknown' })).rejects.toThrow('Download an export first');
     const listed = await client.listTools();
-    expect(listed.tools).toHaveLength(333);
-    for (const name of ['keyword_magic_access', 'keyword_magic_groups_summary', 'keyword_magic_topic_suggestions']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: true });
+    expect(listed.tools).toHaveLength(336);
+    for (const name of ['domain_position_changes_presets', 'domain_position_changes_daily_trend', 'domain_position_changes_monthly_trend', 'keyword_magic_access', 'keyword_magic_groups_summary', 'keyword_magic_topic_suggestions']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: true });
     expect(listed.tools.find(tool => tool.name === 'keyword_domain_prepare')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false, idempotentHint: false });
     for (const name of ['keyword_domain_suggestions', 'keyword_domain_root', 'keyword_domain_status', 'keyword_ai_databases', 'keyword_ai_summary', 'keyword_ai_topics']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: true });
     expect(listed.tools.find(tool => tool.name === 'project_delete')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });

@@ -3,7 +3,7 @@ title: Web UI coverage
 description: Supported web workflows, evidence and remaining gaps.
 ---
 
-The CLI has 333 fixed operations: 232 reads and 101 confirmed writes.
+The CLI has 336 fixed operations: 235 reads and 101 confirmed writes.
 It uses your web session and the current web UI's request contracts. Account
 permissions and quotas apply to both interfaces. This is not full Semrush suite
 parity. The table distinguishes implemented workflows from remaining gaps.
@@ -12,8 +12,8 @@ parity. The table distinguishes implemented workflows from remaining gaps.
 | --- | --- | --- |
 | Keyword Overview and Bulk Analysis | Metrics, country rows, intent, trends, device and monthly snapshots, currency, bulk and personalized metrics, explicit root-domain preparation and job status, AI model volumes and topic samples, SERPs and URL/domain enrichment, ads and Product Listing Ads, related ideas and clusters; location lookup, cached local metrics/SERPs/URL counts, confirmed metric refresh and status; native bulk, national and local SERP CSV/semicolon CSV/XLSX downloads | Native PDF, separate chart-image downloads and full AI-topic exports |
 | Keyword Magic | Pagination, sorting, filters, questions, prepared-domain metrics, topic/word groups, count/volume group ordering, keyword/group totals, topic suggestions and native access limits; save selected phrases through list import | Native selected export returned a job ID but its first wait failed with code -32603; file downloads remain unsupported |
-| Organic Research | Rankings, pages, subdomains, competitors, position changes, topics, trends | Chart rendering; native CSV/XLSX exports display an export limit and the bounded CSV API probe returned an auth error |
-| Historical and mobile research | Database and snapshot selection, subject to account access | UI comparisons not represented by available report filters |
+| Organic Research | Rankings with organic/SERP-feature selection, pages, subdomains, competitors, daily/monthly comparison ranges, change-type filters, matching totals, preset counts, daily/monthly change trends and topics | Chart rendering; native CSV/XLSX exports display an export limit and the bounded CSV API probe returned an auth error |
+| Historical and mobile research | Database and snapshot selection, including explicit daily/monthly Organic Research comparisons | Side-by-side layouts and chart rendering |
 | Paid research | Paid keyword and competitor overview samples | Full advertising research workflows |
 | Keyword Gap | Paginated results, overlap and opportunity totals for 2-5 domains; save selected phrases through list import | UI visualization |
 | Backlink Analytics | Links, domains, anchors, pages, outbound links, history, country/category and authority metrics | Native CSV export returned HTTP 403 with the Guru session |
@@ -42,10 +42,14 @@ for Magic, Gap, Saved Keywords and the builder.
 
 ## Verification
 
-The source suite has 281 tests, including real Chromium, a private Galleton
+The source suite has 289 tests, including real Chromium, a private Galleton
 daemon and stateful HTTP fixtures. All 48 original research mappings also have
 differential tests against the Python reference. Across versioned live passes,
-all 232 reads have execution evidence. Keyword Magic source and exact release
+all 235 reads have execution evidence. Organic Research source CLI and MCP
+matched 20 independent native selections, including comparison ranges,
+organic/SERP-feature selection, change types, row/count pairs, preset totals
+and daily/monthly/mobile trends. Public artifact verification is in progress.
+Keyword Magic source and exact release
 archive CLI and MCP matched 16 independent native selections, including
 prepared-domain metrics, word/topic grouping, both group sort orders, pagination
 and difficulty filters. The domain and AI

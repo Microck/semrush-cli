@@ -30,6 +30,7 @@ import { makeReportingFixture } from './reporting-fixture.js';
 import { makeKeywordResearchFixture, keywordDownloadPath, keywordFixturePhrase } from './keyword-research-fixture.js';
 import { makeWebVitalsFixture, webVitalsPath, negativeURLId, positiveURLId } from './web-vitals-fixture.js';
 import { makeOnpageFixture, onpagePath, onpagePageId, onpageSnapshotId } from './onpage-fixture.js';
+import { makeOrganicResearchFixture } from './organic-research-fixture.js';
 
 const exec = promisify(execFile);
 const binary = resolve(`dist/daemon/galleton-${process.platform}-${process.arch}${process.platform === 'win32' ? '.exe' : ''}`);
@@ -73,6 +74,7 @@ const reportingFixture = makeReportingFixture();
 const webVitalsFixture = makeWebVitalsFixture();
 const keywordResearchFixture = makeKeywordResearchFixture();
 const onpageFixture = makeOnpageFixture();
+const organicResearchFixture = makeOrganicResearchFixture();
 const fixtureHandlers = new Map([...archivePaths.map(path => [path, auditArchiveFixture.serve] as const), [folderPath, serveProjectFixture], [savedPath, serveSavedFixture], ['/notes/api/', serveNotesFixture], ['/siteaudit/api/campaigns/789/js-impact/', serveJSImpactFixture], ['/siteaudit/export/js-impact/', serveJSImpactFixture], ['/analytics/keywordmanager/list', mindmapFixture.serve], ['/mindmap-download', mindmapFixture.serve], [auditAuthPath, webBotAuthFixture.serve], ['/my_reports/graphql/', reportingFixture.serve], [webVitalsPath, webVitalsFixture.serve], [keywordDownloadPath, keywordResearchFixture.serveDownload], [onpagePath, onpageFixture.serve]]);
 /** Serve the native authentication checks separately from report fixtures. */
 function serveAuthenticationFixture(request: IncomingMessage, response: ServerResponse, url: URL): boolean {
@@ -94,6 +96,7 @@ const fixture = createServer(async (request, response) => {
   if (serveAuthenticationFixture(request, response, url)) return;
   const handler = [...fixtureHandlers].find(([prefix]) => url.pathname.startsWith(prefix))?.[1];
   if (handler) { await handler(request, response, url); return; }
+  if (url.pathname === '/dpa/rpc') { await organicResearchFixture.serve(request, response); return; }
   if (url.pathname === '/siteaudit/api/campaigns/seolist') { response.setHeader('Content-Type', 'application/json'); response.end(JSON.stringify([...(auditConfigured ? [{ id: 789 }] : []), ...webBotAuthFixture.campaigns()])); return; }
   if (url.pathname.startsWith('/siteaudit/export/')) {
     expect(url.searchParams.get('key')).toBe('fixture-secret');
@@ -438,6 +441,58 @@ test('real multipart uploads and protected audit edits preserve credentials and 
   }
 }, 30000);
 
+
+test('organic comparisons retain native date ranges, selectors, pagination and matching totals', async () => {
+  organicResearchFixture.use();
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const service = yield* Semrush;
+    const call = (name: string, query: Query = {}) => parseReport(name, { domain: 'fixture.example', ...query }).pipe(Effect.flatMap(request => service.report(request)));
+    const daily = { start_date: '20261015', end_date: '20261016' };
+    const result = yield* call('domain_position_changes', { date_range: daily, change_types: ['new', 'improved'], page: 2, page_size: 1 });
+    expect(result.data).toEqual({ rows: [{ keyword: 'fixture feature', position: 1, previousPosition: 3, positionIsSERPFeature: 1, traffic: 30, urlHash: '9223372036854775807', native_extra: false }], total: 2, page: 2, page_size: 1 });
+    expect(organicResearchFixture.observed.map(call => call.method)).toEqual(['organic.PositionChangesV2', 'organic.PositionChangesTotalV2']);
+    for (const observed of organicResearchFixture.observed) expect(observed.args).toMatchObject({ dateRange: { startDate: '20261015', endDate: '20261016' }, changesTypes: ['new', 'improved'], positionsType: 'all', dateType: 'daily' });
+    expect((yield* call('domain_position_changes', { database: 'mobile-us', date_type: 'monthly', date_range: { start_date: '202608', end_date: '202609' }, positions_type: 'serp' })).data).toMatchObject({ rows: [{ keyword: 'fixture feature', positionIsSERPFeature: 1 }], total: 1 });
+    expect(organicResearchFixture.observed.at(-1)?.args).toMatchObject({ database: 'mobile-us', dateRange: { startDate: '20260815', endDate: '20260915' }, positionsType: 'serpFeatures' });
+    expect((yield* call('domain_keywords', { positions_type: 'organic' })).data).toMatchObject({ rows: [{ keyword: 'fixture new' }, { keyword: 'fixture declined' }], total: 2 });
+    expect((yield* call('domain_keywords', { positions_type: 'serp' })).data).toMatchObject({ rows: [{ keyword: 'fixture feature' }], total: 1 });
+  }).pipe(Effect.provide(fixtureLayer()))));
+  expect((await sdk.headers('test', fixtureURL)).Cookie).toContain('organic_rotation=retained');
+});
+
+test('organic presets and trends retain complete native data, zeros and empty arrays', async () => {
+  try {
+    organicResearchFixture.use();
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const service = yield* Semrush;
+      const call = (name: string, query: Query = {}) => parseReport(name, { domain: 'fixture.example', ...query }).pipe(Effect.flatMap(request => service.report(request)));
+      expect((yield* call('domain_position_changes_presets', { date_type: 'monthly', date_range: { start_date: '202608', end_date: '202609' } })).data).toEqual({ positionsDropping: 2, positionsSerpChanges: 1, positionsTotal: 4, positionsTrending: 2, native_extra: false });
+      for (const [name, date] of [['domain_position_changes_daily_trend', '20261016'], ['domain_position_changes_monthly_trend', '202609']] as const) expect((yield* call(name, { database: 'mobile-us' })).data).toEqual([{ date, positionsDropping: 0, positionsTrending: 2, traffic: 0, native_extra: false }]);
+      organicResearchFixture.use('empty');
+      expect((yield* call('domain_position_changes')).data).toMatchObject({ rows: [], total: 0 });
+      expect((yield* call('domain_position_changes_presets')).data).toEqual({ positionsDropping: 0, positionsSerpChanges: 0, positionsTotal: 0, positionsTrending: 0, native_extra: false });
+      expect((yield* call('domain_position_changes_daily_trend')).data).toEqual([]);
+      expect((yield* call('domain_position_changes_monthly_trend')).data).toEqual([]);
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { organicResearchFixture.use(); }
+});
+
+test('organic errors retain provider codes and reject incomplete row-plus-total results without replay', async () => {
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const service = yield* Semrush;
+      for (const [scenario, name, code, calls] of [['denied', 'domain_position_changes_daily_trend', -32099, 1], ['totals-failed', 'domain_position_changes', -32098, 2]] as const) {
+        organicResearchFixture.use(scenario);
+        const request = yield* parseReport(name, { domain: 'fixture.example' });
+        const failure = yield* service.report(request).pipe(Effect.flip);
+        expect(failure).toMatchObject({ _tag: 'ReportError', providerCode: code });
+        expect(failure.message).not.toContain('fixture-secret'); expect(organicResearchFixture.observed).toHaveLength(calls);
+      }
+      organicResearchFixture.use();
+      expect((yield* service.report(yield* parseReport('domain_position_changes_presets', { domain: 'fixture.example' }))).data).toHaveProperty('positionsTotal', 4);
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { organicResearchFixture.use(); }
+});
 
 test('Keyword Magic retains personalized rows, native metadata and zero counts without preparing or refreshing', async () => {
   keywordResearchFixture.use();

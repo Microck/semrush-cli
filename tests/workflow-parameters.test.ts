@@ -18,6 +18,48 @@ const keywordParameters = async (name: string, input: Query) => {
   return reportParameters(parsed.definition, parsed.query);
 };
 
+test('organic comparison ranges and selectors use the current native request context', async () => {
+  const daily = { domain: 'example.com', date_range: { start_date: '20261015', end_date: '20261016' }, change_types: ['new', 'improved'], positions_type: 'serp' };
+  expect(await keywordParameters('domain_position_changes', daily)).toMatchObject({ database: 'us', dateType: 'daily', dateRange: { startDate: '20261015', endDate: '20261016' }, positionsType: 'serpFeatures', changesTypes: ['new', 'improved'] });
+  expect(await keywordParameters('domain_position_changes', { domain: 'example.com', date_type: 'monthly', date_range: { start_date: '202608', end_date: '202609' } })).toMatchObject({ dateType: 'monthly', dateRange: { startDate: '20260815', endDate: '20260915' }, positionsType: 'all', changesTypes: null });
+  expect(await keywordParameters('domain_position_changes', { domain: 'example.com' })).toMatchObject({ dateRange: null, changesTypes: null });
+  expect(await keywordParameters('domain_keywords', { domain: 'example.com', database: 'mobile-us', positions_type: 'organic' })).toMatchObject({ database: 'mobile-us', positionsType: 'organic' });
+});
+
+test('organic presets and trends accept only their native report context', async () => {
+  expect(await keywordParameters('domain_position_changes_presets', { domain: 'example.com', search_type: 'subdomain' })).toEqual({ searchItem: 'example.com', searchType: 'subdomain', database: 'us', dateType: 'daily', dateRange: null });
+  for (const name of ['domain_position_changes_daily_trend', 'domain_position_changes_monthly_trend']) expect(await keywordParameters(name, { domain: 'example.com', database: 'mobile-us', search_type: 'subfolder' })).toEqual({ searchItem: 'example.com', searchType: 'subfolder', database: 'mobile-us' });
+});
+
+test('organic comparison boundaries reject invalid dates, mixed precisions and conflicting selectors', async () => {
+  const invalid: Query[] = [
+    { date_range: { start_date: '20260230', end_date: '20260301' } },
+    { date_range: { start_date: '20261017', end_date: '20261016' } },
+    { date_range: { start_date: '202610', end_date: '20261016' } },
+    { date_range: { start_date: '20261015\n', end_date: '20261016' } },
+    { date_range: { start_date: '20261015', end_date: '20261016', method: 'export.Get' } },
+    { date_type: 'monthly', date_range: { start_date: '202613', end_date: '202614' } },
+    { date_type: 'monthly', date_range: { start_date: '20260815', end_date: '20260915' } },
+    { date_range: { start_date: '20261015' } },
+  ];
+  for (const name of ['domain_position_changes', 'domain_position_changes_presets']) for (const query of invalid) await expect(keywordParameters(name, { domain: 'example.com', ...query })).rejects.toThrow();
+  await expect(keywordParameters('domain_position_changes', { domain: 'example.com', date: 1792108800, date_range: { start_date: '20261015', end_date: '20261016' } })).rejects.toThrow('snapshot date or a comparison date_range');
+  expect(await keywordParameters('domain_position_changes', { domain: 'example.com', date_range: { start_date: '20240229', end_date: '20240301' } })).toMatchObject({ dateRange: { startDate: '20240229', endDate: '20240301' } });
+});
+
+test('organic report selections reject unsupported or ignored controls before authentication', async () => {
+  const invalidSelections: Query[] = [{ positions_type: 'serpFeatures' }, { positions_type: 'unknown' }, { database: 'mobile-us\n' }, { search_type: 'domain\r' }, { sort_field: 'traffic\n' }];
+  for (const name of ['domain_keywords', 'domain_position_changes']) {
+    for (const query of invalidSelections) await expect(keywordParameters(name, { domain: 'example.com', ...query })).rejects.toThrow();
+  }
+  for (const change_types of [['new', 'new'], ['rising']]) await expect(keywordParameters('domain_position_changes', { domain: 'example.com', change_types })).rejects.toThrow();
+  const ignoredControls: Query[] = [{ positions_type: 'organic' }, { change_types: ['new'] }, { filters: {} }, { page: 2 }, { currency: 'EUR' }, { method: 'export.Get' }];
+  for (const name of ['domain_position_changes_presets', 'domain_position_changes_daily_trend', 'domain_position_changes_monthly_trend']) {
+    for (const query of ignoredControls) await expect(keywordParameters(name, { domain: 'example.com', ...query })).rejects.toThrow();
+  }
+  for (const name of ['domain_position_changes_daily_trend', 'domain_position_changes_monthly_trend']) await expect(keywordParameters(name, { domain: 'example.com', date_type: 'monthly' })).rejects.toThrow();
+});
+
 test('Keyword Magic discovery and personalized selections retain native request contexts', async () => {
   expect(await keywordParameters('keyword_magic_access', {})).toEqual({});
   for (const name of ['keyword_magic', 'keyword_magic_summary', 'keyword_magic_groups', 'keyword_magic_groups_summary', 'keyword_magic_topic_suggestions']) {

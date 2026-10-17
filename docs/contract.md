@@ -1194,3 +1194,44 @@ The native selected-export initializer returned a nonempty job ID, but its first
 wait failed with code -32603. That job was not recreated. Export commands remain
 unsupported until the provider produces a verified file; no alternate download
 route or automatic retry is introduced.
+
+
+## Organic Research comparison controls
+
+The current Organic Research client supplies explicit comparison ranges,
+position and change-type selections, preset totals and daily/monthly change
+trends. Three fixed reads bring the candidate catalog to 336 operations,
+235 reads and 101 confirmed writes. No export, report creation or account
+settings request is added.
+
+- `domain_position_changes` accepts an optional `date_range` with `start_date`
+  and `end_date`. Daily ranges use `YYYYMMDD`; monthly ranges use `YYYYMM` and
+  `date_type:monthly`. The native monthly serializer appends day 15, matching
+  the current client. The boundary rejects impossible dates, reversed ranges,
+  mixed precisions and a non-null snapshot `date` together with a range.
+  Omitted ranges keep the native default. Rows and totals use the same context.
+- `domain_keywords` and `domain_position_changes` accept `positions_type` with
+  `all` (default), `organic` or `serp`. The native SERP-only value is
+  `serpFeatures`. This is a report selection, not a settings write.
+- `domain_position_changes` accepts unique `change_types` values `new`,
+  `improved`, `declined` and `lost`. An empty or omitted selection sends native
+  `null`, preserving the existing default. Filtering, sorting and pagination
+  remain part of the same native request.
+- `domain_position_changes_presets` reads
+  `organic.PositionChangesPresetsTotalV2` for the selected domain, database,
+  search type and comparison range. Preset totals do not accept table filters,
+  pagination or position/change-type selections.
+- `domain_position_changes_daily_trend` and
+  `domain_position_changes_monthly_trend` read fixed
+  `organic.DailyChangesTrendV2` and `organic.MonthlyChangesTrendV2` methods. Their
+  context is domain, database and search type; no caller dates, arbitrary RPC
+  method, currency or export arguments are accepted. Complete native arrays
+  and unknown fields are retained.
+
+The primary client is
+`https://static.semrush.com/organic-research/1828.6d617f8606b0789fa104.js`,
+loaded by the current native page. Its date-range formatter preserves daily
+strings and appends `15` to six-digit monthly values. Read-only Guru probes
+returned three rows for daily, monthly and mobile ranges, positive preset
+counts, 28 daily trend points and 24 monthly trend points. Native CSV/XLSX
+exports remain unsupported under the restrictions recorded above.

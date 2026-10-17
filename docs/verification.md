@@ -1,5 +1,23 @@
 # Verification
 
+## Version 0.35.0 candidate
+
+The candidate adds explicit daily/monthly Organic Research comparison ranges,
+organic/SERP-feature selection, change types, preset totals and daily/monthly
+change trends. The catalog has 336 operations, 235 reads and 101 confirmed
+writes. Seventeen independent native selections returned positive daily,
+monthly and mobile rows, matching totals, selected change types, organic and
+SERP-feature rankings, preset counts and complete daily/monthly trends.
+
+The full Raft check passed 289 tests, including 89 real-browser integration
+tests and 24 CLI/MCP checks. Strict types, lint, reference checks and five daemon
+builds passed. All three code reviews found no changes to make. Source CLI and
+MCP matched 20 complete independent native selections, including filtered
+row/count pairs, daily/monthly/mobile ranges, position types, presets and trends.
+The verification helper records the binary hash and rejects cross-build resumes.
+The production documentation build also passed on Raft. Public artifact
+verification is continuing.
+
 ## Version 0.34.0 Keyword Magic personalization and grouping
 
 The release adds three Keyword Magic reads and prepared-domain and grouping

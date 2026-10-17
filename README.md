@@ -79,7 +79,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 
 ## command surface
 
-333 operations, available as cli commands and mcp tools. 232 reads and 101 writes that need explicit confirmation.
+336 operations, available as cli commands and mcp tools. 235 reads and 101 writes that need explicit confirmation.
 
 | command | what it does |
 | --- | --- |
@@ -97,6 +97,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 | `keyword-ai-databases`, `keyword-ai-summary`, `keyword-ai-topics` | read keyword ai databases, native model volumes and topic samples |
 | `domain-overview`, `domain-keywords`, `domain-competitors` | organic rankings and competing domains |
 | `domain-pages`, `domain-subdomains`, `domain-position-changes` | pages, subdomains and ranking changes |
+| `domain-position-changes-presets`, `domain-position-changes-daily-trend`, `domain-position-changes-monthly-trend` | read native comparison presets and ranking change trends |
 | `keyword-gap`, `backlink-gap` | compare domains and find keyword or backlink opportunities |
 | `backlink-links`, `backlink-referring-domains`, `backlink-anchors` | inspect backlinks, referring domains and anchor text |
 | `backlink-audit-limits`, `backlink-audit-project`, `backlink-audit-scopes`, `backlink-audit-create` | check allowance and scope, then start a backlink audit |
@@ -315,6 +316,21 @@ semrush keyword-gap --domains '["openai.com","anthropic.com"]'
 semrush backlink-links --domain openai.com
 semrush backlink-gap --domains '["openai.com","anthropic.com"]'
 ```
+
+compare organic research snapshots and select the changes you want:
+
+```bash
+semrush domain-position-changes --domain openai.com \
+  --date-range '{"start_date":"20261001","end_date":"20261015"}' \
+  --change-types '["new","improved"]' --positions-type organic
+semrush domain-position-changes --domain openai.com --date-type monthly \
+  --date-range '{"start_date":"202609","end_date":"202610"}'
+semrush domain-position-changes-presets --domain openai.com
+semrush domain-position-changes-daily-trend --domain openai.com
+semrush domain-position-changes-monthly-trend --domain openai.com
+```
+
+use `YYYYMMDD` for daily comparisons or `YYYYMM` with `--date-type monthly`. an explicit date range cannot be combined with a snapshot `--date`. `--change-types` takes unique `new`, `improved`, `declined` or `lost` values; omit it for all changes. `domain-keywords` and `domain-position-changes` accept `--positions-type all|organic|serp` to select all positions, organic rankings or serp features. use a mobile database such as `mobile-us` for mobile research. see [organic research](https://semrush.micr.dev/docs/organic-research) for the comparison inputs.
 
 ### backlink audit
 
@@ -1018,7 +1034,7 @@ npm run check
 
 the cli uses the published [`galleton` 0.1.0 sdk](https://www.npmjs.com/package/galleton). the bundled galleton daemon is still required for sessions. building it from source requires go 1.23 or newer, `tar` and `patch`. published cli packages include the daemon for supported platforms, so npm users do not need go.
 
-the current source passed 281 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
+the current source passed 289 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
 
 ## documentation
 

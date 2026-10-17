@@ -103,3 +103,10 @@ serializer shares one context for rows, summaries, groups and topic suggestions.
 Prepared domains never trigger initialization. Topic grouping uses fixed
 relevance order; word grouping omits the native topic flag and sends count or
 volume order. Grouping controls are validated at the public schema boundary.
+
+Organic Research comparisons validate calendar precision, ordering and conflicting
+snapshot selectors once at the public boundary. One shared serializer maps
+monthly comparison markers and position/change-type selections. Rows and totals
+share that context; preset totals and daily/monthly trends each use a fixed
+native method with their narrower selectors. No discovery call or settings write
+is hidden inside those reads.

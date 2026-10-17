@@ -7,6 +7,23 @@ const ajv = new Ajv({ useDefaults: true, allErrors: true, strict: false });
 const validators = new Map(Object.entries(reports).map(([name, report]) => [name, ajv.compile<Query>(report.schema)]));
 export function isReportName(name: string): name is ReportName { return Object.hasOwn(reports, name); }
 
+/** Calendar and selection rules run once after the public JSON schema boundary. */
+const validateOrganicComparison = Effect.fn('Reports.organicComparison')(function* (query: Query) {
+  if (query.date_range === undefined) return;
+  // SAFETY: Ajv validated this object's required string fields above.
+  const range = query.date_range as { start_date: string; end_date: string };
+  const monthly = query.date_type === 'monthly';
+  for (const [key, value] of Object.entries(range)) {
+    const expectedLength = monthly ? 6 : 8;
+    const day = monthly ? '01' : value.slice(6, 8);
+    const iso = `${value.slice(0, 4)}-${value.slice(4, 6)}-${day}T00:00:00.000Z`;
+    const timestamp = new Date(iso);
+    if (value.length !== expectedLength || !Number.isFinite(timestamp.getTime()) || timestamp.toISOString() !== iso) return yield* Effect.fail(new UsageError({ message: `${key} must be a valid ${monthly ? 'YYYYMM month' : 'YYYYMMDD date'} for date_type.` }));
+  }
+  if (range.start_date > range.end_date) return yield* Effect.fail(new UsageError({ message: 'date_range start_date must not exceed end_date.' }));
+  if (query.date !== undefined && query.date !== null) return yield* Effect.fail(new UsageError({ message: 'Choose a snapshot date or a comparison date_range, not both.' }));
+});
+
 /** Validate once at the public boundary, populate schema defaults, reject unknown keys. */
 export const parseReport = Effect.fn('Reports.parse')(function* (name: string, input: Query) {
   if (!isReportName(name)) return yield* Effect.fail(new UsageError({ message: `Unknown report: ${name}. Run semrush reports.` }));
@@ -32,6 +49,7 @@ export const parseReport = Effect.fn('Reports.parse')(function* (name: string, i
   }
   if (name === 'audit_export_compare' && query.first_snapshot_id === query.second_snapshot_id) return yield* Effect.fail(new UsageError({ message: 'Choose two different Site Audit snapshots for comparison.' }));
   const definition = reports[name];
+  if (definition.transport === 'domain') yield* validateOrganicComparison(query);
   if (definition.transport === 'notes_web') {
     for (const key of ['datetime', 'datetime_from', 'datetime_to']) {
       const timestamp = query[key];

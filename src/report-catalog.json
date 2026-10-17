@@ -915,7 +915,7 @@
         },
         "database": {
           "default": "us",
-          "pattern": "^(mobile-)?[a-z]{2}$",
+          "pattern": "^(mobile-)?[a-z]{2}(?![\\s\\S])",
           "title": "Database",
           "type": "string"
         },
@@ -935,15 +935,23 @@
         },
         "search_type": {
           "default": "domain",
-          "pattern": "^(domain|subdomain|subfolder|url)$",
           "title": "Search Type",
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "domain",
+            "subdomain",
+            "subfolder",
+            "url"
+          ]
         },
         "date_type": {
           "default": "daily",
-          "pattern": "^(daily|monthly)$",
           "title": "Date Type",
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "daily",
+            "monthly"
+          ]
         },
         "page": {
           "default": 1,
@@ -960,7 +968,7 @@
         },
         "sort_field": {
           "default": "trafficPercent",
-          "pattern": "^[a-zA-Z]+$",
+          "pattern": "^[a-zA-Z]+(?![\\s\\S])",
           "title": "Sort Field",
           "type": "string"
         },
@@ -974,6 +982,17 @@
           "description": "Organic report web filter object",
           "title": "Filters",
           "type": "object"
+        },
+        "positions_type": {
+          "type": "string",
+          "enum": [
+            "all",
+            "organic",
+            "serp"
+          ],
+          "default": "all",
+          "title": "Positions Type",
+          "description": "All positions, organic rankings only, or SERP-feature positions only."
         }
       },
       "required": [
@@ -1182,7 +1201,7 @@
         },
         "database": {
           "default": "us",
-          "pattern": "^(mobile-)?[a-z]{2}$",
+          "pattern": "^(mobile-)?[a-z]{2}(?![\\s\\S])",
           "title": "Database",
           "type": "string"
         },
@@ -1202,15 +1221,23 @@
         },
         "search_type": {
           "default": "domain",
-          "pattern": "^(domain|subdomain|subfolder|url)$",
           "title": "Search Type",
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "domain",
+            "subdomain",
+            "subfolder",
+            "url"
+          ]
         },
         "date_type": {
           "default": "daily",
-          "pattern": "^(daily|monthly)$",
           "title": "Date Type",
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "daily",
+            "monthly"
+          ]
         },
         "page": {
           "default": 1,
@@ -1227,7 +1254,7 @@
         },
         "sort_field": {
           "default": "changeOfTraffic",
-          "pattern": "^[a-zA-Z]+$",
+          "pattern": "^[a-zA-Z]+(?![\\s\\S])",
           "title": "Sort Field",
           "type": "string"
         },
@@ -1241,6 +1268,54 @@
           "description": "Organic report web filter object",
           "title": "Filters",
           "type": "object"
+        },
+        "positions_type": {
+          "type": "string",
+          "enum": [
+            "all",
+            "organic",
+            "serp"
+          ],
+          "default": "all",
+          "title": "Positions Type",
+          "description": "All positions, organic rankings only, or SERP-feature positions only."
+        },
+        "change_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "new",
+              "improved",
+              "declined",
+              "lost"
+            ]
+          },
+          "uniqueItems": true,
+          "maxItems": 4,
+          "default": [],
+          "description": "Selected position changes; empty or omitted means all changes."
+        },
+        "date_range": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "start_date",
+            "end_date"
+          ],
+          "properties": {
+            "start_date": {
+              "type": "string",
+              "pattern": "^[0-9]{6}([0-9]{2})?(?![\\s\\S])",
+              "description": "YYYYMMDD for daily comparisons, YYYYMM for monthly comparisons."
+            },
+            "end_date": {
+              "type": "string",
+              "pattern": "^[0-9]{6}([0-9]{2})?(?![\\s\\S])",
+              "description": "YYYYMMDD for daily comparisons, YYYYMM for monthly comparisons."
+            }
+          },
+          "description": "Comparison endpoints in the selected date_type; cannot be combined with a snapshot date."
         }
       },
       "required": [
@@ -18514,6 +18589,168 @@
       "additionalProperties": false,
       "properties": {},
       "title": "MagicAccessQuery"
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
+  },
+  "domain_position_changes_presets": {
+    "method": "organic.PositionChangesPresetsTotalV2",
+    "description": "Native totals for dropping, trending and SERP-feature change presets.",
+    "transport": "domain",
+    "total_method": "",
+    "web_report": "organic.changes",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "description": "Bare domain, e.g. openai.com",
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^(mobile-)?[a-z]{2}(?![\\s\\S])",
+          "title": "Database",
+          "type": "string"
+        },
+        "search_type": {
+          "default": "domain",
+          "title": "Search Type",
+          "type": "string",
+          "enum": [
+            "domain",
+            "subdomain",
+            "subfolder",
+            "url"
+          ]
+        },
+        "date_type": {
+          "default": "daily",
+          "title": "Date Type",
+          "type": "string",
+          "enum": [
+            "daily",
+            "monthly"
+          ]
+        },
+        "date_range": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "start_date",
+            "end_date"
+          ],
+          "properties": {
+            "start_date": {
+              "type": "string",
+              "pattern": "^[0-9]{6}([0-9]{2})?(?![\\s\\S])",
+              "description": "YYYYMMDD for daily comparisons, YYYYMM for monthly comparisons."
+            },
+            "end_date": {
+              "type": "string",
+              "pattern": "^[0-9]{6}([0-9]{2})?(?![\\s\\S])",
+              "description": "YYYYMMDD for daily comparisons, YYYYMM for monthly comparisons."
+            }
+          },
+          "description": "Comparison endpoints in the selected date_type; cannot be combined with a snapshot date."
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "OrganicChangesQuery",
+      "type": "object"
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
+  },
+  "domain_position_changes_daily_trend": {
+    "method": "organic.DailyChangesTrendV2",
+    "description": "Complete native daily position-change trend for the selected target.",
+    "transport": "domain",
+    "total_method": "",
+    "web_report": "organic.changes",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "description": "Bare domain, e.g. openai.com",
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^(mobile-)?[a-z]{2}(?![\\s\\S])",
+          "title": "Database",
+          "type": "string"
+        },
+        "search_type": {
+          "default": "domain",
+          "title": "Search Type",
+          "type": "string",
+          "enum": [
+            "domain",
+            "subdomain",
+            "subfolder",
+            "url"
+          ]
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "OrganicChangesQuery",
+      "type": "object"
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": ""
+  },
+  "domain_position_changes_monthly_trend": {
+    "method": "organic.MonthlyChangesTrendV2",
+    "description": "Complete native monthly position-change trend for the selected target.",
+    "transport": "domain",
+    "total_method": "",
+    "web_report": "organic.changes",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "description": "Bare domain, e.g. openai.com",
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "database": {
+          "default": "us",
+          "pattern": "^(mobile-)?[a-z]{2}(?![\\s\\S])",
+          "title": "Database",
+          "type": "string"
+        },
+        "search_type": {
+          "default": "domain",
+          "title": "Search Type",
+          "type": "string",
+          "enum": [
+            "domain",
+            "subdomain",
+            "subfolder",
+            "url"
+          ]
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "OrganicChangesQuery",
+      "type": "object"
     },
     "mutation": false,
     "destructive": false,

@@ -318,13 +318,19 @@ function domainParameters(definition: Report, q: Query): Query {
   if (!('domain' in q)) return { database: (q.database ?? null) };
   const params: Query = { searchItem: (q.domain ?? null), searchType: 'domain', dateFormat: 'date', dateType: q.date_type ?? 'daily' };
   if ('database' in q) params.database = (q.database ?? null);
+  if (method.endsWith('ChangesTrendV2')) return { searchItem: q.domain, searchType: q.search_type ?? 'domain', database: q.database ?? 'us' };
+  if (method === 'organic.PositionChangesPresetsTotalV2') return { searchItem: q.domain, searchType: q.search_type ?? 'domain', database: q.database ?? 'us', dateType: q.date_type ?? 'daily', dateRange: organicComparisonRange(q) };
   if ('search_type' in q) {
     delete params.dateFormat;
     if ((q.date ?? null) !== null) params.date = (q.date ?? null);
     Object.assign(params, { searchType: (q.search_type ?? null), display: { page: (q.page ?? null), pageSize: (q.page_size ?? null), order: { field: (q.sort_field ?? null), direction: q.descending ? 'desc' : 'asc' } } });
-    if (method === 'organic.Positions' || method === 'organic.PositionChangesV2') params.positionsType = 'all';
+    if (method === 'organic.Positions' || method === 'organic.PositionChangesV2') params.positionsType = q.positions_type === 'serp' ? 'serpFeatures' : q.positions_type ?? 'all';
     if ('filters' in q) params.filter = (q.filters ?? null);
-    if (method === 'organic.PositionChangesV2') Object.assign(params, { changesTypes: null, dateRange: null });
+    if (method === 'organic.PositionChangesV2') {
+      // SAFETY: Ajv validates the optional array before this serializer runs.
+      const changeTypes = q.change_types as string[] | undefined;
+      Object.assign(params, { changesTypes: changeTypes?.length ? changeTypes : null, dateRange: organicComparisonRange(q) });
+    }
   }
   if (method.endsWith('CompetitorsOverview')) Object.assign(params, { display: { page: 1, pageSize: (q.limit ?? null) }, youDomain: true });
   if (method === 'organic.OverviewTrend') {
@@ -337,6 +343,15 @@ function domainParameters(definition: Report, q: Query): Query {
   }
   if (method === 'organic.AiTopSources') params.range = { limit: (q.limit ?? null), offset: (q.offset ?? null) };
   return params;
+}
+
+/** Monthly comparison endpoints use the current native client's middle-of-month marker. */
+function organicComparisonRange(query: Query): Query | null {
+  // SAFETY: Ajv validates both date strings; parseReport checks precision, dates and ordering.
+  const range = query.date_range as { start_date: string; end_date: string } | undefined;
+  if (!range) return null;
+  const suffix = query.date_type === 'monthly' ? '15' : '';
+  return { startDate: range.start_date + suffix, endDate: range.end_date + suffix };
 }
 
 
