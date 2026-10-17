@@ -101,7 +101,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
         multipart[file.field] = { name: file.filename, mimeType: 'text/plain', buffer: Buffer.from(file.contents) };
       } else if (['POST', 'PUT', 'PATCH'].includes(method) || method === 'DELETE' && !queryOnly) Object.assign(headers, { 'Content-Type': 'application/json' });
       const response = await context.request.fetch(address.href, {
-        method, headers, timeout: 45000, maxRetries: 0,
+        method, headers, timeout: 90000, maxRetries: 0,
         ...(file ? { multipart } : !queryOnly && payload !== null ? { data: JSON.stringify(payload) } : {}),
       });
       try { return { status: response.status(), text: await response.text() }; }

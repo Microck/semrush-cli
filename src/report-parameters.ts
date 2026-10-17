@@ -247,9 +247,13 @@ function savedKeywordParameters(path: string, q: Query): Query {
 
 function magicParameters(definition: Report, q: Query): Query {
   const method = definition.method;
+  if (method === 'user.GetInfo') return {};
+  const topics = q.group_by !== 'words';
   const filters: Query = Object.fromEntries(['phrase', 'competition_level', 'cpc', 'difficulty', 'results', 'volume', 'words_count'].map(key => [key, []]));
   Object.assign(filters, { serp_features: [{ inverted: false, value: [] }], phrase_include_logic: 0 }, (q.filters ?? null));
-  const params: Query = { phrase: (q.keyword ?? null), database: (q.database ?? null), currency: (q.currency ?? null), mode: (q.mode ?? null), questions_only: (q.questions_only ?? null), topics_enabled: true, filter: filters, groups: (q.groups ?? null), order: { direction: q.descending ? 1 : 0, field: (q.sort_field ?? null) }, groups_order: { direction: 1, field: 'relevance' } };
+  const params: Query = { phrase: (q.keyword ?? null), database: (q.database ?? null), currency: (q.currency ?? null), mode: (q.mode ?? null), questions_only: (q.questions_only ?? null), filter: filters, groups: q.groups ?? [], order: { direction: q.descending ? 1 : 0, field: q.sort_field ?? (topics ? 'similarity_score' : 'volume') }, groups_order: { direction: q.groups_descending === false ? 0 : 1, field: topics ? 'relevance' : q.groups_sort_field ?? 'count' } };
+  if (topics) params.topics_enabled = true;
+  if (q.domain) params.domain = q.domain;
   if (method === 'ideas.GetKeywords') params.page = { number: (q.page ?? null), size: (q.page_size ?? null) };
   if (method === 'ideas.GetGroups') params.groups_page = { number: (q.page ?? null), size: (q.page_size ?? null) };
   return params;

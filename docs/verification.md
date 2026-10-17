@@ -1,5 +1,29 @@
 # Verification
 
+## Version 0.34.0 candidate
+
+The candidate adds three Keyword Magic reads and prepared-domain and grouping
+controls, with 333 operations, 232 reads and 101 confirmed writes. The current
+client supplied the serializers. Native probes returned personalized difficulty,
+positions and traffic, topic and word groups, count/volume sorting, group totals
+and topic suggestions. Magic access returned a 30,000-row limit and 1,000-update
+allowance with 951 remaining. Its false AI flag did not suppress personalized
+metrics. The example.com root prepared through Keyword Overview also returned
+personalized Magic data without another initialization.
+
+A bounded two-keyword selected-export request returned a 36-character job ID.
+Its first wait returned native -32603 Internal error. No initializer was replayed
+and no export command is exposed. Reviews found no reuse or efficiency issues.
+The quality review identified trailing-terminator validation in copied patterns.
+Those patterns now reject CR/LF across Magic selectors, with additional validation
+cases. The final full Raft check passed 281 tests, including 86 real-browser
+integration tests and 23 CLI/MCP checks, plus strict types, lint, reference checks
+and all five daemon builds.
+Source native comparisons caught the unsupported relevance sort under word
+grouping. A real browser capture confirmed that the web UI keeps All Keywords
+selected and switches the table order to volume. The serializer now derives
+that native default from grouping. Source verification is continuing.
+
 ## Version 0.33.0 domain personalization and keyword AI
 
 The catalog contains 330 operations, 229 reads and 101 confirmed

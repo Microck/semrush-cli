@@ -3,7 +3,7 @@ title: Web UI coverage
 description: Supported web workflows, evidence and remaining gaps.
 ---
 
-The CLI has 330 fixed operations: 229 reads and 101 confirmed writes.
+The CLI has 333 fixed operations: 232 reads and 101 confirmed writes.
 It uses your web session and the current web UI's request contracts. Account
 permissions and quotas apply to both interfaces. This is not full Semrush suite
 parity. The table distinguishes implemented workflows from remaining gaps.
@@ -11,7 +11,7 @@ parity. The table distinguishes implemented workflows from remaining gaps.
 | Web workflow | CLI and MCP coverage | Remaining web UI work |
 | --- | --- | --- |
 | Keyword Overview and Bulk Analysis | Metrics, country rows, intent, trends, device and monthly snapshots, currency, bulk and personalized metrics, explicit root-domain preparation and job status, AI model volumes and topic samples, SERPs and URL/domain enrichment, ads and Product Listing Ads, related ideas and clusters; location lookup, cached local metrics/SERPs/URL counts, confirmed metric refresh and status; native bulk, national and local SERP CSV/semicolon CSV/XLSX downloads | Native PDF, separate chart-image downloads and full AI-topic exports |
-| Keyword Magic | Pagination, sorting, filters, questions, groups and totals; save selected phrases through list import | UI-specific selection rendering |
+| Keyword Magic | Pagination, sorting, filters, questions, prepared-domain metrics, topic/word groups, count/volume group ordering, keyword/group totals, topic suggestions and native access limits; save selected phrases through list import | Native selected export returned a job ID but its first wait failed with code -32603; file downloads remain unsupported |
 | Organic Research | Rankings, pages, subdomains, competitors, position changes, topics, trends | Chart rendering and UI-specific exports |
 | Historical and mobile research | Database and snapshot selection, subject to account access | UI comparisons not represented by available report filters |
 | Paid research | Paid keyword and competitor overview samples | Full advertising research workflows |
@@ -42,13 +42,14 @@ for Magic, Gap, Saved Keywords and the builder.
 
 ## Verification
 
-The source suite has 273 tests, including real Chromium, a private Galleton
+The source suite has 281 tests, including real Chromium, a private Galleton
 daemon and stateful HTTP fixtures. All 48 original research mappings also have
 differential tests against the Python reference. Across versioned live passes,
-223 previously released reads have execution evidence. The domain and AI
-release adds six reads and one confirmed preparation command. Source and fresh
-release
-CLI and MCP matched 15 native selections, including AI data, current mobile
+229 previously released reads have execution evidence. Keyword Magic candidate
+source verification is in progress for its three added reads and expanded
+selection controls. The domain and AI
+release added six reads and one confirmed preparation command. Source and fresh
+release CLI and MCP matched 15 native selections, including AI data, current mobile
 personalization and all 106 SERP rows. Preparation returned ready status 2
 through both interfaces. Invalid-job status preserved native error -10401.
 Pending jobs, lost replies and permission/quota failures have fixture evidence.

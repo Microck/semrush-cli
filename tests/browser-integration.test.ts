@@ -181,11 +181,11 @@ const fixture = createServer(async (request, response) => {
     }
     response.end(JSON.stringify({ jsonrpc: '2.0', id: rpc.id, result: reply })); return;
   }
-  if (url.pathname === '/kwogw/v2/webapi') { await serveKeywordRPCFixture(request, response); return; }
+  if (url.pathname === '/kwogw/v2/webapi' || url.pathname === '/kmtgw/v2/webapi') { await serveKeywordRPCFixture(request, response); return; }
   response.end('login');
 });
 
-/** Share the real Keyword Overview RPC boundary with the research/export scenarios. */
+/** Share the real keyword RPC boundaries with the research/export scenarios. */
 async function serveKeywordRPCFixture(request: IncomingMessage, response: ServerResponse) {
   let body = '';
   for await (const chunk of request) body += chunk;
@@ -438,6 +438,74 @@ test('real multipart uploads and protected audit edits preserve credentials and 
   }
 }, 30000);
 
+
+test('Keyword Magic retains personalized rows, native metadata and zero counts without preparing or refreshing', async () => {
+  keywordResearchFixture.use();
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const service = yield* Semrush;
+    const call = (name: string, query: Query = {}) => parseReport(name, query).pipe(Effect.flatMap(request => service.report(request)));
+    expect((yield* call('keyword_magic_access')).data).toEqual({ rows_count: 30000, examples_rows_count: 50000, max_updates: 1000, remaining_updates: 951, has_ai_seo: false, trial_status: 'active', user_type: 'regular', native_extra: 0 });
+    const selected = { keyword: keywordFixturePhrase, domain: 'github.com', mode: 0 };
+    expect((yield* call('keyword_magic', { ...selected, page: 2, page_size: 1 })).data).toEqual({ keywords: [{ phrase: 'fixture news', volume: 33100, cpc: 4.1, serp_id: 'b-g-97-0924-17033977320375618765', domain_difficulty: 0, domain_position: 5, domain_traffic: 2024 }], topics_enabled: true, native_extra: false });
+    expect((yield* call('keyword_magic_summary', selected)).data).toEqual({ total: 3, total_volume: 0, total_difficulty: 98, total_keywords_with_difficulty: 1, total_domain_traffic: 0, topics_enabled: true });
+    expect((yield* call('keyword_magic_groups', { ...selected, page: 2, page_size: 1 })).data).toEqual({ groups: [{ name: 'TypeScript interfaces', keywords_count: 2, keywords_volume: 900 }], topics_enabled: true, native_extra: false });
+    expect((yield* call('keyword_magic_groups_summary', selected)).data).toEqual({ count: 2, topics_enabled: true, native_extra: false });
+    expect((yield* call('keyword_magic_topic_suggestions', selected)).data).toEqual(['typescript in', 'typescript javascript']);
+    for (const observed of keywordResearchFixture.observed.slice(1)) expect(observed.params).toMatchObject({ domain: 'github.com', mode: 0, groups: [], topics_enabled: true });
+    expect(keywordResearchFixture.observed.map(call => call.method)).toEqual(['user.GetInfo', 'ideas.GetKeywords', 'ideas.GetKeywordsSummary', 'ideas.GetGroups', 'ideas.GetGroupsSummary', 'ideas.GetSuggestionsByTopics']);
+    expect(keywordResearchFixture.preparations).toBe(0); expect(keywordResearchFixture.refreshes).toBe(0);
+  }).pipe(Effect.provide(fixtureLayer()))));
+  expect((await sdk.headers('test', fixtureURL)).Cookie).toContain('keyword_magic_rotation=retained');
+});
+
+test('Keyword Magic word grouping retains native count and volume sort contexts without topic requests', async () => {
+  keywordResearchFixture.use();
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const service = yield* Semrush, selected = { keyword: keywordFixturePhrase, group_by: 'words' };
+    const call = (name: string, query: Query = {}) => parseReport(name, { ...selected, ...query }).pipe(Effect.flatMap(request => service.report(request)));
+    expect((yield* call('keyword_magic_groups', { page_size: 1 })).data).toEqual({ groups: [{ name: 'compiler', keywords_count: 3, keywords_volume: 0 }], topics_enabled: false, native_extra: false });
+    expect(keywordResearchFixture.observed.at(-1)?.params.groups_order).toEqual({ direction: 1, field: 'count' });
+    expect((yield* call('keyword_magic_groups', { groups_sort_field: 'volume', groups_descending: false })).data).toEqual({ groups: [{ name: 'compiler', keywords_count: 3, keywords_volume: 0 }, { name: 'javascript', keywords_count: 2, keywords_volume: 900 }], topics_enabled: false, native_extra: false });
+    expect(keywordResearchFixture.observed.at(-1)?.params.groups_order).toEqual({ direction: 0, field: 'volume' });
+    expect((yield* call('keyword_magic_groups_summary')).data).toEqual({ count: 2, topics_enabled: false, native_extra: false });
+    for (const observed of keywordResearchFixture.observed) { expect(observed.params).not.toHaveProperty('topics_enabled'); expect(observed.params).not.toHaveProperty('domain'); }
+  }).pipe(Effect.provide(fixtureLayer()))));
+});
+
+test('empty Keyword Magic results remain native empty data with zero totals', async () => {
+  try {
+    keywordResearchFixture.use('empty');
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const service = yield* Semrush;
+      const call = (name: string) => parseReport(name, { keyword: keywordFixturePhrase }).pipe(Effect.flatMap(request => service.report(request)));
+      expect((yield* call('keyword_magic')).data).toEqual({ keywords: [], topics_enabled: true, native_extra: false });
+      expect((yield* call('keyword_magic_groups')).data).toEqual({ groups: [], topics_enabled: true, native_extra: false });
+      expect((yield* call('keyword_magic_groups_summary')).data).toEqual({ count: 0, topics_enabled: true, native_extra: false });
+      expect((yield* call('keyword_magic_topic_suggestions')).data).toEqual([]);
+      expect((yield* call('keyword_magic_summary')).data).toMatchObject({ total: 0, total_volume: 0, total_domain_traffic: 0 });
+      expect(keywordResearchFixture.preparations).toBe(0); expect(keywordResearchFixture.refreshes).toBe(0);
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { keywordResearchFixture.use(); }
+});
+
+test('Keyword Magic native errors retain provider codes, never fall back and leave later reads usable', async () => {
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const service = yield* Semrush;
+      for (const [scenario, providerCode] of [['denied', -32002], ['rate-limited', -32003]] as const) {
+        keywordResearchFixture.use(scenario);
+        const failure = yield* service.report(yield* parseReport('keyword_magic_groups_summary', { keyword: keywordFixturePhrase })).pipe(Effect.flip);
+        expect(failure).toMatchObject({ _tag: 'ReportError', providerCode }); expect(failure.message).not.toContain('fixture-secret');
+        expect(keywordResearchFixture.observed).toHaveLength(1);
+      }
+      keywordResearchFixture.use('read-failed');
+      const failure = yield* service.report(yield* parseReport('keyword_magic_topic_suggestions', { keyword: keywordFixturePhrase })).pipe(Effect.flip);
+      expect(failure.message).toContain('HTTP 403'); expect(failure.message).not.toContain('fixture-secret'); expect(keywordResearchFixture.observed).toHaveLength(1);
+      keywordResearchFixture.use();
+      expect((yield* service.report(yield* parseReport('keyword_magic_access', {}))).data).toHaveProperty('remaining_updates');
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { keywordResearchFixture.use(); }
+});
 
 test('domain preparation normalizes once and advances only through explicit status reads', async () => {
   try {

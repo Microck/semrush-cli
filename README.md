@@ -79,11 +79,12 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 
 ## command surface
 
-330 operations, available as cli commands and mcp tools. 229 reads and 101 writes that need explicit confirmation.
+333 operations, available as cli commands and mcp tools. 232 reads and 101 writes that need explicit confirmation.
 
 | command | what it does |
 | --- | --- |
 | `keyword-overview`, `keyword-magic` | volume, difficulty, cpc, intent, related keywords and filtered research |
+| `keyword-magic-groups`, `keyword-magic-groups-summary`, `keyword-magic-topic-suggestions`, `keyword-magic-access` | inspect groups, group totals, suggested phrases and product limits |
 | `keyword-serp`, `keyword-ads`, `keyword-clusters` | search results, ads and keyword clusters |
 | `keyword-countries`, `keyword-bulk`, `keyword-product-ads` | country metrics, bulk keyword research and product listing ad previews |
 | `keyword-serp-organic-metrics`, `keyword-serp-backlink-metrics` | enrich selected search result urls with organic or backlink metrics |
@@ -199,6 +200,18 @@ semrush keyword-overview --keyword 'email marketing'
 semrush keyword-magic --keyword 'email marketing' --questions-only --page-size 20
 semrush keyword-serp --keyword 'email marketing'
 ```
+
+keyword magic accepts a prepared `--domain` for personalized metrics. choose topic or word grouping, read group totals, or inspect suggested phrases and product limits:
+
+```bash
+semrush keyword-magic --keyword 'email marketing' --domain example.com
+semrush keyword-magic-groups --keyword 'email marketing' --group-by words --groups-sort-field volume
+semrush keyword-magic-groups-summary --keyword 'email marketing' --group-by topics
+semrush keyword-magic-topic-suggestions --keyword 'email marketing'
+semrush keyword-magic-access
+```
+
+topics are the default. `--groups-sort-field count|volume` and `--groups-descending` apply only to word grouping. these reads do not prepare a domain or refresh keywords. access returns keyword magic's own product flags, row limits and update allowance. keyword magic exports remain unsupported because the native export job failed before producing a file.
 
 pull out the numbers you care about:
 
@@ -1005,7 +1018,7 @@ npm run check
 
 the cli uses the published [`galleton` 0.1.0 sdk](https://www.npmjs.com/package/galleton). the bundled galleton daemon is still required for sessions. building it from source requires go 1.23 or newer, `tar` and `patch`. published cli packages include the daemon for supported platforms, so npm users do not need go.
 
-the current source passed 273 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
+the current source passed 281 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
 
 ## documentation
 

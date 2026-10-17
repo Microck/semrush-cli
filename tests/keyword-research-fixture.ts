@@ -11,7 +11,7 @@ type RefreshPhrase = Schema.Schema.Type<typeof refreshPhrase>;
 const jobId = 'private-keyword-export-token';
 const exportFilenames = new Map([['keywords.Export', 'semrush-keyword-bulk'], ['serp.ExportURLs', 'semrush-keyword-serp'], ['serp.ExportDomains', 'semrush-keyword-serp-domains'], ['serp.ExportURLsLocal', 'semrush-keyword-local-serp']]);
 const exports = new Set(exportFilenames.keys());
-const methods = new Set(['keywords.GetBulk', 'pla.GetCopies', 'serp.GetURLsOrganicMetrics', 'serp.GetURLsBacklinksMetrics', 'export.Wait', 'locations.Get', 'keywords.GetLocalInfo', 'serp.GetURLsOrganicMetricsLocal', 'serp.GetDomainsOrganicMetrics', 'serp.GetDomainsBacklinksMetrics', 'updates.RequestUpdates', 'updates.GetKeywords', 'domains.GetSuggestions', 'domains.GetSiteRoot', 'domains.GetStatus', 'aiSeo.GetDatabases', 'aiSeo.GetTopicsSummary', 'aiSeo.GetTopics', ...exports]);
+const methods = new Set(['keywords.GetBulk', 'pla.GetCopies', 'serp.GetURLsOrganicMetrics', 'serp.GetURLsBacklinksMetrics', 'export.Wait', 'locations.Get', 'keywords.GetLocalInfo', 'serp.GetURLsOrganicMetricsLocal', 'serp.GetDomainsOrganicMetrics', 'serp.GetDomainsBacklinksMetrics', 'updates.RequestUpdates', 'updates.GetKeywords', 'domains.GetSuggestions', 'domains.GetSiteRoot', 'domains.GetStatus', 'aiSeo.GetDatabases', 'aiSeo.GetTopicsSummary', 'aiSeo.GetTopics', 'user.GetInfo', ...exports]);
 type Scenario = 'complete' | 'pending' | 'forever' | 'denied' | 'rate-limited' | 'missing-id' | 'lost-init' | 'slow-download' | 'empty' | 'read-failed' | 'countries-malformed' | 'lost-refresh' | 'missing-refresh-receipt' | 'domain-pending' | 'domain-lost-init' | 'domain-empty-root' | 'domain-missing-root' | 'domain-bad-root' | 'domain-missing-id' | 'domain-unknown-state' | 'domain-ready-absent-id' | 'domain-lost-status';
 // A real, small XLSX workbook keeps binary/resource tests independent of an office suite.
 const xlsx = Buffer.from(zipSync(Object.fromEntries(Object.entries({
@@ -41,6 +41,32 @@ export function makeKeywordResearchFixture() {
     expect(params.include_updating).toBe(true); expect(params.currency).toBeTypeOf('string'); statusReads++;
     for (const phrase of Schema.decodeUnknownSync(Schema.Array(Schema.Record(Schema.String, Schema.Json)))(params.phrases)) expect(phrase.status_updated_at).toBeTypeOf('number');
     reply(refreshSelection.filter(selected => phrases.some(phrase => phrase.phrase === selected.phrase && phrase.database === selected.database && phrase.location === selected.location)).map(phrase => ({ ...phrase, update_status: statusReads > 1 ? 2 : 1, status_updated_at: 1792221173, results: null, serp_id: 's-d-99-1017-13394082193748469000' }))); return true;
+  };
+  const serveMagic = (method: string, params: Schema.JsonObject, response: ServerResponse, reply: (result: Schema.Json) => void) => {
+    response.setHeader('Set-Cookie', 'keyword_magic_rotation=retained; Path=/; HttpOnly; SameSite=Lax');
+    if (scenario === 'denied' || scenario === 'rate-limited') { response.end(JSON.stringify({ error: { code: scenario === 'denied' ? -32002 : -32003, message: 'fixture-secret Magic access denied' } })); return; }
+    if (scenario === 'read-failed') { response.writeHead(403); response.end('{"error":"fixture-secret Magic denied"}'); return; }
+    if (method === 'user.GetInfo') { expect(params).toEqual({}); reply({ rows_count: 30000, examples_rows_count: 50000, max_updates: 1000, remaining_updates: 951, has_ai_seo: false, trial_status: 'active', user_type: 'regular', native_extra: 0 }); return; }
+    expect(params).toMatchObject({ phrase: keywordFixturePhrase, database: 'us', currency: 'USD' });
+    expect(Array.isArray(params.groups)).toBe(true);
+    const topics = params.topics_enabled === true;
+    if (!topics) expect(params.order).toEqual({ direction: 1, field: 'volume' });
+    expect(params.groups_order).toMatchObject({ field: topics ? 'relevance' : expect.stringMatching(/^(count|volume)$/) });
+    if (!topics) expect(params).not.toHaveProperty('topics_enabled');
+    const groups = topics ? [{ name: 'TypeScript libraries', keywords_count: 3, keywords_volume: 0 }, { name: 'TypeScript interfaces', keywords_count: 2, keywords_volume: 900 }] : [{ name: 'compiler', keywords_count: 3, keywords_volume: 0 }, { name: 'javascript', keywords_count: 2, keywords_volume: 900 }];
+    if (method === 'ideas.GetGroupsSummary') { reply({ count: scenario === 'empty' ? 0 : groups.length, topics_enabled: topics, native_extra: false }); return; }
+    if (method === 'ideas.GetSuggestionsByTopics') { expect(topics).toBe(true); reply(scenario === 'empty' ? [] : ['typescript in', 'typescript javascript']); return; }
+    if (method === 'ideas.GetKeywordsSummary') { reply({ total: scenario === 'empty' ? 0 : 3, total_volume: 0, total_difficulty: 98, total_keywords_with_difficulty: 1, total_domain_traffic: 0, topics_enabled: topics }); return; }
+    if (method === 'ideas.GetGroups' || method === 'ideas.GetKeywords') {
+      const page = Schema.decodeUnknownSync(Schema.Struct({ number: Schema.Int, size: Schema.Int }))(method === 'ideas.GetGroups' ? params.groups_page : params.page);
+      const rows = method === 'ideas.GetGroups' ? groups : [keywordFixturePhrase, 'fixture news', 'fixture tutorial'].map(phrase => {
+        const row: Schema.JsonObject = { phrase, volume: 33100, cpc: 4.1, serp_id: 'b-g-97-0924-17033977320375618765' };
+        if (params.domain) Object.assign(row, { domain_difficulty: 0, domain_position: 5, domain_traffic: 2024 });
+        return row;
+      });
+      reply({ [method === 'ideas.GetGroups' ? 'groups' : 'keywords']: scenario === 'empty' ? [] : rows.slice((page.number - 1) * page.size, page.number * page.size), topics_enabled: topics, native_extra: false }); return;
+    }
+    response.end(JSON.stringify({ error: { code: -32601, message: 'Unsupported Magic fixture method' } }));
   };
   let preparations = 0, domainStatusReads = 0; let activeDomain = false;
   const domainJob = 'native-domain-job-id';
@@ -100,6 +126,7 @@ export function makeKeywordResearchFixture() {
       observed.push({ method, params });
       response.setHeader('Content-Type', 'application/json');
       const reply = (result: Schema.Json) => response.end(JSON.stringify({ jsonrpc: '2.0', id: 1, result }));
+      if (request.url === '/kmtgw/v2/webapi') { serveMagic(method, params, response, reply); return true; }
       if (servePersonal(method, params, response, reply)) return true;
       if (serveRefresh(method, params, response, reply)) return true;
       if (exports.has(method)) {

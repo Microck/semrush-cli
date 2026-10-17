@@ -97,3 +97,9 @@ normalize or initialize a replacement. Pending and ready receipts receive one
 boundary validation; output retains native extra fields. Research reads use an
 optional prepared root without implicit initialization. Keyword AI discovery,
 summary and topic samples retain native payloads and database errors.
+
+Keyword Magic uses its own fixed gateway and native access metadata. Its
+serializer shares one context for rows, summaries, groups and topic suggestions.
+Prepared domains never trigger initialization. Topic grouping uses fixed
+relevance order; word grouping omits the native topic flag and sends count or
+volume order. Grouping controls are validated at the public schema boundary.

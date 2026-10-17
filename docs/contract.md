@@ -1152,3 +1152,45 @@ Native AI country discovery returned 32 databases. The running-shoes summary
 returned four LLM volume rows and `topics_count:1000`; the topic endpoint returned
 five sample rows with zero volumes. These are native Keyword Overview topic
 samples, not a full AI Toolkit prompt-management or 1,000-topic export contract.
+
+## Keyword Magic personalization and grouping
+
+The current Keyword Magic client supplies three additional reads, bringing the
+catalog to 333 operations, 232 reads and 101 confirmed writes. Its fixed gateway
+is `/kmtgw/v2/webapi`. Native reads returned positive personalized metrics,
+group totals and topic suggestions on the existing Guru session.
+
+- `keyword-magic-access` reads `user.GetInfo` with `{}` and retains native row
+  limits, update allowance and product flags. These flags describe Keyword Magic;
+  they do not replace other products' access metadata or the account's plan.
+- `keyword-magic-groups-summary` reads `ideas.GetGroupsSummary` with the same
+  selection as group discovery and retains its native count and metadata.
+- `keyword-magic-topic-suggestions` reads `ideas.GetSuggestionsByTopics` and
+  retains the native sample of suggested phrases. It always uses topic grouping.
+
+Keyword Magic rows, totals, groups and group totals accept an optional prepared
+root domain. Topic suggestions also accept it. The serializer omits an absent
+domain and never starts preparation or a keyword refresh. Zero personalized
+difficulty, position and potential traffic remain native data. In the live
+probe, personalized metrics were present even though Keyword Magic's separate
+`has_ai_seo` flag was false; that flag must not suppress returned metrics.
+
+`group_by` selects `topics` (default) or `words`. Topic requests send
+`topics_enabled:true` and the native fixed relevance order. Word requests omit
+that field and use `groups_order` with `count` or `volume`, descending by default.
+The native UI keeps All Keywords selected during this switch and changes the
+table order from similarity_score to volume. The CLI derives the same default
+from grouping when no explicit `sort_field` is supplied.
+`groups_sort_field` and `groups_descending` apply only to word grouping; topic
+requests reject those controls before authentication. Database, currency and
+sort patterns reject trailing line terminators. Empty group selection is
+the native array `[]`. The existing keyword matching-mode default stays 4.
+
+Native report HTTP requests allow 90 seconds and make one attempt. Personalized Magic reads took 42-44
+seconds in direct probes, so the former 45-second deadline cut into valid
+provider latency. Navigation and download deadlines remain separate.
+
+The native selected-export initializer returned a nonempty job ID, but its first
+wait failed with code -32603. That job was not recreated. Export commands remain
+unsupported until the provider produces a verified file; no alternate download
+route or automatic retry is introduced.

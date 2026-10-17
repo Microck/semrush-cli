@@ -18,6 +18,41 @@ const keywordParameters = async (name: string, input: Query) => {
   return reportParameters(parsed.definition, parsed.query);
 };
 
+test('Keyword Magic discovery and personalized selections retain native request contexts', async () => {
+  expect(await keywordParameters('keyword_magic_access', {})).toEqual({});
+  for (const name of ['keyword_magic', 'keyword_magic_summary', 'keyword_magic_groups', 'keyword_magic_groups_summary', 'keyword_magic_topic_suggestions']) {
+    const params = await keywordParameters(name, { keyword: 'typescript', domain: 'github.com', groups: ['typescript programming'] });
+    expect(params).toMatchObject({ phrase: 'typescript', database: 'us', currency: 'USD', mode: 4, domain: 'github.com', groups: ['typescript programming'], topics_enabled: true, groups_order: { direction: 1, field: 'relevance' } });
+    expect(await keywordParameters(name, { keyword: 'typescript' })).toMatchObject({ groups: [] });
+    expect(await keywordParameters(name, { keyword: 'typescript' })).not.toHaveProperty('domain');
+  }
+  expect(await keywordParameters('keyword_magic_groups_summary', { keyword: 'typescript' })).not.toHaveProperty('groups_page');
+});
+
+test('Keyword Magic word grouping sends native count or volume order and omits the topic flag', async () => {
+  for (const name of ['keyword_magic', 'keyword_magic_summary', 'keyword_magic_groups', 'keyword_magic_groups_summary']) {
+    const defaults = await keywordParameters(name, { keyword: 'typescript', group_by: 'words' });
+    expect(defaults.order).toEqual({ direction: 1, field: 'volume' });
+    expect(defaults.groups_order).toEqual({ direction: 1, field: 'count' }); expect(defaults).not.toHaveProperty('topics_enabled');
+    const selected = await keywordParameters(name, { keyword: 'typescript', group_by: 'words', groups_sort_field: 'volume', groups_descending: false });
+    expect(selected.groups_order).toEqual({ direction: 0, field: 'volume' }); expect(selected).not.toHaveProperty('topics_enabled');
+  }
+});
+
+test('Keyword Magic rejects ignored topic sort controls and malformed personalization before authentication', async () => {
+  const ignoredControls: Query[] = [{ groups_sort_field: 'count' }, { groups_descending: true }, { group_by: 'topics', groups_sort_field: 'volume' }, { group_by: 'words', groups_sort_field: 'name' }, { group_by: 'unknown' }];
+  const unsupported: Query[] = [{ device: 'mobile' }, { date: '202609' }, { confirm: true }, { method: 'domains.GetStatus' }, { database: 'us\n' }, { database: 'us\r' }, { currency: 'USD\n' }, { currency: 'USD\r' }, { sort_field: 'volume\n' }, { sort_field: 'volume\r' }];
+  for (const name of ['keyword_magic', 'keyword_magic_summary', 'keyword_magic_groups', 'keyword_magic_groups_summary']) {
+    for (const query of ignoredControls) await expect(keywordParameters(name, { keyword: 'typescript', ...query })).rejects.toThrow();
+  }
+  for (const name of ['keyword_magic', 'keyword_magic_summary', 'keyword_magic_groups', 'keyword_magic_groups_summary', 'keyword_magic_topic_suggestions']) {
+    for (const domain of ['', 'https://example.com/', 'example.com/path', 'example.com\n']) await expect(keywordParameters(name, { keyword: 'typescript', domain })).rejects.toThrow();
+    for (const input of unsupported) await expect(keywordParameters(name, { keyword: 'typescript', ...input })).rejects.toThrow();
+  }
+  await expect(keywordParameters('keyword_magic_topic_suggestions', { keyword: 'typescript', group_by: 'words' })).rejects.toThrow();
+  await expect(keywordParameters('keyword_magic_access', { keyword: 'typescript' })).rejects.toThrow();
+});
+
 test('domain discovery, preparation and status use distinct native request shapes and offline previews', async () => {
   expect(await keywordParameters('keyword_domain_suggestions', {})).toEqual({});
   expect(await keywordParameters('keyword_domain_root', { domain: 'www.example.com' })).toEqual({ domain: 'www.example.com' });
