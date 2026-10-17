@@ -922,7 +922,29 @@ No read operation creates, saves, accepts policies or starts generation.
 Generation dry runs also list the read/save preparation, including the privacy
 acknowledgment and timezone, without reading account state or saving a document.
 
-`reporting-delete --report-ids '[123]' --confirm` permanently deletes the explicitly selected My Reports documents through the native fixed DeleteReports mutation. It requires a nonempty array of unique positive 32-bit report IDs and a literal true receipt. A missing, false or lost receipt is an error; deletion is never retried. Inspect reporting-overview before any further deletion.
+`reporting-delete --report-ids '[123]' --confirm` deletes the explicitly selected My Reports documents through the native fixed DeleteReports mutation. It requires a nonempty array of unique positive 32-bit report IDs and a literal true receipt. A missing, false or lost receipt is an error; deletion is never retried. Inspect reporting-overview before any further deletion.
+
+`reporting-task-delete --report-id 123 --task-id 456 --confirm` deletes one
+PDF generation record from that document. The task ID is an exact decimal
+string from `reporting-tasks`. The native web UI deletes one task at a time;
+Semrush rejects a comma-separated batch with HTTP 400 and no deletion.
+It sends a bodyless DELETE to `/my_reports/api/v1/document/123/tasks` with the
+single ID in the `taskIds` query parameter. A successful receipt requires
+literal `success: true` and `data.deletedCount: 1`. Missing, zero, excessive,
+denied or lost receipts fail without replay. Read `reporting-tasks` before
+another attempt. Deletion keeps the report, its settings, other generations and
+already downloaded local files. It never starts generation or delivery.
+
+`reporting-restore --report-id 123 --confirm` sends the native bodyless POST to
+`/my_reports/api/v1/document/123/restore` and requires literal `status: success`.
+It recovers a deleted document while Semrush retains it. No retention period is
+promised. Treat deletion as destructive; the web UI calls it permanent, although
+the native restore endpoint successfully returned a deleted disposable report to
+the active list. Restoration preserves saved delivery settings and remaining
+generations. A separately deleted PDF generation remains deleted. It does not
+save, regenerate, email or replace the restored document. Missing, denied or lost
+receipts fail without replay. Inspect reporting-overview and reporting-get before
+another restoration attempt.
 
 ### Sharing
 

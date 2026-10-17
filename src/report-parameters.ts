@@ -114,6 +114,8 @@ function reportingParameters(definition: Report, query: Query): Query {
   if (definition.method === '/my_reports/api/v1/template/{template_id}/document') return { documentName: query.name ?? '' };
   if (definition.method === '/my_reports/api/v1/template/{template_id}/share') return { emails: query.emails ?? [] };
   if (definition.method.startsWith('/my_reports/api/v1/template/{template_id}')) return {};
+  if (definition.method.endsWith('/tasks') && definition.http_method === 'DELETE') return { taskIds: query.task_id ?? '' };
+  if (definition.method === '/my_reports/api/v1/document/{report_id}/restore') return {};
   if (definition.method.endsWith('/clone')) return { documentName: query.name ?? null };
   if (definition.method.endsWith('/{document_id}')) {
     // SAFETY: reporting-save's public schema validates the stored document and recursive widgets.

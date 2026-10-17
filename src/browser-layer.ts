@@ -180,6 +180,15 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       }
       return selected;
     }
+    if (name === 'reporting_restore') {
+      yield* Schema.decodeUnknownEffect(Schema.Struct({ status: Schema.Literal('success') }))(selected).pipe(Effect.mapError(() => new ReportError({ message: 'My Reports did not confirm restoration. Read reporting-overview and reporting-get before another attempt; restoration was not retried.' })));
+      return selected;
+    }
+    if (name === 'reporting_task_delete') {
+      const invalidReceipt = () => new ReportError({ message: `My Reports did not confirm complete PDF generation deletion. Read reporting-tasks --report-id ${query.report_id} before another attempt; deletion was not retried.` });
+      yield* Schema.decodeUnknownEffect(Schema.Struct({ success: Schema.Literal(true), data: Schema.Struct({ deletedCount: Schema.Literal(1) }) }))(selected).pipe(Effect.mapError(invalidReceipt));
+      return selected;
+    }
     if (name === 'reporting_save') {
       // SAFETY: public validation requires a complete document object with an integer ID.
       return yield* reportingSaved(selected, (query.document as Query).id);

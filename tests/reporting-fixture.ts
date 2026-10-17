@@ -67,7 +67,7 @@ export function makeReportingFixture() {
   };
 }
 
-type LifecycleScenario = 'complete' | 'pending' | 'outside' | 'bad-pdf' | 'save-lost' | 'save-missing' | 'generate-lost' | 'create-missing' | 'clone-missing' | 'delete-false' | 'delete-lost' | 'pdf-metadata-denied' | 'pdf-metadata-missing' | 'pdf-metadata-wrong-id' | 'pdf-create-lost' | 'pdf-create-missing' | 'pdf-create-denied' | 'pdf-task-pending' | 'pdf-task-failed' | 'generate-missing' | 'denied';
+type LifecycleScenario = `tasks-delete-${'complete' | 'lost' | 'missing' | 'partial' | 'denied' | 'false' | 'wrong-count'}` | `restore-${'complete' | 'lost' | 'missing' | 'denied' | 'false'}` | 'complete' | 'pending' | 'outside' | 'bad-pdf' | 'save-lost' | 'save-missing' | 'generate-lost' | 'create-missing' | 'clone-missing' | 'delete-false' | 'delete-lost' | 'pdf-metadata-denied' | 'pdf-metadata-missing' | 'pdf-metadata-wrong-id' | 'pdf-create-lost' | 'pdf-create-missing' | 'pdf-create-denied' | 'pdf-task-pending' | 'pdf-task-failed' | 'generate-missing' | 'denied';
 export const reportingDocument = { ...reportingNative.read, content: Schema.decodeUnknownSync(Schema.Array(Schema.JsonObject))(reportingNative.read.content), marker: { preserve: true, exactId: '9223372036854775807' } };
 
 /** A complete small PDF makes byte/resource assertions independent of the production downloader. */
@@ -93,10 +93,38 @@ export function makeReportingLifecycleFixture() {
   let liteOrder = false;
   let metadataReads = 0;
   let aiSummary = false;
+  let taskDeletes = 0, restores = 0;
+  let liveTaskIds = ['1001', '1002', '1003'];
+  let deletedReport = false;
   let taskReadListener: (() => void) | undefined;
   const counts = { creates: 0, clones: 0, saves: 0, generations: 0, downloads: 0, deletions: 0, taskReads: 0 };
-  const reset = () => { scenario = 'complete'; document = structuredClone(reportingDocument); nextId = 72; liteOrder = false; metadataReads = 0; aiSummary = false; taskReadListener = undefined; Object.assign(counts, { creates: 0, clones: 0, saves: 0, generations: 0, downloads: 0, deletions: 0, taskReads: 0 }); };
+  const reset = () => { scenario = 'complete'; document = structuredClone(reportingDocument); nextId = 72; liteOrder = false; metadataReads = 0; aiSummary = false; taskDeletes = 0; restores = 0; liveTaskIds = ['1001', '1002', '1003']; deletedReport = false; taskReadListener = undefined; Object.assign(counts, { creates: 0, clones: 0, saves: 0, generations: 0, downloads: 0, deletions: 0, taskReads: 0 }); };
   const send = (response: ServerResponse, body: Query) => { response.setHeader('Content-Type', 'application/json'); response.end(JSON.stringify(body)); };
+  // Keep task deletion and restoration state together with their committed lost replies.
+  const handleRecovery = (request: IncomingMessage, response: ServerResponse, url: URL, body: Query) => {
+    if (url.pathname.endsWith('/tasks')) {
+      expect(url.pathname).toBe('/my_reports/api/v1/document/71/tasks'); expect(request.method).toBe('DELETE');
+      expect([...url.searchParams.keys()]).toEqual(['taskIds']); expect(body).toEqual({}); taskDeletes++;
+      expect(url.searchParams.get('taskIds')).toBe('1001');
+      if (scenario === 'tasks-delete-denied') { response.statusCode = 403; send(response, { error: 'denied fixture-secret' }); return true; }
+      if (scenario === 'tasks-delete-false') { send(response, { success: false, data: { deletedCount: 0 } }); return true; }
+      const selected = url.searchParams.get('taskIds');
+      const removed = scenario === 'tasks-delete-partial' ? [] : liveTaskIds.filter(id => id === selected);
+      liveTaskIds = liveTaskIds.filter(id => !removed.includes(id));
+      if (scenario === 'tasks-delete-lost') { request.socket.destroy(); return true; }
+      send(response, scenario === 'tasks-delete-missing' ? { success: true, data: {} } : { success: true, data: { deletedCount: scenario === 'tasks-delete-wrong-count' ? 2 : removed.length } }); return true;
+    }
+    if (url.pathname.endsWith('/restore')) {
+      expect(url.pathname).toBe('/my_reports/api/v1/document/71/restore'); expect(request.method).toBe('POST');
+      expect(url.search).toBe(''); expect(body).toEqual({}); restores++;
+      if (scenario === 'restore-denied') { response.statusCode = 403; send(response, { error: 'denied fixture-secret' }); return true; }
+      if (scenario === 'restore-false') { send(response, { status: 'error' }); return true; }
+      deletedReport = false;
+      if (scenario === 'restore-lost') { request.socket.destroy(); return true; }
+      send(response, scenario === 'restore-missing' ? { timeResult: 3 } : { status: 'success', timeResult: 3 }); return true;
+    }
+    return false;
+  };
   const handle = async (request: IncomingMessage, response: ServerResponse, url: URL, body: Query) => {
     expect(request.headers.cookie).toContain('session=authorized');
     if (url.pathname === '/siteaudit/api/campaigns/794/info') {
@@ -148,20 +176,25 @@ export function makeReportingLifecycleFixture() {
       const listener = taskReadListener; taskReadListener = undefined; listener?.();
       const task: Query = { id: '1001', filename: 'report.pdf', state: scenario === 'pdf-task-failed' ? 'failed' : scenario === 'pending' || scenario === 'pdf-task-pending' && counts.taskReads === 1 ? 'pending' : 'ready', createdAt: 1000 };
       if (String(body.query).includes('pdfPath')) task.pdfPath = scenario === 'outside' ? 'https://example.invalid/report.pdf' : '/my_reports/reports/private-capability/report.pdf';
-      send(response, { data: { me: { reports: { totalCount: 1, nodes: [{ id: '71', tasks: [task] }] } } } }); return;
+      const nodes = deletedReport ? [] : [{ id: '71', tasks: scenario.startsWith('tasks-delete-') ? liveTaskIds.map(id => ({ ...task, id })) : [task] }];
+      send(response, { data: { me: { reports: { totalCount: nodes.length, nodes } } } }); return;
     }
     expect(request.headers['x-requested-with']).toBe('XMLHttpRequest');
     if (url.pathname === '/my_reports/api/v1/template/system/tc_organic_search_positions/create-document') {
       expect(request.method).toBe('POST'); expect(body).toEqual({ parameters: { domain: 'example.com', database: 'us' } });
       counts.creates++; send(response, scenario === 'create-missing' ? { status: 'success' } : { status: 'success', userDocumentId: nextId++ }); return;
     }
+    if (handleRecovery(request, response, url, body)) return;
     if (url.pathname.endsWith('/clone')) {
       expect(url.pathname).toBe('/my_reports/api/v1/document/71/clone'); expect(request.method).toBe('POST');
       expect(body).toEqual({ documentName: 'Cloned report' }); counts.clones++;
       send(response, scenario === 'clone-missing' ? { status: 'success' } : { status: 'success', document: { id: nextId++, name: body.documentName ?? '' } }); return;
     }
     expect(url.pathname).toBe('/my_reports/api/v1/document/71');
-    if (request.method === 'GET') { send(response, { status: 'success', document }); return; }
+    if (request.method === 'GET') {
+      if (deletedReport) { response.statusCode = 404; send(response, { error: 'report deleted' }); return; }
+      send(response, { status: 'success', document }); return;
+    }
     expect(request.method).toBe('POST'); expect(Object.keys(body).sort()).toEqual(['commonPrivacyAccepted', 'document', 'timezone']);
     expect(body.commonPrivacyAccepted).toBe(true); expect(body.timezone).toEqual(expect.any(Number));
     const saved = Schema.decodeUnknownSync(Schema.Struct({ name: Schema.String }))(body.document);
@@ -173,14 +206,17 @@ export function makeReportingLifecycleFixture() {
     send(response, scenario === 'save-missing' ? { status: 'success' } : { status: 'success', documentId: 71, name: document.name ?? '' });
   };
   return {
-    use(value: LifecycleScenario) { scenario = value; }, reset,
+    use(value: LifecycleScenario) { scenario = value; if (value.startsWith('restore-')) deletedReport = true; }, reset,
     onTaskRead(listener: () => void) { taskReadListener = listener; },
     counts: () => ({ ...counts }),
     metadataReads: () => metadataReads,
+    recoveryCounts: () => ({ taskDeletes, restores }),
     withAISummary() { aiSummary = true; },
     handle,
     async serve(request: IncomingMessage, response: ServerResponse, url: URL) {
-      const body: Query = request.method === 'GET' ? {} : JSON.parse(await readText(request));
+      const encoded = await readText(request);
+      if (url.pathname.endsWith('/tasks') || url.pathname.endsWith('/restore')) expect(encoded).toBe('');
+      const body: Query = encoded ? JSON.parse(encoded) : {};
       await handle(request, response, url, body);
     },
   };

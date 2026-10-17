@@ -162,8 +162,8 @@ test('Core Web Vitals URL-list previews stay offline and invalid IDs or unconfir
 test('built catalog distinguishes read reports and project writes', async () => {
   const { stdout, stderr } = await cli(['reports', '--json']);
   const listed = JSON.parse(stdout);
-  expect(listed).toHaveLength(361);
-  expect(listed.filter((entry: { read_only: boolean }) => !entry.read_only)).toHaveLength(120);
+  expect(listed).toHaveLength(363);
+  expect(listed.filter((entry: { read_only: boolean }) => !entry.read_only)).toHaveLength(122);
   expect(stderr).toBe('');
 });
 test('invalid usage fails before attempting authentication', async () => {
@@ -192,7 +192,7 @@ test('MCP advertises write safety and previews without an authenticated runtime'
     expect((await client.listResourceTemplates()).resourceTemplates[0]?.uriTemplate).toBe('semrush-export://{export_id}{?offset,limit}');
     await expect(client.readResource({ uri: 'semrush-export://unknown' })).rejects.toThrow('Download an export first');
     const listed = await client.listTools();
-    expect(listed.tools).toHaveLength(361);
+    expect(listed.tools).toHaveLength(363);
     for (const name of ['domain_position_changes_presets', 'domain_position_changes_daily_trend', 'domain_position_changes_monthly_trend', 'keyword_magic_access', 'keyword_magic_groups_summary', 'keyword_magic_topic_suggestions']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: true });
     expect(listed.tools.find(tool => tool.name === 'keyword_domain_prepare')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false, idempotentHint: false });
     for (const name of ['keyword_domain_suggestions', 'keyword_domain_root', 'keyword_domain_status', 'keyword_ai_databases', 'keyword_ai_summary', 'keyword_ai_topics']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: true });
@@ -216,9 +216,9 @@ test('MCP advertises write safety and previews without an authenticated runtime'
     for (const name of ['position_alert_read', 'position_alert_mark_all_read']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false, idempotentHint: false });
     expect(listed.tools.find(tool => tool.name === 'position_alert_delete')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true, idempotentHint: false });
     for (const name of ['audit_js_impact_guide', 'audit_js_impact_changed_pages', 'audit_js_impact_pages', 'audit_export_js_impact', 'audit_export_all', 'keyword_list_export_mindmap', 'reporting_overview']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: true, destructiveHint: false });
-    for (const name of ['reporting_create', 'reporting_save', 'reporting_clone', 'reporting_generate']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false, idempotentHint: false });
+    for (const name of ['reporting_create', 'reporting_save', 'reporting_clone', 'reporting_generate', 'reporting_restore']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false, idempotentHint: false });
     expect(listed.tools.find(tool => tool.name === 'keyword_overview_pdf')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false, idempotentHint: false });
-    expect(listed.tools.find(tool => tool.name === 'reporting_delete')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true, idempotentHint: false });
+    for (const name of ['reporting_delete', 'reporting_task_delete']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true, idempotentHint: false });
     for (const name of ['reporting_get', 'reporting_tasks', 'reporting_download']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: true, destructiveHint: false });
     const preview = await client.callTool({ name: 'project_create', arguments: { name: 'example', dry_run: true } });
     expect(preview.isError).not.toBe(true);
@@ -290,4 +290,41 @@ test('mind-map image export requires a destination and validates its fixed forma
   await expect(cli(selected)).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('--output') });
   await expect(cli([...selected, '--format', 'svg', '--output', 'mindmap.svg'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('allowed values') });
   await expect(cli(['keyword-list-export-mindmap', '--basket-id', '456/123', '--owner-id', '123', '--output', 'mindmap.png'])).rejects.toMatchObject({ code: 2, stdout: '' });
+});
+
+
+test('report recovery and PDF deletion preview native requests without authentication', async () => {
+  const deletion = JSON.parse((await cli(['reporting-task-delete', '--report-id', '71', '--task-id', '9223372036854775807', '--dry-run', '--json'])).stdout);
+  expect(deletion).toEqual({ dry_run: true, report: 'reporting_task_delete', request: {
+    method: 'DELETE', path: '/my_reports/api/v1/document/71/tasks', body: { taskIds: '9223372036854775807' }, encoding: 'query',
+  } });
+  const restoration = JSON.parse((await cli(['reporting-restore', '--report-id', '71', '--dry-run', '--json'])).stdout);
+  expect(restoration).toEqual({ dry_run: true, report: 'reporting_restore', request: {
+    method: 'POST', path: '/my_reports/api/v1/document/71/restore', body: null,
+  } });
+  for (const args of [['reporting-restore', '--report-id', '71'], ['reporting-task-delete', '--report-id', '71', '--task-id', '1001']]) {
+    await expect(cli(args)).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('Use --confirm') });
+  }
+});
+
+test('MCP previews report recovery and PDF deletion and requires explicit confirmation', async () => {
+  const transport = new StdioClientTransport({ command: process.execPath, args: ['dist/cli.js', 'mcp'], env: {
+    ...Object.fromEntries(Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined)),
+    SEMRUSH_GALLETON_TOKEN_FILE: '/nonexistent-semrushtest-token',
+  } });
+  const client = new Client({ name: 'report-recovery-test', version: '1' });
+  try {
+    await client.connect(transport);
+    for (const operation of [
+      { name: 'reporting_restore', arguments: { report_id: 71 }, request: { method: 'POST', path: '/my_reports/api/v1/document/71/restore', body: null } },
+      { name: 'reporting_task_delete', arguments: { report_id: 71, task_id: '9223372036854775807' }, request: { method: 'DELETE', path: '/my_reports/api/v1/document/71/tasks', body: { taskIds: '9223372036854775807' }, encoding: 'query' } },
+    ]) {
+      const preview = await client.callTool({ name: operation.name, arguments: { ...operation.arguments, dry_run: true } });
+      expect(preview.isError).not.toBe(true);
+      expect(preview.content).toEqual([{ type: 'text', text: JSON.stringify({ dry_run: true, report: operation.name, request: operation.request }) }]);
+      const unconfirmed = await client.callTool({ name: operation.name, arguments: operation.arguments });
+      expect(unconfirmed.isError).toBe(true);
+      expect(unconfirmed.content).toEqual([{ type: 'text', text: expect.stringContaining('confirm:true') }]);
+    }
+  } finally { await client.close(); }
 });

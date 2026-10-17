@@ -2548,3 +2548,76 @@ test.each(['keyword_overview_pdf', 'audit_web_vitals_pdf'] as const)('%s include
     }).pipe(Effect.provide(fixtureLayer()))));
   } finally { reportingFixture.lifecycle.reset(); }
 });
+
+
+test('My Reports PDF deletion preserves the document, unselected generations and existing export resources', async () => {
+  reportingFixture.lifecycle.reset(); reportingFixture.lifecycle.use('tasks-delete-complete');
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const semrush = yield* Semrush, store = yield* Exports;
+      const exported = yield* semrush.report(yield* parseReport('reporting_download', { report_id: 71, task_id: '1001' }));
+      const removed = yield* semrush.report(yield* parseReport('reporting_task_delete', { report_id: 71, task_id: '1001', confirm: true }));
+      expect(removed.data).toEqual({ success: true, data: { deletedCount: 1 } });
+      const remaining = (yield* semrush.report(yield* parseReport('reporting_tasks', { report_id: 71 }))).data;
+      expect(remaining).toHaveProperty('reports.nodes.0.tasks', [expect.objectContaining({ id: '1002' }), expect.objectContaining({ id: '1003' })]);
+      expect((yield* semrush.report(yield* parseReport('reporting_get', { report_id: 71 }))).data).toHaveProperty('document.marker.preserve', true);
+      expect(Buffer.from((yield* store.read(exported.artifact?.uri ?? 'missing')).blob, 'base64')).toEqual(reportingPDFBytes);
+      expect(reportingFixture.lifecycle.recoveryCounts()).toEqual({ taskDeletes: 1, restores: 0 });
+      expect(reportingFixture.lifecycle.counts()).toMatchObject({ saves: 0, generations: 0, deletions: 0 });
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { reportingFixture.lifecycle.reset(); }
+});
+
+test('My Reports rejects denied, missing, false, partial and lost PDF deletion receipts without replaying the DELETE', async () => {
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const semrush = yield* Semrush;
+      for (const scenario of ['tasks-delete-denied', 'tasks-delete-missing', 'tasks-delete-false', 'tasks-delete-partial', 'tasks-delete-lost', 'tasks-delete-wrong-count'] as const) {
+        reportingFixture.lifecycle.reset(); reportingFixture.lifecycle.use(scenario);
+        const error = yield* semrush.report(yield* parseReport('reporting_task_delete', { report_id: 71, task_id: '1001', confirm: true })).pipe(Effect.flip);
+        expect(error.message).toMatch(/not retried|HTTP 403/);
+        expect(error.message).not.toContain('fixture-secret');
+        expect(reportingFixture.lifecycle.recoveryCounts()).toEqual({ taskDeletes: 1, restores: 0 });
+        const remaining = yield* semrush.report(yield* parseReport('reporting_tasks', { report_id: 71 }));
+        const expected = ['tasks-delete-denied', 'tasks-delete-false', 'tasks-delete-partial'].includes(scenario) ? ['1001', '1002', '1003'] : ['1002', '1003'];
+        expect(remaining.data).toHaveProperty('reports.nodes.0.tasks', expected.map(id => expect.objectContaining({ id })));
+        expect(reportingFixture.lifecycle.counts()).toMatchObject({ saves: 0, generations: 0, deletions: 0 });
+      }
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { reportingFixture.lifecycle.reset(); }
+});
+
+test('My Reports restoration returns the retained document to visibility with its original settings and PDF generation', async () => {
+  reportingFixture.lifecycle.reset(); reportingFixture.lifecycle.use('restore-complete');
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const semrush = yield* Semrush;
+      expect((yield* semrush.report(yield* parseReport('reporting_tasks', { report_id: 71 }))).data).toHaveProperty('reports.nodes', []);
+      yield* semrush.report(yield* parseReport('reporting_get', { report_id: 71 })).pipe(Effect.flip);
+      const result = yield* semrush.report(yield* parseReport('reporting_restore', { report_id: 71, confirm: true }));
+      expect(result.data).toEqual({ status: 'success', timeResult: 3 });
+      expect((yield* semrush.report(yield* parseReport('reporting_get', { report_id: 71 }))).data).toHaveProperty('document', reportingDocument);
+      expect((yield* semrush.report(yield* parseReport('reporting_tasks', { report_id: 71 }))).data).toHaveProperty('reports.nodes.0.tasks.0.id', '1001');
+      expect(reportingFixture.lifecycle.recoveryCounts()).toEqual({ taskDeletes: 0, restores: 1 });
+      expect(reportingFixture.lifecycle.counts()).toMatchObject({ creates: 0, clones: 0, saves: 0, generations: 0, deletions: 0 });
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { reportingFixture.lifecycle.reset(); }
+});
+
+test('My Reports restoration rejects denied, missing, false and lost receipts without replaying the POST', async () => {
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const semrush = yield* Semrush;
+      for (const scenario of ['restore-denied', 'restore-missing', 'restore-false', 'restore-lost'] as const) {
+        reportingFixture.lifecycle.reset(); reportingFixture.lifecycle.use(scenario);
+        const error = yield* semrush.report(yield* parseReport('reporting_restore', { report_id: 71, confirm: true })).pipe(Effect.flip);
+        expect(error.message).toMatch(/not retried|HTTP 403|report failed/); expect(error.message).not.toContain('fixture-secret');
+        expect(reportingFixture.lifecycle.recoveryCounts()).toEqual({ taskDeletes: 0, restores: 1 });
+        const current = semrush.report(yield* parseReport('reporting_get', { report_id: 71 }));
+        if (scenario === 'restore-denied' || scenario === 'restore-false') yield* current.pipe(Effect.flip);
+        else expect((yield* current).data).toHaveProperty('document.id', 71);
+        expect(reportingFixture.lifecycle.counts()).toMatchObject({ creates: 0, saves: 0, generations: 0, deletions: 0 });
+      }
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { reportingFixture.lifecycle.reset(); }
+});

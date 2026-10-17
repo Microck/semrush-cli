@@ -134,12 +134,35 @@ semrush reporting-overview --ownership own --search "Monthly" --json
 semrush reporting-overview --ownership own --search "Monthly" --offset 30 --json
 ```
 
-Delete only the IDs you intend to remove. Deletion is permanent:
+Delete only the IDs you intend to remove:
 
 ```sh
 semrush reporting-delete --report-ids '[123,124]' --dry-run
 semrush reporting-delete --report-ids '[123,124]' --confirm --json
 ```
+
+If you delete a report by mistake, try restoring its exact ID. Recovery works
+only while Semrush retains the report. Keep your own copy of important reports.
+
+```sh
+semrush reporting-restore --report-id 123 --dry-run
+semrush reporting-restore --report-id 123 --confirm
+```
+
+Restoration keeps the saved delivery settings. It does not generate a new PDF or
+restore PDFs you deleted separately.
+
+## Delete generated PDFs
+
+List the report's tasks and select the exact task ID to remove:
+
+```sh
+semrush reporting-tasks --report-id 123 --json
+semrush reporting-task-delete --report-id 123 --task-id 456 --dry-run
+semrush reporting-task-delete --report-id 123 --task-id 456 --confirm
+```
+
+This keeps the saved report, its other PDFs and copies you already downloaded.
 
 Writes do not retry. If a response is lost, inspect the overview, saved document
 or task list before sending another write.

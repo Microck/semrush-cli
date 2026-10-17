@@ -934,3 +934,14 @@ test('native PDF previews include AI summary settings only with explicit opt-in'
     await expect(preview(name, { ...selection, ai_summary: 'yes', dry_run: true })).rejects.toThrow('Invalid');
   }
 });
+
+
+test('report PDF deletion and restoration use exact bodyless native request plans and require confirmation', async () => {
+  expect(await preview('reporting_task_delete', { report_id: 71, task_id: '9223372036854775807', dry_run: true })).toEqual({ method: 'DELETE', path: '/my_reports/api/v1/document/71/tasks', body: { taskIds: '9223372036854775807' }, encoding: 'query' });
+  expect(await preview('reporting_restore', { report_id: 71, dry_run: true })).toEqual({ method: 'POST', path: '/my_reports/api/v1/document/71/restore', body: null });
+  await expect(preview('reporting_task_delete', { report_id: 71, task_id: '1001' })).rejects.toThrow('--confirm');
+  await expect(preview('reporting_restore', { report_id: 71 })).rejects.toThrow('--confirm');
+  const invalid: Query[] = [{ task_id: '' }, { task_id: ['1001'] }, { task_id: 1001 }, { task_id: '1,2' }, { task_id: '0' }, { task_id: '1001', report_id: 0 }, { task_id: '1001', method: 'deleteReports' }];
+  for (const selection of invalid) await expect(preview('reporting_task_delete', { report_id: 71, dry_run: true, ...selection })).rejects.toThrow('Invalid reporting_task_delete');
+  await expect(preview('reporting_restore', { report_id: 71, task_id: '1001', dry_run: true })).rejects.toThrow('Invalid reporting_restore');
+});

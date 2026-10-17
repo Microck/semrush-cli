@@ -19300,7 +19300,7 @@
   },
   "reporting_delete": {
     "method": "/my_reports/graphql/",
-    "description": "Permanently delete the explicitly selected saved reports.",
+    "description": "Delete the explicitly selected saved reports. Recovery is possible only while Semrush still retains them.",
     "transport": "reporting_web",
     "total_method": "",
     "web_report": "",
@@ -20073,6 +20073,82 @@
       },
       "required": [
         "campaign_id"
+      ]
+    }
+  },
+  "reporting_task_delete": {
+    "method": "/my_reports/api/v1/document/{report_id}/tasks",
+    "description": "Delete one generated PDF from a saved report, preserving the report, other generations and local downloads.",
+    "transport": "reporting_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "DELETE",
+    "request_encoding": "query",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "report_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "task_id": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*(?![\\s\\S])",
+          "maxLength": 30,
+          "description": "Exact task ID from reporting-tasks. Deletes only this PDF generation."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "report_id",
+        "task_id"
+      ]
+    }
+  },
+  "reporting_restore": {
+    "method": "/my_reports/api/v1/document/{report_id}/restore",
+    "description": "Restore a deleted saved report while Semrush still retains it, preserving its saved settings and remaining PDF generations.",
+    "transport": "reporting_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "report_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm restoring the report and its saved delivery settings."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "report_id"
       ]
     }
   }

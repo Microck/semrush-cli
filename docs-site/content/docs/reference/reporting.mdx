@@ -146,7 +146,7 @@ Pass `--output <path>` to save the file. Existing files are not overwritten. MCP
 
 ## reporting-delete
 
-Permanently delete the explicitly selected saved reports.
+Delete the explicitly selected saved reports. Recovery is possible only while Semrush still retains them.
 
 ```sh
 semrush reporting-delete --help
@@ -359,4 +359,41 @@ Use `--confirm` to send the change or `--dry-run` to preview it.
 | `--template-id` | integer |  | Required. Custom template ID from reporting-templates. |
 | `--emails` | array |  | Required. Recipients whose custom template access will be revoked. |
 | `--confirm` | boolean | `false` | Confirm this account mutation. |
+| `--dry-run` | boolean | `false` | Print the request without sending it. |
+
+## reporting-task-delete
+
+Delete one generated PDF from a saved report, preserving the report, other generations and local downloads.
+
+```sh
+semrush reporting-task-delete --help
+```
+
+MCP tool: `reporting_task_delete`.
+
+Use `--confirm` to send the change or `--dry-run` to preview it.
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `--report-id` | integer |  | Required.  |
+| `--task-id` | string |  | Required. Exact task ID from reporting-tasks. Deletes only this PDF generation. |
+| `--confirm` | boolean | `false` | Confirm this account mutation. |
+| `--dry-run` | boolean | `false` | Print the request without sending it. |
+
+## reporting-restore
+
+Restore a deleted saved report while Semrush still retains it, preserving its saved settings and remaining PDF generations.
+
+```sh
+semrush reporting-restore --help
+```
+
+MCP tool: `reporting_restore`.
+
+Use `--confirm` to send the change or `--dry-run` to preview it.
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `--report-id` | integer |  | Required.  |
+| `--confirm` | boolean | `false` | Confirm restoring the report and its saved delivery settings. |
 | `--dry-run` | boolean | `false` | Print the request without sending it. |
