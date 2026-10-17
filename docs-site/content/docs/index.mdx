@@ -61,7 +61,7 @@ semrush domain-keywords --domain example.com --json
 
 ## Output format
 
-Commands return a JSON object containing `authenticated: true`, the snake_case `report` name, and a `data` field holding the result object or array. Pass `--json` to output compact, single-line JSON. When a command fails, error diagnostics are written to standard error and the process exits with status code 2.
+Commands return a JSON object containing `authenticated: true`, the snake_case `report` name, and a `data` field holding the result object or array. Pass `--json` to output compact, single-line JSON. Failures write diagnostics to standard error. Service and authentication failures exit with code 1; invalid arguments exit with code 2. See [scripting](/docs/scripting#exit-codes-and-error-handling) for all exit codes.
 
 ## Next steps
 
