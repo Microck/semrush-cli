@@ -29,6 +29,26 @@ search text. Native HTTP responses were successful and privacy stayed false.
 These live reads verify request acceptance and empty results; fixture coverage
 supplies positive row selection and traversal evidence.
 
+[CI run 38994694194](https://github.com/Microck/semrush-cli/actions/runs/38994694194)
+passed all five jobs, including package installation and setup on Linux, macOS
+and Windows. The public GitHub archive matches the CI package byte for byte;
+its SHA-256 is
+`92a4824f0894d044d5d77d4cafe13423561477f304ea00abd05117cf69cdc726`.
+Production coverage, reporting, command-reference and authentication pages
+passed mobile checks without page errors or horizontal overflow.
+
+A fresh public GitHub installation passed the combined-filter CLI/MCP comparison
+and its archive matched CI.
+A normal fresh npm version installation passed all nine native CLI/MCP
+comparisons. Its registry archive matches CI and GitHub exactly. Publication
+entered asynchronous processing and became available without republishing.
+The installed local `semrush` command reports 0.28.0 and exposes all five options.
+
+Cleanup checked the original project still exists, forgot the remote session,
+stopped its daemon and removed the remote vault and native account capture.
+No saved reports, trials, purchases, policy acknowledgments or schedules were
+created or changed during this pass.
+
 ## Version 0.27.0 My Reports overview
 
 The catalog contains 276 operations, 187 reads and 89 confirmed writes.
