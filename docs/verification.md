@@ -1,8 +1,8 @@
 # Verification
 
-## Version 0.34.0 candidate
+## Version 0.34.0 Keyword Magic personalization and grouping
 
-The candidate adds three Keyword Magic reads and prepared-domain and grouping
+The release adds three Keyword Magic reads and prepared-domain and grouping
 controls, with 333 operations, 232 reads and 101 confirmed writes. The current
 client supplied the serializers. Native probes returned personalized difficulty,
 positions and traffic, topic and word groups, count/volume sorting, group totals
@@ -22,7 +22,22 @@ and all five daemon builds.
 Source native comparisons caught the unsupported relevance sort under word
 grouping. A real browser capture confirmed that the web UI keeps All Keywords
 selected and switches the table order to volume. The serializer now derives
-that native default from grouping. Source verification is continuing.
+that native default from grouping. Sixteen source selections matched complete
+independent native responses through CLI and MCP, including personalized rows,
+word-group defaults and sorting, topic pagination, difficulty filtering and an
+Overview-prepared root. Native report requests now allow 90 seconds with no
+automatic retries after direct personalized probes took 42-44 seconds.
+GitHub CI passed all five jobs, including full checks, the documentation build
+and package installation on Linux, macOS and Windows. The 38-entry archive
+contains all five bundled daemon targets. That exact archive also matched all
+16 native selections through CLI and MCP and passed authenticated doctor and
+original-project readback. A first native word-group attempt returned HTTP 503
+before either interface ran; after a healthy doctor check, the remaining reads
+passed. No runtime retries or export initializer replays were added.
+
+[Source CI](https://github.com/Microck/semrush-cli/actions/runs/39021352664)
+verified commit `c8cf97c89534b115acb33fefacf2b41b7d8e21d5`. The archive SHA-256
+is `9e015369d97e28364076fcef1da91d10c139ad752e37b9d72eb9933181bc3736`.
 
 ## Version 0.33.0 domain personalization and keyword AI
 

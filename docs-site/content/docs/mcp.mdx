@@ -25,7 +25,7 @@ Alternatively, configure:
   "mcpServers": {
     "semrush": {
       "command": "npx",
-      "args": ["-y", "semrush-cli@0.13.0", "mcp"]
+      "args": ["-y", "semrush-cli@latest", "mcp"]
     }
   }
 }
@@ -45,13 +45,18 @@ Tool names use underscores, such as `domain_overview`, `keyword_magic` and `back
 }
 ```
 
-The server sends only MCP protocol messages to stdout. The 141 read tools have `readOnlyHint:true`. The 65 write tools have
+The server sends only MCP protocol messages to stdout. Read tools have
+`readOnlyHint:true`. Write tools have
 `readOnlyHint:false` and require `confirm:true`. Delete and leave also have
 `destructiveHint:true`. Use `dry_run:true` to validate and inspect a write without
 connecting to Semrush. A write without confirmation fails before authentication.
 Login, daemon management, arbitrary URLs and JavaScript execution are not exposed. Report calls can still consume normal account allowances.
 
 Tool errors have `isError: true`. Reimport an expired session and restart or reconnect the MCP process. Each process owns and cleans up its transient browser.
+
+Native report requests allow 90 seconds and make one attempt. If your client
+sets a tool timeout, allow time for that request and browser startup. Export
+jobs can take longer.
 
 
 ## Read an export

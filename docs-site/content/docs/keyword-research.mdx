@@ -128,7 +128,8 @@ volume order for word grouping and relevance for topics. An explicit
 `--sort-field` selects a native table order. Word-group sorting controls
 require `--group-by words`; topic grouping rejects them before authentication.
 Use the same grouping selection for rows, totals, groups and group totals.
-Topic suggestions always use topic grouping.
+Topic suggestions always use topic grouping. Native report requests allow
+90 seconds and make one attempt.
 
 Native Keyword Magic exports remain unsupported. A selected-export job returned
 an ID, but its first native wait failed with `-32603 Internal error`. The CLI

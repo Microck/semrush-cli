@@ -211,7 +211,7 @@ semrush keyword-magic-topic-suggestions --keyword 'email marketing'
 semrush keyword-magic-access
 ```
 
-topics are the default. `--groups-sort-field count|volume` and `--groups-descending` apply only to word grouping. these reads do not prepare a domain or refresh keywords. access returns keyword magic's own product flags, row limits and update allowance. keyword magic exports remain unsupported because the native export job failed before producing a file.
+topics are the default. personalized keyword rows default to relevance order for topics and volume for word groups. `--groups-sort-field count|volume` and `--groups-descending` apply only to word grouping. these reads do not prepare a domain or refresh keywords. access returns keyword magic's own product flags, row limits and update allowance. report requests wait up to 90 seconds and make one attempt. keyword magic exports remain unsupported because the native export job failed before producing a file.
 
 pull out the numbers you care about:
 
