@@ -1,8 +1,8 @@
 # Verification
 
-## Version 0.33.0 candidate
+## Version 0.33.0 domain personalization and keyword AI
 
-The candidate catalog contains 330 operations, 229 reads and 101 confirmed
+The catalog contains 330 operations, 229 reads and 101 confirmed
 writes. Domain discovery, root resolution, explicit preparation and job status
 follow the current native Keyword Overview client. Six existing keyword reads
 accept an already prepared root. AI discovery, summary and topic samples use
@@ -17,11 +17,25 @@ The three independent simplification reviews found no changes to make. Source CL
 all AI reads, current mobile personalization and all 106 native SERP rows.
 Both interfaces retained native code -10401 for an invalid existing job ID.
 Each interface also prepared the resolved example.com root once and returned
-ready status 2; no account projects or lists changed. Package verification
-is in progress. A native ready
+ready status 2; no account projects or lists changed. The exact CI package
+repeated all 15 read comparisons, the invalid-job check
+and one preparation through each interface. A native ready
 preparation returned status 2 with an empty ID. Pending lifecycle and interrupted
 initialization remain stateful fixture cases until a native pending job occurs.
 
+[Release CI](https://github.com/Microck/semrush-cli/actions/runs/39017249981)
+passed all five jobs, including the complete 273-test suite, Fumadocs and package
+installation/setup on Linux, macOS and Windows. The GitHub release archive
+matches that CI artifact. It contains 38 entries and all five daemon builds;
+SHA-256 `7040633f759e84419403467fa518d555fdab5be878ed4a569401c104c05a632c`.
+The main host installed those prebuilt bytes with scripts disabled and reports
+`semrush --version` 0.33.0. Production Chromium checks passed the coverage,
+keyword guide, reference and
+On Page guide at 390px, with no page errors or horizontal overflow. Search
+returned the new domain command and `/llms.txt` advertised 330 operations.
+The original account project remains available. Public npm latest is 0.33.0,
+and its archive matches CI and GitHub byte for byte. A clean registry
+installation on Raft passed authenticated `doctor`.
 
 ## Version 0.32.0 local keyword research
 
