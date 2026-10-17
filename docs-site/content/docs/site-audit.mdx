@@ -77,6 +77,8 @@ To stop an active crawl:
 - `semrush audit-finalize --campaign-id 456 --confirm`: Halts crawling while preserving already collected page records.
 - `semrush audit-abort --campaign-id 456 --confirm`: Cancels the crawl and discards partial data.
 
+Check `audit-execution` first. Both stop commands require `is_allowed_stopping: true` in its result. A short crawl can finish without enabling stopping, even while its status is `RUNNING`.
+
 To re-crawl a single page after deploying a fix:
 
 ```sh

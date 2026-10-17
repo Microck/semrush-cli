@@ -162,6 +162,8 @@ structural, performance, linking and progress data.
 discards an active crawl; `audit-finalize` stops it and keeps collected results.
 Both require confirmation and check the current `is_allowed_stopping` state before
 sending the action. `audit-execution --campaign-ids '[123]'` exposes that state.
+A short crawl can finish without enabling stopping; `RUNNING` alone does not
+mean that either stop action is available.
 A successful stop action returns `data: null`; inspect the campaign afterward.
 No read starts or stops a crawl. Page IDs must be read again after a new crawl.
 
