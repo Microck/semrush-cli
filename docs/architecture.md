@@ -1,6 +1,6 @@
 # Architecture
 
-The CLI and stdio MCP share a catalog of 292 operations, 202 reads and 90 writes,
+The CLI and stdio MCP share a catalog of 314 operations, 215 reads and 99 writes,
 and one Semrush Effect service. Input validation populates defaults before
 credential-bearing resources are acquired. The browser layer owns a transient
 Chromium context, reads page bootstrap metadata without evaluating page-owned
@@ -73,3 +73,12 @@ remain strings throughout validation, path planning and JSON output. A settings
 replacement validates its native URL receipt once; partial or missing receipts
 fail with a readback instruction because the write may already have committed.
 It never retries, restores an earlier list or starts a crawl.
+
+On Page SEO Checker uses fixed native routes. Setup first checks that the SEO
+campaign is unconfigured; partial settings read and preserve the current native
+configuration. Campaign launch derives product access from native billing
+metadata, without using the generic paid flag. These writes never retry.
+On Page batch deletion sends a JSON DELETE body; project, note and tracking
+deletion explicitly select query encoding. RPC and tracking status envelopes
+are validated by their protocol adapters; a native page's analysis status stays
+report data.

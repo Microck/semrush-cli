@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { Effect } from 'effect';
-import { parseWire, readBootstrap, redact } from '../src/browser-layer.js';
+import { parseWire, readBootstrap, readProductAccess, redact } from '../src/browser-layer.js';
 import type { Query } from '../src/report-parameters.js';
 import { parseReport } from '../src/validation.js';
 
@@ -18,6 +18,13 @@ test('rejects missing or invalid authentication metadata', () => {
 test('account identity comes from user metadata without inferring an SEO plan', () => {
   expect(readBootstrap('<script>window.sm2.user={"api_key":"secret","id":123,"email":"fixture@example.com"};window.sm2.billingInfo={"is_paid":false,"product_group":"App Center access"}</script>')).toEqual({ apiKey: 'secret', userId: 123, email: 'fixture@example.com' });
   expect(readBootstrap('<script>window.sm2.user={"api_key":"secret","id":123,"email":false}</script>')).toEqual({ apiKey: 'secret', userId: 123 });
+});
+test('native product access uses has_product without substituting generic paid or plan flags', () => {
+  expect(readProductAccess('<script>window.sm2.billingInfo={"has_product":true,"is_paid":false,"product_group":"App Center access"};throw new Error("do not execute")</script>')).toBe(true);
+  expect(readProductAccess('<script>window.sm2.billingInfo={"has_product":false,"is_paid":true,"nested":{"text":"\\\"}"}}</script>')).toBe(false);
+});
+test('native product access fails on missing or invalid metadata instead of inventing a launch selector', () => {
+  for (const html of ['<html>Sign in</html>', '<script>window.sm2.billingInfo={"is_paid":true}</script>', '<script>window.sm2.billingInfo={"has_product":"true"}</script>', '<script>window.sm2.billingInfo={']) expect(() => readProductAccess(html)).toThrow();
 });
 test('redacts nested secret fields and echoed credential strings', () => {
   expect(redact({ api_key: 'secret', rows: [{ authorization: 'Bearer abc', url: 'https://example.com/secret', title: 'ok' }], error: 'Bearer abc' }, ['secret', 'Bearer abc', 'abc'])).toEqual({ rows: [{ url: 'https://example.com/[redacted]', title: 'ok' }], error: '[redacted]' });

@@ -13,6 +13,20 @@ export const parseReport = Effect.fn('Reports.parse')(function* (name: string, i
   const validate = validators.get(name);
   const query = structuredClone(input);
   if (!validate || !validate(query)) return yield* Effect.fail(new UsageError({ message: `Invalid ${name} input: ${ajv.errorsText(validate?.errors)}. Run semrush ${name.replaceAll('_', '-')} --help.` }));
+  if (name === 'onpage_create' || name === 'onpage_pages_add') {
+    // SAFETY: Ajv validated the landing shape above; this pass checks assignments across rows.
+    const landings = query.landings as { url: string; keywords: string[] }[];
+    const urls = new Set<string>(), keywords = new Set<string>();
+    for (const landing of landings) {
+      if (urls.has(landing.url)) return yield* Effect.fail(new UsageError({ message: 'Each On Page URL must appear once. Combine its keywords in one landing entry.' }));
+      urls.add(landing.url);
+      for (const keyword of landing.keywords) {
+        if (keywords.has(keyword)) return yield* Effect.fail(new UsageError({ message: 'Each On Page keyword can be assigned to only one URL in a batch.' }));
+        keywords.add(keyword);
+      }
+    }
+    if (keywords.size > 1000) return yield* Effect.fail(new UsageError({ message: 'An On Page batch accepts at most 1000 keywords. Account allowance can impose a lower limit.' }));
+  }
   if ((name === 'saved_keywords_move' || name === 'saved_keywords_copy') && query.list_id === query.target_list_id) {
     return yield* Effect.fail(new UsageError({ message: 'Source and destination Saved Keywords collections must be different.' }));
   }

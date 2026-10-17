@@ -1,5 +1,44 @@
 # Verification
 
+## Version 0.31.0 On Page SEO Checker candidate
+
+The catalog contains 314 operations, 215 reads and 99 confirmed writes.
+Twenty-two operations cover native campaign setup, settings, location, explicit
+analysis, landing-page assignments, bulk changes, optimization ideas, trends,
+SERPs and snapshot details. The current native On Page SEO Checker JavaScript
+and authenticated Guru API requests supplied these contracts.
+
+All 252 source tests passed on Raft, including 71 real Chromium cases, a private
+Galleton daemon and stateful HTTP fixtures. Typecheck, Oxlint, generated
+reference checks and five daemon builds passed. Independent reuse and efficiency
+reviews found no changes needed. The quality review prompted a flat request
+body selection in place of nested conditionals; typecheck, lint and 141 request
+parameter tests passed afterward. Export and saved-keyword tests also passed.
+
+The native campaign allowance was 800. The account's generic paid flag was
+false, while the native On Page product access flag was true; campaign launch
+uses the latter, as the native client does. An unconfigured original campaign
+returned HTTP 400 for details; that is not evidence of a Guru access gate.
+
+Source CLI and MCP matched 20 native selections across all 13 new reads.
+Optimization idea arrays varied in order between independent native requests.
+Those comparisons key idea rows by native idea type and retain every field;
+the product does not reorder them. Other selected reports matched complete
+native responses, including zeros, booleans, empty arrays and snapshot details.
+
+Both source CLI and MCP passed all nine new write operations, with 12
+journaled writes per interface and independent native readbacks. Setup and assignment changes did not start
+analysis. Partial settings preserved omitted values; location used the native
+mobile device spelling. Keyword reassignment removed the old empty landing.
+JSON DELETE removed only selected owned pages. Page and campaign analyses
+finished on the bounded example.com fixture.
+
+Lost creation/settings/page responses, invalid empty acknowledgments, stale
+snapshots, missing metadata, permission and business errors have real HTTP
+fixture coverage. These failure cases were not induced on the live account.
+Public artifact verification and temporary-project cleanup remain pending for
+this candidate. PDF and Google connections remain outside verified coverage.
+
 ## Version 0.30.0 Keyword Overview and Bulk Analysis
 
 The catalog contains 292 operations, 202 reads and 90 confirmed

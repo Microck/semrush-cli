@@ -29,11 +29,16 @@ const auditSecrets = (value: Schema.Json) => objectValue(value)
 export function parseWire(text: string): Schema.Json { return Schema.decodeUnknownSync(Schema.Json)(json.parse(text)); }
 
 /** Remove credential fields and echoed secrets, including nested provider errors. */
-export function redact(value: Schema.Json, secrets: string[]): Schema.Json {
+export function redact(value: Schema.Json, secrets: readonly string[]): Schema.Json {
   if (Array.isArray(value)) return value.map(item => redact(item, secrets));
   if (objectValue(value)) return Object.fromEntries(Object.entries(value).filter(([key]) => !/^(api_?key|key|user_?id|access_token|refresh_token|authorization|cookie|set-cookie|hashes|display_hash|rnd|password|auth_?password|auth_?username|webBotAuthSignature(?:Agent|Input)?)$/i.test(key)).map(([key, item]) => [key, redact(item, secrets)]));
   if (Predicate.isString(value)) return secrets.filter(secret => secret.length > 0).reduce((text, secret) => text.replaceAll(secret, '[redacted]'), value);
   return value;
+}
+
+function reportFailure(detail: Schema.Json, secrets: readonly string[]): ReportError {
+  const providerCode = objectValue(detail) && Predicate.isNumber(detail.code) ? { providerCode: detail.code } : {};
+  return new ReportError({ ...providerCode, message: `Semrush report failed: ${JSON.stringify(redact(detail, secrets)).slice(0, 500)}` });
 }
 
 /** Resolve the two native export contracts without exposing credential-bearing capabilities. */
@@ -74,20 +79,21 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
   const { email, ...auth } = yield* Effect.try({ try: () => readBootstrap(bootstrap.text), catch: () => new SessionError({ message: 'Semrush sign-in metadata unavailable. Run semrush auth login or import a signed-in browser.' }) });
   const semaphore = yield* Semaphore.make(1);
   let spectrumToken = '';
-  const request = Effect.fn('Semrush.request')(function* (path: string, payload: Schema.Json, method = 'POST', extraHeaders: Record<string, string> = {}, responseType: 'json' | 'empty' = 'json', file?: WebRequest['file']) {
+  const request = Effect.fn('Semrush.request')(function* (path: string, payload: Schema.Json, method = 'POST', extraHeaders: Record<string, string> = {}, responseType: 'json' | 'empty' = 'json', options: Pick<WebRequest, 'file' | 'encoding'> = {}) {
+    const file = options.file;
     const secrets = [auth.apiKey, spectrumToken, spectrumToken.replace(/^Bearer /, ''), objectValue(payload) && Predicate.isString(payload.display_hash) ? payload.display_hash : '', ...auditSecrets(payload)];
     // Chromium fetch can replay a POST after a connection reset. The context's
     // HTTP client shares its cookie jar and gives us an explicit no-retry contract.
     const wire = yield* browserCall(async () => {
       const address = new URL(path, browserOrigin);
-      const queryOnly = method === 'GET' || method === 'DELETE';
+      const queryOnly = method === 'GET' || method === 'DELETE' && options.encoding === 'query';
       if (queryOnly) for (const [key, value] of Object.entries(payload ?? {})) for (const item of Array.isArray(value) ? value : [value]) address.searchParams.append(key, String(item));
       const headers = { Origin: browserOrigin, Referer: page.url(), ...extraHeaders };
       const multipart: Record<string, string | { name: string; mimeType: string; buffer: Buffer }> = {};
       if (file) {
         for (const [key, value] of Object.entries(payload ?? {})) multipart[key] = String(value);
         multipart[file.field] = { name: file.filename, mimeType: 'text/plain', buffer: Buffer.from(file.contents) };
-      } else if (['POST', 'PUT', 'PATCH'].includes(method)) Object.assign(headers, { 'Content-Type': 'application/json' });
+      } else if (['POST', 'PUT', 'PATCH'].includes(method) || method === 'DELETE' && !queryOnly) Object.assign(headers, { 'Content-Type': 'application/json' });
       const response = await context.request.fetch(address.href, {
         method, headers, timeout: 45000, maxRetries: 0,
         ...(file ? { multipart } : !queryOnly && payload !== null ? { data: JSON.stringify(payload) } : {}),
@@ -107,11 +113,12 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     const body = yield* Effect.try({ try: () => parseWire(wire.text), catch: () => new ReportError({ message: 'Semrush returned a page or challenge instead of JSON. Sign in again or retry later.' }) });
     if (file && path.startsWith('/siteaudit/') && (!objectValue(body) || !objectValue(body.status) || body.status.code !== 0)) return yield* Effect.fail(new ReportError({ message: `Semrush rejected the crawl URL upload: ${JSON.stringify(redact(body, secrets)).slice(0, 500)}` }));
     if (path === '/tracking/alerts/' && objectValue(body) && body.error_code !== 0) return yield* Effect.fail(new ReportError({ message: `Semrush tracking alert request failed: ${JSON.stringify(redact(body.error_message ?? body, [auth.apiKey])).slice(0, 500)}` }));
-    if (objectValue(body) && ('error' in body && body.error !== false || (!path.startsWith('/siteaudit/') && 'status' in body && !(body.status === null || body.status === 'SUCCESS' || body.status === 'success' || body.status === 'ok')))) {
-      const detail = body.error ?? body.error_message ?? body.status ?? null;
-      const providerCode = objectValue(detail) && Predicate.isNumber(detail.code) ? { providerCode: detail.code } : {};
-      return yield* Effect.fail(new ReportError({ ...providerCode, message: `Semrush report failed: ${JSON.stringify(redact(detail, secrets)).slice(0, 500)}` }));
-    }
+    if (objectValue(body) && 'error' in body && body.error !== false) return yield* Effect.fail(reportFailure(body.error ?? body.error_message ?? null, secrets));
+    return body;
+  });
+  /** Status has envelope semantics in RPC and tracking, but is report data in page analysis. */
+  const successfulEnvelope = Effect.fn('Semrush.successfulEnvelope')(function* (body: Schema.Json, secrets: readonly string[]) {
+    if (objectValue(body) && 'status' in body && !(body.status === null || body.status === 'SUCCESS' || body.status === 'success' || body.status === 'ok')) return yield* Effect.fail(reportFailure(body.error_message ?? body.status, [auth.apiKey, spectrumToken, ...secrets]));
     return body;
   });
   const rpc = Effect.fn('Semrush.rpc')(function* (method: string, params: Query, transport = 'keyword', webReport = 'domain.overview') {
@@ -120,7 +127,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     const extra: Record<string, string> = ['kwm', 'ksb'].includes(transport) ? { 'api-key': auth.apiKey, 'user-id': String(auth.userId) } : {};
     if (transport === 'bla') extra.Authorization = auth.apiKey;
     const path = transportPaths.get(transport) ?? '/kwogw/v2/webapi';
-    const body = yield* request(transport === 'bla' ? path + '?method=' + encodeURIComponent(method) : path, rpcBody(method, rpcParams), 'POST', extra);
+    const body = yield* successfulEnvelope(yield* request(transport === 'bla' ? path + '?method=' + encodeURIComponent(method) : path, rpcBody(method, rpcParams), 'POST', extra), []);
     if (!objectValue(body) || !('result' in body)) return yield* Effect.fail(new ReportError({ message: `Semrush ${method}: missing report result.` }));
     return body.result ?? null;
   });
@@ -224,7 +231,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     address.pathname += '/' + encodeURIComponent(hash);
     const uploaded = yield* Schema.decodeUnknownEffect(Schema.Struct({ error: Schema.Literal(false), file: Schema.Struct({
       name: Schema.String, size: Schema.Int, id: Schema.String, urls: Schema.Int,
-    }) }))(yield* request(address.href, { apiKey: auth.apiKey }, 'POST', {}, 'json', file))
+    }) }))(yield* request(address.href, { apiKey: auth.apiKey }, 'POST', {}, 'json', { file }))
       .pipe(Effect.mapError(() => new ReportError({ message: 'Backlink Audit returned an invalid CSV staging response. No file was committed.' })));
     if (uploaded.file.urls < 1) return yield* Effect.fail(new ReportError({ message: 'Semrush found no importable source URLs in the CSV. Put source URLs in the first column. No file was committed.' }));
     // Finish is a write, never retried. A following status read observes asynchronous crawling.
@@ -263,6 +270,26 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
         // Only Signature is masked by the provider; its empty value retains that stored credential.
         return Object.assign({}, body, { webBotAuthSignatureAgent: current.webBotAuthSignatureAgent, webBotAuthSignatureInput: current.webBotAuthSignatureInput });
       }
+    }
+    return body;
+  });
+  /** Creation cannot reset a configured campaign; general edits retain every saved field. */
+  const onpageBody = Effect.fn('Semrush.onpageBody')(function* (name: string, query: Query, body: Schema.Json) {
+    if (name === 'onpage_create') {
+      const campaigns = yield* Schema.decodeUnknownEffect(Schema.Array(Schema.Struct({ id: Schema.Int, operational: Schema.Boolean,
+        landings_count: Schema.Int, last_collect_date: Schema.Number, running_landings_count: Schema.Int,
+      })))(yield* request('/on-page-seo-checker/api/campaigns/', { key: auth.apiKey }, 'GET'))
+        .pipe(Effect.mapError(() => new ReportError({ message: 'On Page campaign metadata is unavailable. Inspect onpage-campaigns and the SEO project before setup. No settings were saved.' })));
+      const campaign = campaigns.find(campaign => campaign.id === query.campaign_id);
+      if (!campaign) return yield* Effect.fail(new ReportError({ message: 'This SEO project is absent from On Page campaign discovery. Inspect onpage-campaigns before setup. No settings were saved.' }));
+      if (campaign.operational || campaign.landings_count > 0 || campaign.last_collect_date > 0 || campaign.running_landings_count > 0) return yield* Effect.fail(new ReportError({ message: 'This SEO project already has On Page SEO Checker configured. Read onpage-info, onpage-settings and onpage-pages before editing it.' }));
+    }
+    if (name === 'onpage_configure') {
+      const current = yield* Schema.decodeUnknownEffect(Schema.Struct({ notify: Schema.Boolean, default_agent: Schema.Boolean,
+        timezone: Schema.Int, schedule: Schema.Union([Schema.Literal(0), Schema.Literal(1)]), location: Schema.NullOr(Schema.Record(Schema.String, Schema.Json)),
+      }))(yield* request(`/on-page-seo-checker/api/campaigns/${query.campaign_id}/settings/`, { key: auth.apiKey }, 'GET'))
+        .pipe(Effect.mapError(() => new ReportError({ message: 'On Page settings metadata is unavailable. Read onpage-settings before editing it. No settings were saved.' })));
+      return Object.assign({}, current, body);
     }
     return body;
   });
@@ -505,14 +532,37 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       if (Predicate.isString(current.folder.domain) && current.folder.domain.length > 0) return yield* Effect.fail(new ReportError({ message: 'This project already has a website. The Semrush web UI only allows adding a website when none is set.' }));
     }
     const authParameter = family === 'audit_web' ? 'key' : 'auth_parameter' in definition ? definition.auth_parameter : '';
-    const path = authParameter ? planned.path + '?' + new URLSearchParams({ [authParameter]: auth.apiKey }) : planned.path;
+    let path = authParameter ? planned.path + '?' + new URLSearchParams({ [authParameter]: auth.apiKey }) : planned.path;
+    if (name === 'onpage_run') {
+      const paid = yield* Effect.try({ try: () => readProductAccess(bootstrap.text), catch: () => new ReportError({ message: 'On Page account metadata is unavailable. Run semrush doctor and reconnect before launching analysis. No launch was sent.' }) });
+      path += '&paid=' + String(paid);
+    }
     const formEncoded = 'encoding' in planned && planned.encoding === 'form';
     const headers: Record<string, string> = family === 'notes_web' && !formEncoded ? { authorization: 'Token ' + auth.apiKey } : {};
     if (formEncoded) return { ...planned, path, headers, body: { token: auth.apiKey } };
-    const body = family === 'audit_web' ? yield* auditBody(name, query, planned.body)
-      : family === 'tracking_web' ? yield* targetBody(name, query, yield* trackingBody(definition, query, planned.body))
-      : family === 'notes_web' ? yield* noteBody(name, path, planned.body) : planned.body;
+    let body = planned.body;
+    if (family === 'onpage_web') body = yield* onpageBody(name, query, body);
+    else if (family === 'audit_web') body = yield* auditBody(name, query, body);
+    else if (family === 'tracking_web') body = yield* targetBody(name, query, yield* trackingBody(definition, query, body));
+    else if (family === 'notes_web') body = yield* noteBody(name, path, body);
     return { ...planned, path, headers, body };
+  });
+  /** Apply each report's native result selection after transport-level validation. */
+  const selectReportData = Effect.fn('Semrush.selectReportData')(function* ({ name, definition, query }: ReportRequest, nativeData: Schema.Json, params: Query) {
+    let selectedData = nativeData;
+    if (reportResponseType(definition) === 'boolean' && selectedData !== true) return yield* Effect.fail(new ReportError({ message: 'Semrush did not apply the label change. Read labels and target pages before retrying.' }));
+    if (definition.total_method) {
+      const totalParams = name === 'domain_position_changes' ? Object.fromEntries(Object.entries(params).filter(([key]) => key !== 'display')) : params;
+      const total = yield* rpc(definition.total_method, totalParams, 'domain', definition.web_report);
+      selectedData = { rows: selectedData, total, page: query.page ?? null, page_size: query.page_size ?? null };
+    }
+    if (name === 'keyword_overview' || name === 'keyword_countries') selectedData = yield* keywordInfoResult(name, query, selectedData);
+    else if (name === 'domain_overview') {
+      const search = Array.isArray(selectedData) ? selectedData.find(item => objectValue(item) && item.database === query.database) : undefined;
+      if (!search) return yield* Effect.fail(new ReportError({ message: 'No domain data for the selected database.' }));
+      selectedData = { search, backlinks: yield* rpc('backlinks.Summary', { searchItem: query.domain ?? null, searchType: 'domain' }, 'domain') };
+    }
+    return Predicate.isNumber(query.limit) && Array.isArray(selectedData) ? selectedData.slice(0, query.limit) : selectedData;
   });
   const checkSession = Effect.fn('Semrush.checkSession')(function* () {
     const session = yield* browserCall(() => page.evaluate(async () => {
@@ -536,7 +586,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     }
     const family = definition.transport;
     const responseType = reportResponseType(definition);
-    const planned = ['project_web', 'audit_web', 'tracking_web', 'saved_web', 'notes_web', 'reporting_web', 'bla_file'].includes(family) ? webRequest(definition, query) : undefined;
+    const planned = ['project_web', 'audit_web', 'tracking_web', 'saved_web', 'notes_web', 'reporting_web', 'onpage_web', 'bla_file'].includes(family) ? webRequest(definition, query) : undefined;
     const params = planned ? {} : reportParameters(definition, query);
     if (name === 'backlink_audit_export') {
       const prepared = yield* backlinkAuditCSV(query, params);
@@ -565,7 +615,10 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
         return { authenticated: true as const, report: name, data: null, artifact };
       }
       const wireResponseType = responseType === 'empty' ? 'empty' : 'json';
-      reportData = yield* request(prepared.path, prepared.body, prepared.method, prepared.headers, wireResponseType, prepared.file);
+      reportData = yield* request(prepared.path, prepared.body, prepared.method, prepared.headers, wireResponseType, prepared).pipe(
+        Effect.mapError(error => family === 'onpage_web' && definition.mutation ? new ReportError({ message: error.message + ' This On Page write was not confirmed and may have committed. Inspect onpage-info, onpage-settings or onpage-pages before another write.' }) : error),
+      );
+      if (family === 'tracking_web') reportData = yield* successfulEnvelope(reportData, requestSecrets);
       if (family === 'reporting_web') reportData = yield* reportingAccount(reportData);
       if (name === 'audit_web_vitals_settings_set') reportData = yield* webVitalsSettingsReceipt(reportData, Array.isArray(query.urls) ? query.urls.length : 0);
     } else if (['keyword', 'domain', 'direct', 'magic', 'kwm', 'ksb', 'bla'].includes(family)) {
@@ -595,20 +648,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       } else if (path.startsWith('/siteaudit/')) params.key = auth.apiKey;
       reportData = yield* request(path, params, ['post', 'gap', 'projects'].includes(family) ? 'POST' : 'GET', extra);
     }
-    if (responseType === 'boolean' && reportData !== true) return yield* Effect.fail(new ReportError({ message: 'Semrush did not apply the label change. Read labels and target pages before retrying.' }));
-    if (definition.total_method) {
-      const totalParams = name === 'domain_position_changes' ? Object.fromEntries(Object.entries(params).filter(([key]) => key !== 'display')) : params;
-      const total = yield* rpc(definition.total_method, totalParams, 'domain', definition.web_report);
-      reportData = { rows: reportData, total, page: query.page ?? null, page_size: query.page_size ?? null };
-    }
-    if (name === 'keyword_overview' || name === 'keyword_countries') {
-      reportData = yield* keywordInfoResult(name, query, reportData);
-    } else if (name === 'domain_overview') {
-      const search = Array.isArray(reportData) ? reportData.find(item => objectValue(item) && item.database === query.database) : undefined;
-      if (!search) return yield* Effect.fail(new ReportError({ message: 'No domain data for the selected database.' }));
-      reportData = { search, backlinks: yield* rpc('backlinks.Summary', { searchItem: query.domain ?? null, searchType: 'domain' }, 'domain') };
-    }
-    if (Predicate.isNumber(query.limit) && Array.isArray(reportData)) reportData = reportData.slice(0, query.limit);
+    reportData = yield* selectReportData({ name, definition, query }, reportData, params);
     yield* captureCookies(context, sessions.capture, browserOrigin);
     return { authenticated: true as const, report: name, data: redact(reportData ?? null, [auth.apiKey, spectrumToken, spectrumToken.replace(/^Bearer /, ''), ...requestSecrets]) };
   });
@@ -630,8 +670,9 @@ const keywordInfoResult = Effect.fn('Semrush.keywordInfoResult')(function* (name
 });
 
 interface BootstrapAuth { readonly apiKey: string; readonly userId: string | number; }
-export function readBootstrap(html: string): BootstrapAuth & { readonly email?: string } {
-  const match = /window\.sm2\.user\s*=\s*/.exec(html);
+/** Decode fixed bootstrap objects without executing page-owned JavaScript. */
+function readPageMetadata(html: string, name: 'user' | 'billingInfo'): Schema.Json {
+  const match = new RegExp('window\\.sm2\\.' + name + '\\s*=\\s*').exec(html);
   if (!match) throw new Error('No bootstrap');
   const start = match.index + match[0].length;
   let depth = 0, quoted = false, escaped = false;
@@ -644,16 +685,27 @@ export function readBootstrap(html: string): BootstrapAuth & { readonly email?: 
     } else if (char === '"') quoted = true;
     else if (char === '{') depth++;
     else if (char === '}' && --depth === 0) {
-      const user = parseWire(html.slice(start, index + 1));
-      if (objectValue(user) && Predicate.isString(user.api_key) && (Predicate.isString(user.id) || Predicate.isNumber(user.id))) {
-        const auth = { apiKey: user.api_key, userId: user.id };
-        if (Predicate.isString(user.email)) return { ...auth, email: user.email };
-        return auth;
-      }
-      break;
+      return parseWire(html.slice(start, index + 1));
     }
   }
   throw new Error('Invalid bootstrap');
+}
+
+export function readBootstrap(html: string): BootstrapAuth & { readonly email?: string } {
+  const user = readPageMetadata(html, 'user');
+  if (objectValue(user) && Predicate.isString(user.api_key) && (Predicate.isString(user.id) || Predicate.isNumber(user.id))) {
+    const auth = { apiKey: user.api_key, userId: user.id };
+    if (Predicate.isString(user.email)) return { ...auth, email: user.email };
+    return auth;
+  }
+  throw new Error('Invalid bootstrap');
+}
+
+/** The native launch selector is independent of generic paid flags and SEO tier names. */
+export function readProductAccess(html: string): boolean {
+  const billing = readPageMetadata(html, 'billingInfo');
+  if (objectValue(billing) && Predicate.isBoolean(billing.has_product)) return billing.has_product;
+  throw new Error('Native product access metadata is unavailable.');
 }
 
 async function observeSpectrum(page: Page, browserOrigin: string): Promise<string> {

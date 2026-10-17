@@ -79,7 +79,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 
 ## command surface
 
-292 operations, available as cli commands and mcp tools. 202 reads and 90 writes that need explicit confirmation.
+314 operations, available as cli commands and mcp tools. 215 reads and 99 writes that need explicit confirmation.
 
 | command | what it does |
 | --- | --- |
@@ -134,6 +134,12 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 | `domain-strategy-page`, `domain-strategy-page-urls`, `domain-strategy-page-serp` | inspect page details, matching urls and search results |
 | `domain-strategy-existing-keywords`, `domain-strategy-recommended-keywords` | read ranking keywords and recommendations for a page |
 | `domain-strategy-keywords-delete`, `domain-strategy-export` | remove selected generated keywords or export a filtered strategy |
+| `onpage-campaigns`, `onpage-info`, `onpage-limits`, `onpage-settings` | find on page seo checker campaigns and read their state, allowance and settings |
+| `onpage-overview`, `onpage-pages`, `onpage-progress`, `onpage-serps`, `onpage-serp` | read page priorities, optimization ideas, trends and collected search results |
+| `onpage-page-keywords`, `onpage-page-ideas`, `onpage-page-details`, `onpage-page-keyword-details` | inspect one page snapshot's metrics and recommendations |
+| `onpage-create`, `onpage-configure`, `onpage-location-set` | configure an seo project or change checker settings |
+| `onpage-page-add`, `onpage-page-update`, `onpage-pages-add`, `onpage-pages-delete` | manage landing pages and keyword assignments |
+| `onpage-run`, `onpage-page-run` | start campaign analysis or rerun one page |
 | `audit-create`, `audit-configure`, `audit-start` | configure and launch a site audit |
 | `audit-urls-upload` | upload a text or csv url list for an audit |
 | `position-create`, `position-targets`, `position-info` | create targets and read tracking settings |
@@ -713,6 +719,40 @@ semrush note-hidden-categories-set --tool POSITION_TRACKING --project-id 456 \
 
 category writes replace the whole selection. use `--categories '[]'` to show every category. project tools require `--project-id` for category preferences. every notes write needs `--confirm`, or use `--dry-run` to preview it.
 
+### on page seo checker
+
+use an existing seo project id from `project-enable-seo`, then check its checker state and allowance:
+
+```bash
+semrush onpage-campaigns
+semrush onpage-info --campaign-id 456
+semrush onpage-limits --campaign-id 456
+semrush onpage-create --campaign-id 456 \
+  --landings '[{"url":"https://example.com/","keywords":["example website"]}]' --dry-run
+```
+
+use `--confirm` to configure an unconfigured project. setup saves the selected pages and keywords without starting analysis. manual scheduling and notifications off are the defaults. start analysis separately when ready:
+
+```bash
+semrush onpage-run --campaign-id 456 --confirm
+semrush onpage-info --campaign-id 456
+semrush onpage-overview --campaign-id 456
+semrush onpage-pages --campaign-id 456
+semrush onpage-progress --campaign-id 456
+semrush onpage-serp --campaign-id 456 --keyword 'example website'
+```
+
+`onpage-progress` returns optimization ideas and daily trends, not a job percentage. use `onpage-info` and page analysis statuses to inspect a run. page snapshot reads require exact page and snapshot ids from the results:
+
+```bash
+semrush onpage-page-ideas --campaign-id 456 --page-id '<page_id>' --snapshot-id '<snapshot_id>'
+semrush onpage-page-details --campaign-id 456 --page-id '<page_id>' --snapshot-id '<snapshot_id>' --detail readability
+```
+
+`onpage-configure` preserves settings you omit. location changes use `onpage-location-set`; page edits and location changes do not start another analysis. adding pages can reassign existing keywords, and page updates replace their url and keyword selection. all writes require `--confirm` or an offline `--dry-run`.
+
+batch additions, selected-page deletions and analysis launches can return an empty acknowledgment. read `onpage-pages` or `onpage-info` afterward; the cli never retries those writes. see [on page seo checker](https://semrush.micr.dev/docs/on-page-seo-checker) for settings, batch inputs and detail reports. mcp exposes the same operations with underscores.
+
 ### site audits
 
 ```bash
@@ -904,7 +944,7 @@ npm run check
 
 the cli uses the published [`galleton` 0.1.0 sdk](https://www.npmjs.com/package/galleton). the bundled galleton daemon is still required for sessions. building it from source requires go 1.23 or newer, `tar` and `patch`. published cli packages include the daemon for supported platforms, so npm users do not need go.
 
-the current source passed 237 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
+the current source passed 252 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
 
 ## documentation
 

@@ -3,7 +3,7 @@ title: Web UI coverage
 description: Supported web workflows, evidence and remaining gaps.
 ---
 
-The CLI has 292 fixed operations: 202 reads and 90 confirmed writes.
+The CLI has 314 fixed operations: 215 reads and 99 confirmed writes.
 It uses your web session and the current web UI's request contracts. Account
 permissions and quotas apply to both interfaces. This is not full Semrush suite
 parity. The table distinguishes implemented workflows from remaining gaps.
@@ -24,6 +24,7 @@ parity. The table distinguishes implemented workflows from remaining gaps.
 | Project dashboard | Toolkit status, metric values and detail URLs | Third-party integration setup |
 | SEO setup | Create an SEO project and explicitly start automatic Site Audit/Position Tracking setup | Connected-service audit setup |
 | Site Audit | Discovery, limits, settings, HTTP Basic and Web Bot Auth authentication, uploaded URL lists, schedules, launch, page and issue tables, page recrawl, execution status, abort/finalize, structure, performance, linking, history, snapshots, page, issue-matrix, markup, issue and Compare Crawls CSV/XLSX exports; JS Impact guide, changed-page count, filtered pages and CSV/XLSX exports; All reports ZIP with native files and a manifest | Google Analytics connections |
+| On Page SEO Checker | Campaign setup, settings and location, explicit campaign/page analysis, page and keyword assignments, bulk add/delete, optimization ideas, trends, SERPs and snapshot details | PDF reports and Google service connections |
 | Core Web Vitals | Native status, score, LCP/TBT/CLS overview and pages, exact signed URL-ID history, Lighthouse recommendations, top improvements and saved URL selection; confirmed replacement of one to ten URLs for the next audit | Empty-list clearing: native API returns HTTP 400 |
 | Position Tracking | Target creation, destructive replacement/deletion, complete tracked keyword/tag reads, locations, limits, keyword add/delete/tags, competitor replacement, partial address/business/brand/volume settings edits, campaign settings reads, alert listing/counts, rule lifecycle, confirmed event detail/read-state changes and deletion, rankings, pages, ranking distribution, competitor discovery, target comparison, visibility/distribution/cannibalization trends | Tier 3 crawl schedules, AI-target brand matching and clearing, paid-only UI exports |
 | Keyword Strategy Builder | Domain strategy lifecycle, presets, filtered page opportunities, page URLs/SERPs, existing/recommended keywords, keyword deletion and CSV/XLSX exports; seed-based basket lifecycle, topics/pages, paginated clusters, favorites, selected-cluster deletion and metric refresh, keyword import, tags, deletion/undo, clustering, four native export selections and owner-aware selected keyword/cluster copy/move; send selected phrases to tracking; native JPG/PNG mind-map downloads | Content generation |
@@ -41,16 +42,25 @@ for Magic, Gap, Saved Keywords and the builder.
 
 ## Verification
 
-The source suite has 237 tests, including real Chromium, a private Galleton
+The source suite has 252 tests, including real Chromium, a private Galleton
 daemon and stateful HTTP fixtures. All 48 original research mappings also have
 differential tests against the Python reference. Across versioned live passes,
-all 202 reads have execution evidence. Keyword research source CLI and MCP
+all 215 reads have execution evidence. Keyword research source CLI and MCP
 matched 17 native read selections, including mobile and monthly snapshots.
 Bulk CSV, semicolon CSV, personalized CSV and historical mobile SERP CSV
 matched native bytes. Bulk XLSX matched workbook contents apart from provider
 timestamps. SERP domain XLSX passed CLI and MCP file checks; separate export
 jobs differed in changing Backlinks counts. Populated Product Listing Ads
 have fixture evidence only; the live response was empty.
+
+On Page SEO Checker source CLI and MCP matched 20 independent native report
+selections across all 13 reads. Optimization idea rows varied in order between
+native requests; comparisons retain every field and key those rows by idea
+type. Output keeps the provider's returned order. Setup, partial settings,
+location, keyword reassignment, page replacement, batch additions/deletions and
+explicit analysis have native readback evidence on owned temporary projects.
+HTTP fixture tests cover lost write responses without replay, incomplete
+metadata, native errors and stale snapshots.
 
 Core Web Vitals source and fresh public
 release CLI and MCP matched nine independent native selections, including positive and negative

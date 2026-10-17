@@ -95,6 +95,17 @@ test('keyword exports require a destination and validate formats before acquirin
   await expect(cli(['keyword-overview', '--keyword', 'typescript', '--date', '202613'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('Invalid keyword_overview') });
 });
 
+test('On Page previews stay offline and invalid assignments or unconfirmed writes fail before authentication', async () => {
+  const selection = ['--campaign-id', '793', '--landings', '[{"url":"https://example.com/","keywords":["example domain"]}]'];
+  const preview = JSON.parse((await cli(['onpage-create', ...selection, '--dry-run', '--json'])).stdout);
+  expect(preview.request).toMatchObject({ method: 'POST', path: '/on-page-seo-checker/api/create', body: { id: 793, timezone: 0, settings: { notify: false, schedule: 0 } } });
+  await expect(cli(['onpage-create', ...selection])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('--confirm') });
+  await expect(cli(['onpage-run', '--campaign-id', '793'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('--confirm') });
+  await expect(cli(['onpage-create', '--campaign-id', '793', '--landings', '[]', '--confirm'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('Invalid onpage_create') });
+  await expect(cli(['onpage-run', '--campaign-id', '793', '--paid', 'true', '--confirm'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('unknown option') });
+  expect((await cli(['onpage-page-details', '--help'])).stdout).toContain('--snapshot-id');
+});
+
 test('Core Web Vitals URL-list previews stay offline and invalid IDs or unconfirmed writes fail before authentication', async () => {
   const preview = await cli(['audit-web-vitals-settings-set', '--campaign-id', '793', '--urls', '["https://example.com/"]', '--dry-run', '--json']);
   expect(JSON.parse(preview.stdout)).toEqual({ dry_run: true, report: 'audit_web_vitals_settings_set', request: {
@@ -107,8 +118,8 @@ test('Core Web Vitals URL-list previews stay offline and invalid IDs or unconfir
 test('built catalog distinguishes read reports and project writes', async () => {
   const { stdout, stderr } = await cli(['reports', '--json']);
   const listed = JSON.parse(stdout);
-  expect(listed).toHaveLength(292);
-  expect(listed.filter((entry: { read_only: boolean }) => !entry.read_only)).toHaveLength(90);
+  expect(listed).toHaveLength(314);
+  expect(listed.filter((entry: { read_only: boolean }) => !entry.read_only)).toHaveLength(99);
   expect(stderr).toBe('');
 });
 test('invalid usage fails before attempting authentication', async () => {
@@ -137,13 +148,16 @@ test('MCP advertises write safety and previews without an authenticated runtime'
     expect((await client.listResourceTemplates()).resourceTemplates[0]?.uriTemplate).toBe('semrush-export://{export_id}{?offset,limit}');
     await expect(client.readResource({ uri: 'semrush-export://unknown' })).rejects.toThrow('Download an export first');
     const listed = await client.listTools();
-    expect(listed.tools).toHaveLength(292);
+    expect(listed.tools).toHaveLength(314);
     expect(listed.tools.find(tool => tool.name === 'project_delete')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
     expect(listed.tools.find(tool => tool.name === 'backlink_audit_disavow_import')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
     expect(listed.tools.find(tool => tool.name === 'backlink_audit_export')?.annotations).toMatchObject({ readOnlyHint: true, idempotentHint: false });
     expect(listed.tools.find(tool => tool.name === 'backlink_audit_replace_scope')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true, idempotentHint: false });
     for (const name of ['backlink_audit_comment_delete', 'backlink_audit_tag_delete']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
     expect(listed.tools.find(tool => tool.name === 'project_create')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false });
+    expect(listed.tools.filter(tool => tool.name.startsWith('onpage_'))).toHaveLength(22);
+    expect(listed.tools.filter(tool => tool.name.startsWith('onpage_') && tool.annotations?.readOnlyHint)).toHaveLength(13);
+    for (const name of ['onpage_page_add', 'onpage_page_update', 'onpage_pages_add', 'onpage_pages_delete']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true, idempotentHint: false });
     for (const name of ['keyword_bulk', 'keyword_countries', 'keyword_product_ads', 'keyword_serp_organic_metrics', 'keyword_serp_backlink_metrics']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: true });
     for (const name of ['keyword_bulk_export', 'keyword_serp_export', 'keyword_serp_domains_export']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: true, idempotentHint: false });
     expect(listed.tools.filter(tool => tool.name.startsWith('audit_web_vitals_'))).toHaveLength(8);

@@ -2435,7 +2435,8 @@
       "required": [
         "folder_id"
       ]
-    }
+    },
+    "request_encoding": "query"
   },
   "project_leave": {
     "method": "/share/json/leave/project-smb",
@@ -11638,7 +11639,8 @@
       "required": [
         "note_id"
       ]
-    }
+    },
+    "request_encoding": "query"
   },
   "note_hide": {
     "method": "/notes/api/notes/v2/notes/{note_id}/hide/",
@@ -11866,7 +11868,8 @@
       "required": [
         "campaign_id"
       ]
-    }
+    },
+    "request_encoding": "query"
   },
   "position_replace": {
     "method": "/positions/api/replace_target",
@@ -16311,5 +16314,977 @@
       ]
     },
     "response_type": "download_job"
+  },
+  "onpage_campaigns": {
+    "method": "/on-page-seo-checker/api/campaigns/",
+    "description": "List On Page SEO Checker campaigns, including unconfigured placeholders.",
+    "transport": "onpage_web",
+    "total_method": "",
+    "web_report": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "auth_parameter": "key"
+  },
+  "onpage_info": {
+    "method": "/on-page-seo-checker/api/campaigns/{campaign_id}",
+    "description": "Read native On Page SEO Checker campaign state and running-page counts.",
+    "transport": "onpage_web",
+    "total_method": "",
+    "web_report": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "auth_parameter": "key"
+  },
+  "onpage_limits": {
+    "method": "/on-page-seo-checker/api/campaigns/{campaign_id}/limits",
+    "description": "Read On Page SEO Checker keyword-analysis allowance.",
+    "transport": "onpage_web",
+    "total_method": "",
+    "web_report": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "auth_parameter": "key"
+  },
+  "onpage_settings": {
+    "method": "/on-page-seo-checker/api/campaigns/{campaign_id}/settings/",
+    "description": "Read saved On Page SEO Checker scheduling, crawler and location settings.",
+    "transport": "onpage_web",
+    "total_method": "",
+    "web_report": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "auth_parameter": "key"
+  },
+  "onpage_overview": {
+    "method": "/on-page-seo-checker/api/campaigns/{campaign_id}/overview/",
+    "description": "Read native On Page SEO Checker overview and page priorities.",
+    "transport": "onpage_web",
+    "total_method": "",
+    "web_report": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "auth_parameter": "key"
+  },
+  "onpage_pages": {
+    "method": "/on-page-seo-checker/api/campaigns/{campaign_id}/landings/",
+    "description": "Read every native landing page and the ORPHANS keyword row.",
+    "transport": "onpage_web",
+    "total_method": "",
+    "web_report": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "auth_parameter": "key"
+  },
+  "onpage_progress": {
+    "method": "/on-page-seo-checker/api/campaigns/{campaign_id}/progress/",
+    "description": "Read optimization ideas and daily trend records, not job progress percentages.",
+    "transport": "onpage_web",
+    "total_method": "",
+    "web_report": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "auth_parameter": "key"
+  },
+  "onpage_serps": {
+    "method": "/on-page-seo-checker/api/campaigns/{campaign_id}/serps/",
+    "description": "Read collected keyword SERPs, retaining native analysis status.",
+    "transport": "onpage_web",
+    "total_method": "",
+    "web_report": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "auth_parameter": "key"
+  },
+  "onpage_serp": {
+    "method": "/on-page-seo-checker/api/campaigns/{campaign_id}/serps/{keyword}/",
+    "description": "Read the collected landing, summary and SERP for one keyword.",
+    "transport": "onpage_web",
+    "total_method": "",
+    "web_report": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "keyword": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^(?=.*\\S)[^\\r\\n\\x00]+(?![\\s\\S])"
+        }
+      },
+      "required": [
+        "campaign_id",
+        "keyword"
+      ]
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "auth_parameter": "key"
+  },
+  "onpage_page_keywords": {
+    "method": "/on-page-seo-checker/api/campaigns/{campaign_id}/landings/{page_id}/snapshots/{snapshot_id}/keywords/",
+    "description": "Read a page snapshot's native keyword metrics.",
+    "transport": "onpage_web",
+    "total_method": "",
+    "web_report": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "page_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{24}(?![\\s\\S])"
+        },
+        "snapshot_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{24}(?![\\s\\S])"
+        }
+      },
+      "required": [
+        "campaign_id",
+        "page_id",
+        "snapshot_id"
+      ]
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "auth_parameter": "key"
+  },
+  "onpage_page_ideas": {
+    "method": "/on-page-seo-checker/api/campaigns/{campaign_id}/landings/{page_id}/snapshots/{snapshot_id}/ideas/",
+    "description": "Read all native optimization ideas for a page snapshot.",
+    "transport": "onpage_web",
+    "total_method": "",
+    "web_report": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "page_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{24}(?![\\s\\S])"
+        },
+        "snapshot_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{24}(?![\\s\\S])"
+        }
+      },
+      "required": [
+        "campaign_id",
+        "page_id",
+        "snapshot_id"
+      ]
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "auth_parameter": "key"
+  },
+  "onpage_page_details": {
+    "method": "/on-page-seo-checker/api/campaigns/{campaign_id}/landings/{page_id}/snapshots/{snapshot_id}/{detail}/",
+    "description": "Read native keyword density, semantics, backlinks, content length, video or readability details.",
+    "transport": "onpage_web",
+    "total_method": "",
+    "web_report": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "page_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{24}(?![\\s\\S])"
+        },
+        "snapshot_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{24}(?![\\s\\S])"
+        },
+        "detail": {
+          "type": "string",
+          "enum": [
+            "density",
+            "related",
+            "backlinks",
+            "length",
+            "video",
+            "readability"
+          ]
+        }
+      },
+      "required": [
+        "campaign_id",
+        "page_id",
+        "snapshot_id",
+        "detail"
+      ]
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "auth_parameter": "key"
+  },
+  "onpage_page_keyword_details": {
+    "method": "/on-page-seo-checker/api/campaigns/{campaign_id}/landings/{page_id}/snapshots/{snapshot_id}/{detail}/{keyword}/",
+    "description": "Read native per-keyword SERP, content-length or video details.",
+    "transport": "onpage_web",
+    "total_method": "",
+    "web_report": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "page_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{24}(?![\\s\\S])"
+        },
+        "snapshot_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{24}(?![\\s\\S])"
+        },
+        "detail": {
+          "type": "string",
+          "enum": [
+            "serp",
+            "length",
+            "video"
+          ]
+        },
+        "keyword": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^(?=.*\\S)[^\\r\\n\\x00]+(?![\\s\\S])"
+        }
+      },
+      "required": [
+        "campaign_id",
+        "page_id",
+        "snapshot_id",
+        "detail",
+        "keyword"
+      ]
+    },
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "auth_parameter": "key"
+  },
+  "onpage_create": {
+    "method": "/on-page-seo-checker/api/create",
+    "description": "Configure an unconfigured SEO project with page/keyword selections. Does not launch analysis.",
+    "transport": "onpage_web",
+    "total_method": "",
+    "web_report": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "landings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "url": {
+                "type": "string",
+                "maxLength": 4096,
+                "pattern": "^https?://[^\\s/?#]+[^\\s]*(?![\\s\\S])"
+              },
+              "keywords": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "^(?=.*\\S)[^\\r\\n\\x00]+(?![\\s\\S])"
+                },
+                "minItems": 1,
+                "maxItems": 1000,
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "url",
+              "keywords"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 1000,
+          "uniqueItems": true
+        },
+        "country_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^(?=.*\\S)[^\\r\\n\\x00]+(?![\\s\\S])",
+          "default": "United States"
+        },
+        "location": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^(?=.*\\S)[^\\r\\n\\x00]+(?![\\s\\S])"
+        },
+        "language": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 35,
+          "pattern": "^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*(?![\\s\\S])",
+          "default": "en"
+        },
+        "device": {
+          "type": "string",
+          "enum": [
+            "desktop",
+            "mobile"
+          ],
+          "default": "desktop"
+        },
+        "schedule": {
+          "type": "string",
+          "enum": [
+            "manual",
+            "weekly"
+          ],
+          "default": "manual"
+        },
+        "notify": {
+          "type": "boolean",
+          "default": false
+        },
+        "crawler": {
+          "type": "string",
+          "enum": [
+            "semrushbot",
+            "googlebot"
+          ],
+          "default": "semrushbot"
+        },
+        "timezone_offset": {
+          "type": "integer",
+          "minimum": -840,
+          "maximum": 840,
+          "description": "Minutes west of UTC, using the browser timezone-offset convention.",
+          "default": 0
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "campaign_id",
+        "landings"
+      ]
+    },
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "auth_parameter": "key",
+    "response_type": "empty"
+  },
+  "onpage_configure": {
+    "method": "/on-page-seo-checker/api/campaigns/{campaign_id}/settings/",
+    "description": "Edit general settings while preserving omitted fields and saved location. Does not launch analysis.",
+    "transport": "onpage_web",
+    "total_method": "",
+    "web_report": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "schedule": {
+          "type": "string",
+          "enum": [
+            "manual",
+            "weekly"
+          ]
+        },
+        "notify": {
+          "type": "boolean"
+        },
+        "crawler": {
+          "type": "string",
+          "enum": [
+            "semrushbot",
+            "googlebot"
+          ]
+        },
+        "timezone_offset": {
+          "type": "integer",
+          "minimum": -840,
+          "maximum": 840,
+          "description": "Minutes west of UTC, using the browser timezone-offset convention."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "campaign_id"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "schedule"
+          ]
+        },
+        {
+          "required": [
+            "notify"
+          ]
+        },
+        {
+          "required": [
+            "crawler"
+          ]
+        },
+        {
+          "required": [
+            "timezone_offset"
+          ]
+        }
+      ]
+    },
+    "mutation": true,
+    "destructive": false,
+    "http_method": "PUT",
+    "auth_parameter": "key"
+  },
+  "onpage_location_set": {
+    "method": "/on-page-seo-checker/api/campaigns/{campaign_id}/location/",
+    "description": "Replace country, location, language and device. Does not launch another analysis.",
+    "transport": "onpage_web",
+    "total_method": "",
+    "web_report": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "country_code": {
+          "type": "string",
+          "pattern": "^[a-z]{2}(?![\\s\\S])"
+        },
+        "location": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^(?=.*\\S)[^\\r\\n\\x00]+(?![\\s\\S])"
+        },
+        "language": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 35,
+          "pattern": "^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*(?![\\s\\S])",
+          "default": "en"
+        },
+        "device": {
+          "type": "string",
+          "enum": [
+            "desktop",
+            "mobile"
+          ],
+          "default": "desktop"
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "campaign_id",
+        "country_code",
+        "location"
+      ]
+    },
+    "mutation": true,
+    "destructive": false,
+    "http_method": "PUT",
+    "auth_parameter": "key"
+  },
+  "onpage_run": {
+    "method": "/on-page-seo-checker/api/campaigns/{campaign_id}/landings/launch",
+    "description": "Start analysis for the configured campaign. Uses account allowance; never purchases capacity.",
+    "transport": "onpage_web",
+    "total_method": "",
+    "web_report": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    },
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "auth_parameter": "key",
+    "response_type": "empty"
+  },
+  "onpage_page_add": {
+    "method": "/on-page-seo-checker/api/campaigns/{campaign_id}/landings/",
+    "description": "Add a page or reassign selected keywords to it. Does not automatically run analysis.",
+    "transport": "onpage_web",
+    "total_method": "",
+    "web_report": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "url": {
+          "type": "string",
+          "maxLength": 4096,
+          "pattern": "^https?://[^\\s/?#]+[^\\s]*(?![\\s\\S])"
+        },
+        "keywords": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^(?=.*\\S)[^\\r\\n\\x00]+(?![\\s\\S])"
+          },
+          "minItems": 1,
+          "maxItems": 1000,
+          "uniqueItems": true
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "campaign_id",
+        "url",
+        "keywords"
+      ]
+    },
+    "mutation": true,
+    "destructive": true,
+    "http_method": "POST",
+    "auth_parameter": "key"
+  },
+  "onpage_page_update": {
+    "method": "/on-page-seo-checker/api/campaigns/{campaign_id}/landings/{page_id}/",
+    "description": "Replace a page URL and keyword selection. Does not automatically run analysis.",
+    "transport": "onpage_web",
+    "total_method": "",
+    "web_report": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "page_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{24}(?![\\s\\S])"
+        },
+        "url": {
+          "type": "string",
+          "maxLength": 4096,
+          "pattern": "^https?://[^\\s/?#]+[^\\s]*(?![\\s\\S])"
+        },
+        "keywords": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^(?=.*\\S)[^\\r\\n\\x00]+(?![\\s\\S])"
+          },
+          "minItems": 1,
+          "maxItems": 1000,
+          "uniqueItems": true
+        },
+        "switch_scheme": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use the native HTTP/HTTPS scheme-switch operation for this page."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "campaign_id",
+        "page_id",
+        "url",
+        "keywords"
+      ]
+    },
+    "mutation": true,
+    "destructive": true,
+    "http_method": "PUT",
+    "auth_parameter": "key"
+  },
+  "onpage_pages_add": {
+    "method": "/on-page-seo-checker/api/campaigns/{campaign_id}/landings/create/",
+    "description": "Add page/keyword selections in one native batch. Keywords may be reassigned; no analysis starts automatically.",
+    "transport": "onpage_web",
+    "total_method": "",
+    "web_report": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "landings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "url": {
+                "type": "string",
+                "maxLength": 4096,
+                "pattern": "^https?://[^\\s/?#]+[^\\s]*(?![\\s\\S])"
+              },
+              "keywords": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "^(?=.*\\S)[^\\r\\n\\x00]+(?![\\s\\S])"
+                },
+                "minItems": 1,
+                "maxItems": 1000,
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "url",
+              "keywords"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 1000,
+          "uniqueItems": true
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "campaign_id",
+        "landings"
+      ]
+    },
+    "mutation": true,
+    "destructive": true,
+    "http_method": "POST",
+    "auth_parameter": "key",
+    "response_type": "empty"
+  },
+  "onpage_pages_delete": {
+    "method": "/on-page-seo-checker/api/campaigns/{campaign_id}/landings/",
+    "description": "Delete selected native page IDs and their keyword assignments.",
+    "transport": "onpage_web",
+    "total_method": "",
+    "web_report": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "page_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}(?![\\s\\S])"
+          },
+          "minItems": 1,
+          "maxItems": 1000,
+          "uniqueItems": true
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "campaign_id",
+        "page_ids"
+      ]
+    },
+    "mutation": true,
+    "destructive": true,
+    "http_method": "DELETE",
+    "auth_parameter": "key",
+    "request_encoding": "json",
+    "response_type": "empty"
+  },
+  "onpage_page_run": {
+    "method": "/on-page-seo-checker/api/campaigns/{campaign_id}/landings/{page_id}/snapshots/",
+    "description": "Run another analysis of one selected page. Uses account allowance.",
+    "transport": "onpage_web",
+    "total_method": "",
+    "web_report": "",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "page_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{24}(?![\\s\\S])"
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "campaign_id",
+        "page_id"
+      ]
+    },
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "auth_parameter": "key",
+    "response_type": "empty"
   }
 }

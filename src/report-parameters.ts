@@ -63,6 +63,7 @@ function reportingParameters(query: Query): Query {
 /** Fixed request shapes observed in semrush-web-mcp. No arbitrary RPC or URL input. */
 export function reportParameters(definition: Report, q: Query): Query {
   const family = definition.transport;
+  if (family === 'onpage_web') return onpageParameters(definition, q);
   if (family === 'reporting_web') return reportingParameters(q);
   if (family === 'bla') return backlinkAuditParameters(definition, q);
   if (family === 'notes_web') return noteParameters(definition, q);
@@ -358,7 +359,34 @@ function projectParameters(definition: Report, q: Query): Query {
   return Object.fromEntries(Object.entries(q).filter(([key]) => key !== 'confirm' && key !== 'dry_run'));
 }
 
-export interface WebRequest { method: string; path: string; body: Schema.Json; encoding?: 'form' | 'multipart'; file?: { field: string; filename: string; contents: string }; }
+/** On Page setup and later location edits use distinct native country fields. */
+function onpageParameters(definition: Report, query: Query): Query {
+  const path = definition.method;
+  if (path === '/on-page-seo-checker/api/create') return {
+    id: query.campaign_id ?? null, landings: query.landings ?? [], timezone: query.timezone_offset ?? 0,
+    settings: { location: { location: query.location ?? query.country_name ?? 'United States', language: query.language ?? 'en',
+      device: query.device === 'mobile' ? 'phone' : 'desktop', country: query.country_name ?? 'United States' },
+      notify: query.notify ?? false, schedule: query.schedule === 'weekly' ? 1 : 0, default_agent: query.crawler !== 'googlebot' },
+  };
+  if (path.endsWith('/settings/')) {
+    const changes: Query = {};
+    if (query.schedule !== undefined) changes.schedule = query.schedule === 'weekly' ? 1 : 0;
+    if (query.notify !== undefined) changes.notify = query.notify;
+    if (query.crawler !== undefined) changes.default_agent = query.crawler === 'semrushbot';
+    if (query.timezone_offset !== undefined) changes.timezone = query.timezone_offset;
+    return changes;
+  }
+  if (path.endsWith('/location/')) return { country: query.country_code ?? null, location: query.location ?? null,
+    language: query.language ?? 'en', device: query.device === 'mobile' ? 'phone' : 'desktop' };
+  if (path.endsWith('/landings/create/')) return { landings: query.landings ?? [] };
+  if (definition.http_method === 'DELETE') return { ids: query.page_ids ?? [] };
+  if (definition.http_method === 'PUT') return { url: query.url ?? null, keywords: query.keywords ?? [],
+    id: query.page_id ?? null, is_switch_scheme: query.switch_scheme ?? false };
+  if (definition.http_method === 'POST' && path.endsWith('/landings/')) return { url: query.url ?? null, keywords: query.keywords ?? [] };
+  return {};
+}
+
+export interface WebRequest { method: string; path: string; body: Schema.Json; encoding?: 'form' | 'multipart' | 'json' | 'query'; file?: { field: string; filename: string; contents: string }; }
 
 /** Fixed public request plans. RPC credentials enter only inside the browser layer. */
 export function webRequest(definition: Report, query: Query): WebRequest {
@@ -382,12 +410,13 @@ export function webRequest(definition: Report, query: Query): WebRequest {
     if ('project_id' in parameters) context.set('project_id', String(parameters.project_id));
     return { method: 'PUT', path: definition.method + '?' + context, body: parameters.categories ?? [] };
   }
-  return {
-    method: definition.http_method,
-    path,
-    body: definition.method.endsWith('/campaign_set_competitors') ? parameters.competitors ?? []
-      : definition.http_method === 'POST' && Object.keys(parameters).length === 0 ? null : parameters,
-  };
+  let body: Schema.Json = parameters;
+  if (definition.transport === 'onpage_web' && definition.method.endsWith('/landings/create/')) body = parameters.landings ?? [];
+  else if (definition.method.endsWith('/campaign_set_competitors')) body = parameters.competitors ?? [];
+  else if (definition.http_method === 'POST' && Object.keys(parameters).length === 0) body = null;
+  const prepared: WebRequest = { method: definition.http_method, path, body };
+  if ('request_encoding' in definition && (definition.request_encoding === 'json' || definition.request_encoding === 'query')) prepared.encoding = definition.request_encoding;
+  return prepared;
 }
 
 /** Keep secret object structure so native field mapping remains accurate in offline previews. */

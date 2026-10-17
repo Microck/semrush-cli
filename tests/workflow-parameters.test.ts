@@ -18,6 +18,56 @@ const keywordParameters = async (name: string, input: Query) => {
   return reportParameters(parsed.definition, parsed.query);
 };
 
+test('On Page setup uses the native country name, mobile value and explicit configuration-only request', async () => {
+  const landings = [{ url: 'https://example.com/', keywords: ['one, whole phrase'] }];
+  expect(await preview('onpage_create', { campaign_id: 793, landings, dry_run: true })).toEqual({ method: 'POST', path: '/on-page-seo-checker/api/create', body: {
+    id: 793, landings, timezone: 0, settings: { location: { location: 'United States', language: 'en', device: 'desktop', country: 'United States' }, notify: false, schedule: 0, default_agent: true },
+  } });
+  expect(await preview('onpage_create', { campaign_id: 793, landings, country_name: 'France', language: 'fr', device: 'mobile', crawler: 'googlebot', timezone_offset: -60, schedule: 'weekly', dry_run: true })).toMatchObject({ body: {
+    timezone: -60, settings: { location: { location: 'France', language: 'fr', device: 'phone', country: 'France' }, schedule: 1, default_agent: false },
+  } });
+});
+
+test('On Page report paths preserve exact native snapshot IDs and encode keyword path segments', async () => {
+  const base = '/on-page-seo-checker/api/campaigns/793';
+  for (const [name, suffix] of Object.entries({ info: '', limits: '/limits', settings: '/settings/', overview: '/overview/', pages: '/landings/', progress: '/progress/', serps: '/serps/' })) {
+    expect(await preview('onpage_' + name, { campaign_id: 793 })).toEqual({ method: 'GET', path: base + suffix, body: {} });
+  }
+  const ids = { campaign_id: 793, page_id: '111111111111111111111111', snapshot_id: '222222222222222222222222' };
+  const snapshot = base + '/landings/' + ids.page_id + '/snapshots/' + ids.snapshot_id;
+  for (const detail of ['density', 'related', 'backlinks', 'length', 'video', 'readability']) expect(await preview('onpage_page_details', { ...ids, detail })).toEqual({ method: 'GET', path: snapshot + '/' + detail + '/', body: {} });
+  expect(await preview('onpage_page_keyword_details', { ...ids, detail: 'serp', keyword: 'one / whole phrase' })).toEqual({ method: 'GET', path: snapshot + '/serp/one%20%2F%20whole%20phrase/', body: {} });
+  expect(await preview('onpage_serp', { campaign_id: 793, keyword: 'café' })).toEqual({ method: 'GET', path: base + '/serps/caf%C3%A9/', body: {} });
+});
+
+test('On Page confirmed edits and batch operations retain their distinct native bodies without implicit launches', async () => {
+  const campaign_id = 793, page_id = '111111111111111111111111', url = 'https://example.com/', keywords = ['example domain'];
+  expect(await preview('onpage_configure', { campaign_id, crawler: 'googlebot', notify: false, dry_run: true })).toEqual({ method: 'PUT', path: '/on-page-seo-checker/api/campaigns/793/settings/', body: { default_agent: false, notify: false } });
+  expect(await preview('onpage_location_set', { campaign_id, country_code: 'es', location: 'Madrid,Spain', language: 'es', device: 'mobile', dry_run: true })).toMatchObject({ body: { country: 'es', location: 'Madrid,Spain', language: 'es', device: 'phone' } });
+  expect(await preview('onpage_page_add', { campaign_id, url, keywords, dry_run: true })).toMatchObject({ method: 'POST', body: { url, keywords } });
+  expect(await preview('onpage_page_update', { campaign_id, page_id, url, keywords, switch_scheme: true, dry_run: true })).toMatchObject({ method: 'PUT', body: { url, keywords, id: page_id, is_switch_scheme: true } });
+  expect(await preview('onpage_pages_add', { campaign_id, landings: [{ url, keywords }], dry_run: true })).toMatchObject({ method: 'POST', body: [{ url, keywords }] });
+  expect(await preview('onpage_pages_delete', { campaign_id, page_ids: [page_id], dry_run: true })).toMatchObject({ method: 'DELETE', body: { ids: [page_id] } });
+  expect(await preview('onpage_run', { campaign_id, dry_run: true })).toEqual({ method: 'POST', path: '/on-page-seo-checker/api/campaigns/793/landings/launch', body: null });
+  expect(await preview('onpage_page_run', { campaign_id, page_id, dry_run: true })).toMatchObject({ method: 'POST', body: null });
+  const unconfirmed: [string, Query][] = [['onpage_configure', { campaign_id, notify: false }], ['onpage_run', { campaign_id }], ['onpage_page_run', { campaign_id, page_id }], ['onpage_pages_delete', { campaign_id, page_ids: [page_id] }]];
+  for (const [name, query] of unconfirmed) await expect(preview(name, query)).rejects.toThrow('changes your Semrush account');
+});
+
+test('On Page boundaries reject ambiguous assignments, path injection, empty selections and caller account metadata', async () => {
+  const valid = { campaign_id: 793, landings: [{ url: 'https://example.com/', keywords: ['example domain'] }], dry_run: true };
+  const invalid: Query[] = [{ landings: [] }, { landings: [{ url: 'relative', keywords: ['seo'] }] }, { landings: [{ url: 'https://example.com/\n', keywords: ['seo'] }] },
+    { landings: [{ url: 'https://example.com/', keywords: [] }] }, { landings: [{ url: 'https://example.com/', keywords: [' '] }] },
+    { landings: [{ url: 'https://example.com/', keywords: ['same'] }, { url: 'https://example.com/two', keywords: ['same'] }] },
+    { landings: [{ url: 'https://example.com/', keywords: ['one'] }, { url: 'https://example.com/', keywords: ['two'] }] },
+    { paid: true }, { key: 'injected' }, { timezone_offset: 841 }, { device: 'phone' }, { country_name: 'France\n' }];
+  for (const input of invalid) await expect(preview('onpage_create', { ...valid, ...input })).rejects.toThrow();
+  await expect(preview('onpage_configure', { campaign_id: 793, dry_run: true })).rejects.toThrow();
+  for (const page_id of ['111111111111111111111111\n', '../settings', 'AAAAAAAAAAAAAAAAAAAAAAAA']) await expect(preview('onpage_page_run', { campaign_id: 793, page_id, dry_run: true })).rejects.toThrow();
+  const maximum = Array.from({ length: 1001 }, (_, i) => 'keyword ' + i);
+  await expect(preview('onpage_create', { ...valid, landings: [{ url: 'https://example.com/', keywords: maximum }] })).rejects.toThrow();
+});
+
 test('keyword controls preserve default requests and use native monthly, device and currency values', async () => {
   const defaults = { phrase: 'typescript', database: 'us', device: 0, currency: 'USD', location: 0, date: '' };
   expect(await keywordParameters('keyword_overview', { keyword: 'typescript' })).toEqual(defaults);
@@ -389,7 +439,7 @@ test('notes plans retain native selections, nullable project scope and chart cat
 test('target replacement and deletion require consent and expose no runtime capabilities in previews', async () => {
   const selected = { campaign_id: '123_456' };
   expect(await preview('position_replace', { ...selected, device: 'phone', dry_run: true })).toEqual({ method: 'POST', path: '/positions/api/replace_target', body: { id: '123_456', device_group: 'phone', timezone: 0 } });
-  expect(await preview('position_delete', { ...selected, dry_run: true })).toEqual({ method: 'DELETE', path: '/positions/api/targets/123_456', body: {} });
+  expect(await preview('position_delete', { ...selected, dry_run: true })).toEqual({ method: 'DELETE', path: '/positions/api/targets/123_456', body: {}, encoding: 'query' });
   await expect(preview('position_replace', { ...selected, dry_run: true })).rejects.toThrow('required');
   await expect(preview('position_replace', { ...selected, device: 'phone' })).rejects.toThrow('--confirm');
   await expect(preview('position_delete', selected)).rejects.toThrow('--confirm');

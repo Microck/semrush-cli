@@ -29,6 +29,7 @@ import { makeWebBotAuthFixture, auditAuthPath } from './web-bot-auth-fixture.js'
 import { makeReportingFixture } from './reporting-fixture.js';
 import { makeKeywordResearchFixture, keywordDownloadPath, keywordFixturePhrase } from './keyword-research-fixture.js';
 import { makeWebVitalsFixture, webVitalsPath, negativeURLId, positiveURLId } from './web-vitals-fixture.js';
+import { makeOnpageFixture, onpagePath, onpagePageId, onpageSnapshotId } from './onpage-fixture.js';
 
 const exec = promisify(execFile);
 const binary = resolve(`dist/daemon/galleton-${process.platform}-${process.arch}${process.platform === 'win32' ? '.exe' : ''}`);
@@ -71,12 +72,13 @@ const webBotAuthFixture = makeWebBotAuthFixture();
 const reportingFixture = makeReportingFixture();
 const webVitalsFixture = makeWebVitalsFixture();
 const keywordResearchFixture = makeKeywordResearchFixture();
-const fixtureHandlers = new Map([...archivePaths.map(path => [path, auditArchiveFixture.serve] as const), [folderPath, serveProjectFixture], [savedPath, serveSavedFixture], ['/notes/api/', serveNotesFixture], ['/siteaudit/api/campaigns/789/js-impact/', serveJSImpactFixture], ['/siteaudit/export/js-impact/', serveJSImpactFixture], ['/analytics/keywordmanager/list', mindmapFixture.serve], ['/mindmap-download', mindmapFixture.serve], [auditAuthPath, webBotAuthFixture.serve], ['/my_reports/graphql/', reportingFixture.serve], [webVitalsPath, webVitalsFixture.serve], [keywordDownloadPath, keywordResearchFixture.serveDownload]]);
+const onpageFixture = makeOnpageFixture();
+const fixtureHandlers = new Map([...archivePaths.map(path => [path, auditArchiveFixture.serve] as const), [folderPath, serveProjectFixture], [savedPath, serveSavedFixture], ['/notes/api/', serveNotesFixture], ['/siteaudit/api/campaigns/789/js-impact/', serveJSImpactFixture], ['/siteaudit/export/js-impact/', serveJSImpactFixture], ['/analytics/keywordmanager/list', mindmapFixture.serve], ['/mindmap-download', mindmapFixture.serve], [auditAuthPath, webBotAuthFixture.serve], ['/my_reports/graphql/', reportingFixture.serve], [webVitalsPath, webVitalsFixture.serve], [keywordDownloadPath, keywordResearchFixture.serveDownload], [onpagePath, onpageFixture.serve]]);
 /** Serve the native authentication checks separately from report fixtures. */
 function serveAuthenticationFixture(request: IncomingMessage, response: ServerResponse, url: URL): boolean {
   if (url.pathname === '/robots.txt') { response.end('User-agent: *\nDisallow: /'); return true; }
   if (url.pathname === '/analytics/overview/') {
-    response.end('<script>window.sm2.user={"api_key":"fixture-secret","id":123,"email":"fixture@example.com"}</script>'); return true;
+    response.end('<script>window.sm2.user={"api_key":"fixture-secret","id":123,"email":"fixture@example.com"}' + onpageFixture.bootstrap() + '</script>'); return true;
   }
   if (url.pathname === '/multilogin/') { response.end('Confirm your session'); return true; }
   if (url.pathname === '/home/') {
@@ -193,6 +195,7 @@ async function serveKeywordRPCFixture(request: IncomingMessage, response: Server
   response.setHeader('Content-Type', 'application/json');
   response.setHeader('Set-Cookie', 'rotated=yes; Path=/; HttpOnly');
   if (failReport) { response.end('{"error":{"message":"fixture-secret access denied"}}'); return; }
+  if (onpageFixture.envelopeFailure(response)) return;
   if (keywordResearchFixture.serveRPC(request, rpc, response)) return;
   response.end(rpc.method === 'keywords.GetInfo' ? '{"result":{"keywords":[{"database":"us","volume":100,"id":9223372036854775807,"apiKey":"fixture-secret"}]}}' : '{"result":{"allowed":true}}'); return;
 }
@@ -567,6 +570,170 @@ test('cancelling a pending keyword export or file stream releases its client, ar
   } finally { keywordResearchFixture.use(); }
 }, 30000);
 
+test('On Page reports retain native rows, orphan data, snapshot details and precise backlink counts', async () => {
+  onpageFixture.use('configured');
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const service = yield* Semrush;
+    const cases: [string, Query, Schema.Json][] = [
+      ['onpage_campaigns', {}, [{ id: 793, operational: true, landings_count: 1, last_collect_date: 1792195200, running_landings_count: 0 }]],
+      ['onpage_info', { campaign_id: 793 }, { id: 793, operational: true, running_landings_count: 0, landings_count: 1, last_collect_date: 1792195200 }],
+      ['onpage_limits', { campaign_id: 793 }, { used: 0, max: 800 }],
+      ['onpage_settings', { campaign_id: 793 }, onpageFixture.settings],
+      ['onpage_overview', { campaign_id: 793 }, { ideas: { content: 1 }, pages: [{ id: onpagePageId, url: 'https://example.com/' }], volume: 0, optimized: false, crawl_accessible: true }],
+      ['onpage_progress', { campaign_id: 793 }, { ideas: [{ category: 'content', done: false, count: 1 }], optimized: false, trend: [{ date: '2026-10-17', traffic: 0, keywords: 1 }] }],
+      ['onpage_serps', { campaign_id: 793 }, [{ keyword: 'café', status: 200 }, { keyword: 'unavailable', status: 204 }]],
+      ['onpage_serp', { campaign_id: 793, keyword: 'café' }, { landing: 'https://example.com/', summary: { keyword: 'café', volume: 0 }, serp: [] }],
+    ];
+    for (const [name, query, expected] of cases) expect((yield* service.report(yield* parseReport(name, query))).data).toEqual(expected);
+    const pages = yield* service.report(yield* parseReport('onpage_pages', { campaign_id: 793 }));
+    expect(pages.data).toEqual([...onpageFixture.pages, { id: '000000000000000000000000', url: 'ORPHANS', keywords: [], need_re_run: false, status: 'COMPLETED', snapshot: null }]);
+    const ids = { campaign_id: 793, page_id: onpagePageId, snapshot_id: onpageSnapshotId };
+    expect((yield* service.report(yield* parseReport('onpage_page_keywords', ids))).data).toEqual([{ phrase: 'café', volume: 0 }]);
+    expect((yield* service.report(yield* parseReport('onpage_page_ideas', ids))).data).toEqual({ language: 'english', is_supported_language: true, ideas: { content: [], strategy: [] } });
+    const detailResults = {
+      density: { url: 'https://example.com/', density_summaries: [], tfidf_summaries: [], word_density_summaries: [], last_collect_date: '2026-10-17' },
+      related: { related_words: [{ word: 'native', weight: 0 }] }, backlinks: [{ domain: 'example.org', backlinks_count: '9223372036854775807' }],
+      length: { url: 'https://example.com/', length_summaries: [] }, video: [{ keyword: 'café', has_video: false }], readability: [{ keyword: 'café', readability_score: 0 }],
+    } satisfies Record<string, Schema.Json>;
+    for (const [detail, expected] of Object.entries(detailResults)) {
+      const report = yield* service.report(yield* parseReport('onpage_page_details', { ...ids, detail }));
+      expect(report.data).toEqual(expected);
+    }
+    const keyword = 'café / one phrase';
+    const keywordResults = { serp: { urls: ['https://example.com/'] }, length: { url: 'https://example.com/', keyword, expanded_lengths: [] }, video: { keyword, expanded_videos: [] } } satisfies Record<string, Schema.Json>;
+    for (const [detail, expected] of Object.entries(keywordResults)) {
+      const report = yield* service.report(yield* parseReport('onpage_page_keyword_details', { ...ids, detail, keyword }));
+      expect(report.data).toEqual(expected);
+    }
+    expect(onpageFixture.writes).toBe(0);
+    expect(onpageFixture.observed.every(request => request.method === 'GET')).toBe(true);
+  }).pipe(Effect.provide(fixtureLayer()))));
+  expect((await sdk.headers('test', fixtureURL)).Cookie).toContain('onpage_rotation=retained');
+});
+
+test('On Page setup acknowledges empty native success without launching and refuses a second setup', async () => {
+  onpageFixture.use('unconfigured');
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const service = yield* Semrush; const input = { campaign_id: 793, landings: [{ url: 'https://example.com/', keywords: ['café'] }], confirm: true };
+      expect((yield* service.report(yield* parseReport('onpage_create', input))).data).toBeNull();
+      expect(onpageFixture.runs).toBe(0); expect(onpageFixture.writes).toBe(1);
+      expect((yield* service.report(yield* parseReport('onpage_info', { campaign_id: 793 }))).data).toMatchObject({ operational: true, landings_count: 1, last_collect_date: 0 });
+      expect((yield* service.report(yield* parseReport('onpage_settings', { campaign_id: 793 }))).data).toMatchObject({ notify: false, schedule: 0, default_agent: true, location: { country: 'us' } });
+      const duplicate = yield* service.report(yield* parseReport('onpage_create', input)).pipe(Effect.flip);
+      expect(duplicate.message).toContain('already has On Page'); expect(onpageFixture.writes).toBe(1);
+    }).pipe(Effect.provide(fixtureLayer()))));
+    for (const scenario of ['busy', 'missing-campaigns'] as const) {
+      onpageFixture.use(scenario);
+      await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+        const error = yield* (yield* Semrush).report(yield* parseReport('onpage_create', { campaign_id: 793, landings: [{ url: 'https://example.com/', keywords: ['café'] }], confirm: true })).pipe(Effect.flip);
+        expect(error.message).toContain(scenario === 'busy' ? 'already has On Page' : 'absent'); expect(onpageFixture.writes).toBe(0);
+      }).pipe(Effect.provide(fixtureLayer()))));
+    }
+  } finally { onpageFixture.use('configured'); }
+});
+
+test('On Page partial settings preserve saved location and missing metadata fails before saving', async () => {
+  onpageFixture.use('configured');
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const service = yield* Semrush; const before = structuredClone(onpageFixture.settings);
+      const changed = yield* service.report(yield* parseReport('onpage_configure', { campaign_id: 793, crawler: 'googlebot', timezone_offset: 60, confirm: true }));
+      expect(changed.data).toEqual({ ...before, default_agent: false, timezone: 60 }); expect(onpageFixture.runs).toBe(0);
+      expect(onpageFixture.observed.filter(request => request.path.endsWith('/settings/')).map(request => request.method)).toEqual(['GET', 'PUT']);
+      onpageFixture.use('missing-settings');
+      const error = yield* service.report(yield* parseReport('onpage_configure', { campaign_id: 793, notify: true, confirm: true })).pipe(Effect.flip);
+      expect(error.message).toContain('metadata is unavailable'); expect(onpageFixture.writes).toBe(0);
+      expect((yield* service.report(yield* parseReport('onpage_pages', { campaign_id: 793 }))).authenticated).toBe(true);
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { onpageFixture.use('configured'); }
+});
+
+test('On Page page and location lifecycle uses JSON deletion and never implicitly starts analysis', async () => {
+  onpageFixture.use('configured');
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const service = yield* Semrush;
+      const created = yield* service.report(yield* parseReport('onpage_page_add', { campaign_id: 793, url: 'https://example.com/two', keywords: ['café'], confirm: true }));
+      const added = onpageFixture.pages.find(page => page.url.endsWith('/two')); if (!added) throw Error('Missing created page');
+      expect(created.data).toMatchObject({ id: added.id, status: 'COMPLETED' }); expect(onpageFixture.pages).toHaveLength(1);
+      expect((yield* service.report(yield* parseReport('onpage_page_update', { campaign_id: 793, page_id: added.id, url: 'http://example.com/two', keywords: ['café'], switch_scheme: true, confirm: true }))).data).toMatchObject({ id: added.id, url: 'http://example.com/two' });
+      expect((yield* service.report(yield* parseReport('onpage_pages_add', { campaign_id: 793, landings: [{ url: 'https://example.com/three', keywords: ['third'] }], confirm: true }))).data).toBeNull();
+      expect((yield* service.report(yield* parseReport('onpage_location_set', { campaign_id: 793, country_code: 'es', location: 'Spain', language: 'es', device: 'mobile', confirm: true }))).data).toEqual({ country: 'es', location: 'Spain', language: 'es', device: 'phone' });
+      expect(onpageFixture.runs).toBe(0);
+      expect((yield* service.report(yield* parseReport('onpage_page_run', { campaign_id: 793, page_id: added.id, confirm: true }))).data).toBeNull(); expect(onpageFixture.runs).toBe(1);
+      expect((yield* service.report(yield* parseReport('onpage_pages_delete', { campaign_id: 793, page_ids: [added.id], confirm: true }))).data).toBeNull();
+      expect(onpageFixture.pages.map(page => page.url)).toEqual(['https://example.com/three']);
+      expect(onpageFixture.observed.find(request => request.method === 'DELETE')?.body).toEqual({ ids: [added.id] });
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { onpageFixture.use('configured'); }
+});
+
+test('On Page launch derives the native product selector and missing metadata cannot send a launch', async () => {
+  try {
+    for (const product of [true, false, null]) {
+      onpageFixture.use('configured'); onpageFixture.product(product);
+      await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+        const service = yield* Semrush; const launch = service.report(yield* parseReport('onpage_run', { campaign_id: 793, confirm: true }));
+        if (product === null) { const error = yield* launch.pipe(Effect.flip); expect(error.message).toContain('No launch was sent'); expect(onpageFixture.writes).toBe(0); }
+        else { expect((yield* launch).data).toBeNull(); expect(onpageFixture.runs).toBe(1); }
+        expect((yield* service.report(yield* parseReport('onpage_limits', { campaign_id: 793 }))).data).toMatchObject({ max: 800 });
+      }).pipe(Effect.provide(fixtureLayer()))));
+    }
+  } finally { onpageFixture.use('configured'); }
+});
+
+test('On Page native denials, business errors and stale snapshots remain errors without following another snapshot', async () => {
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const service = yield* Semrush;
+      for (const scenario of ['denied', 'business-error', 'stale'] as const) {
+        onpageFixture.use(scenario);
+        const error = yield* service.report(yield* parseReport('onpage_page_ideas', { campaign_id: 793, page_id: onpagePageId, snapshot_id: onpageSnapshotId })).pipe(Effect.flip);
+        expect(error.message).not.toContain('fixture-secret'); expect(onpageFixture.observed).toHaveLength(1); expect(onpageFixture.writes).toBe(0);
+        onpageFixture.use('configured'); expect((yield* service.report(yield* parseReport('onpage_pages', { campaign_id: 793 }))).authenticated).toBe(true);
+      }
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { onpageFixture.use('configured'); }
+});
+
+test('On Page committed writes with lost or unexpected receipts never replay and later readback shows their state', async () => {
+  try {
+    for (const scenario of ['lost-create', 'unexpected-create', 'lost-settings', 'lost-page'] as const) {
+      onpageFixture.use(scenario);
+      await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+        const service = yield* Semrush;
+        const input: [string, Query] = scenario === 'lost-settings' ? ['onpage_configure', { campaign_id: 793, notify: true, confirm: true }]
+          : scenario === 'lost-page' ? ['onpage_page_add', { campaign_id: 793, url: 'https://example.com/new', keywords: ['new phrase'], confirm: true }]
+          : ['onpage_create', { campaign_id: 793, landings: [{ url: 'https://example.com/', keywords: ['café'] }], confirm: true }];
+        const error = yield* service.report(yield* parseReport(...input)).pipe(Effect.flip);
+        expect(error.message).toContain('may have committed'); expect(onpageFixture.writes).toBe(1);
+        expect((yield* service.report(yield* parseReport('onpage_info', { campaign_id: 793 }))).data).toMatchObject({ operational: true });
+        if (scenario === 'lost-settings') expect((yield* service.report(yield* parseReport('onpage_settings', { campaign_id: 793 }))).data).toMatchObject({ notify: true });
+        if (scenario === 'lost-page') expect(onpageFixture.pages.some(page => page.url === 'https://example.com/new')).toBe(true);
+        expect(onpageFixture.writes).toBe(1);
+      }).pipe(Effect.provide(fixtureLayer()))));
+    }
+  } finally { onpageFixture.use('configured'); }
+});
+
+test('RPC and tracking failure envelopes stay errors while native page ERROR status remains report data', async () => {
+  onpageFixture.use('envelope-failure');
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const service = yield* Semrush;
+      const requests: [string, Query][] = [['keyword_overview', { keyword: 'fixture' }], ['position_info', { campaign_id: '789_42' }]];
+      for (const [name, query] of requests) {
+        const error = yield* service.report(yield* parseReport(name, query)).pipe(Effect.flip);
+        expect(error.message).toContain('rejected'); expect(error.message).not.toContain('fixture-secret');
+      }
+      onpageFixture.use('analysis-error');
+      const updated = yield* service.report(yield* parseReport('onpage_page_update', { campaign_id: 793, page_id: onpagePageId, url: 'https://example.com/', keywords: ['café'], confirm: true }));
+      expect(updated.data).toMatchObject({ status: 'ERROR' }); expect(onpageFixture.runs).toBe(0);
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { onpageFixture.use('configured'); }
+});
+
 test('Core Web Vitals reads retain native measurements, signed URL IDs, history ordering and cookie rotation', async () => {
   webVitalsFixture.reset();
   await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
@@ -805,6 +972,7 @@ let trackingSettingWrites = 0;
 let trackingSettingsState = { tracking_url: 'example.com', tracking_url_type: 'rootdomain', business_name: 'original business', brands: ['original brand'] };
 let trackingVolume = 'national';
 async function serveTrackingFixture(request: IncomingMessage, response: ServerResponse, url: URL) {
+  if (onpageFixture.envelopeFailure(response)) return;
   if (await trackingTargetsFixture.serve(request, response, url)) return;
   expect(request.headers.cookie).toContain('session=authorized');
   response.setHeader('Content-Type', 'application/json');

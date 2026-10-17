@@ -996,3 +996,62 @@ array; populated ad rows require separate evidence. Mobile and September 2026
 requests were observed directly in the current UI. No purchase, preference
 write, keyword refresh, policy acknowledgment or outreach is part of these
 operations.
+
+## On Page SEO Checker
+
+The native `main.393567ab.js` client and authenticated Guru requests define
+this workflow. Campaign IDs are SEO project IDs, not web folder IDs. Existing
+project commands create a folder and enable its SEO project separately.
+Campaign discovery can include unconfigured placeholders. A placeholder's
+report error remains an error; it does not establish a plan restriction.
+
+Read operations cover campaign discovery, information, allowance, settings,
+overview, pages, ideas/trends, SERP lists and per-keyword SERPs. Page snapshot
+reads expose keywords, ideas, the six native detail reports (`density`,
+`related`, `backlinks`, `length`, `video`, `readability`) and the three
+per-keyword detail reports (`serp`, `length`, `video`). Paths and detail names
+are fixed. Landing and snapshot IDs remain exact 24-character hexadecimal
+strings. Native ordering, measurements, empty reports and the special ORPHANS
+row remain unchanged. A stale snapshot error never silently selects another
+snapshot.
+
+Creation configures an existing, unconfigured SEO project with explicit
+URL/keyword selections. It does not create another folder or start analysis.
+Manual scheduling and disabled notifications are the defaults. The native
+location object uses a country name during creation and a country code during
+later location replacement; the public fields distinguish those inputs.
+Desktop maps to `desktop`, mobile to native `phone`. Crawler selection maps
+SemrushBot and Googlebot to the native `default_agent` boolean. Timezone offsets
+use the browser convention, minutes west of UTC.
+
+Analysis, per-page reruns, location replacement, partial general settings
+edits, page addition/reassignment, page replacement, batch additions and
+selected-page deletion require confirmation or an offline preview. Page and
+location changes do not implicitly run another analysis. General settings
+edits read native settings once and retain omitted fields, including location.
+Connected Google services are not changed. Page additions can reassign selected
+keywords; those commands identify that destructive behavior explicitly.
+
+Analysis uses the current native billing bootstrap's `has_product` value for
+the provider's `paid` selector. It is internal account metadata, not a caller
+option or a substitute for the SEO subscription tier. Missing metadata fails
+before launch. No command purchases allowance, changes a subscription, sends
+feedback or connects a third-party account.
+
+Native configuration and launch can return an empty HTTP 200 response. Such
+responses are successful empty acknowledgments. Their writes never replay
+after a lost response; inspect campaign information, settings or pages before
+another write. A page's `COMPLETED` or `ERROR` analysis status is report data.
+HTTP failures and explicit provider error envelopes remain failures. RPC and
+tracking envelope status checks belong to those protocols, not to arbitrary
+native report payloads.
+
+DELETE request plans identify their native encoding explicitly. Existing
+project, note and tracking deletion keep query encoding; selected On Page IDs
+use a JSON body. Offline previews include that encoding metadata. Callers
+cannot select a request encoding or supply runtime tracking capabilities.
+
+The bundle retains statistics and orphan route constants that returned native
+400/404 and have no current call sites. They are not exposed. Native PDF uses
+My Reports; it remains outside this workflow's verified boundary. The new
+commands do not generate content or simulate connected-service results.
