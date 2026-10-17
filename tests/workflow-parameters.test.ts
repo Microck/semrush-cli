@@ -18,6 +18,51 @@ const keywordParameters = async (name: string, input: Query) => {
   return reportParameters(parsed.definition, parsed.query);
 };
 
+test('local keyword research uses native locations and current desktop serializers without implicit refresh', async () => {
+  expect(await keywordParameters('keyword_locations', {})).toEqual({ database: 'us', input: '' });
+  expect(await keywordParameters('keyword_locations', { database: 'uk', input: 'London' })).toEqual({ database: 'uk', input: 'London' });
+  const input = { keyword: 'café', location_id: 21167, currency: 'EUR' };
+  const native = { phrase: 'café', database: 'us', device: 0, date: '', currency: 'EUR', location: 21167 };
+  expect(await keywordParameters('keyword_local_overview', input)).toEqual(native);
+  expect(await keywordParameters('keyword_local_serp', { ...input, limit: 1000 })).toEqual(native);
+  expect(await keywordParameters('keyword_local_serp_organic_metrics', { ...input, urls: ['https://example.com/', 'https://example.com/'] })).toEqual({ ...native, urls: ['https://example.com/', 'https://example.com/'] });
+  const exportInput = { keyword: 'café', location_id: 21167 };
+  for (const [format, code] of [['csv', 1], ['csv_semicolon', 2], ['xlsx', 0]] as const) {
+    expect(await keywordParameters('keyword_local_serp_export', { ...exportInput, format })).toEqual({ phrase: 'café', database: 'us', location: 21167, format: code, filename: 'semrush-keyword-local-serp' });
+  }
+});
+
+test('SERP domain enrichment sends native lexical domain selections and retains snapshot controls', async () => {
+  for (const name of ['keyword_serp_domain_organic_metrics', 'keyword_serp_domain_backlink_metrics']) {
+    expect(await keywordParameters(name, { keyword: 'typescript', domains: ['z.example', 'a.example'], device: 'mobile', date: '202609' })).toEqual({ phrase: 'typescript', database: 'us', device: 1, date: '202609', currency: 'USD', location: 0, domains: ['a.example', 'z.example'] });
+  }
+});
+
+test('explicit keyword refresh previews native phrase records and status uses epoch seconds without polling', async () => {
+  const input = { keywords: ['café', 'one, whole phrase'], database: 'uk', location_id: 21167 };
+  const phrases = input.keywords.map(phrase => ({ phrase, database: 'uk', location: 21167 }));
+  const parsed = await Effect.runPromise(parseReport('keyword_refresh', { ...input, dry_run: true }));
+  expect(previewMutation(parsed.name, parsed.definition, parsed.query)).toEqual({ dry_run: true, report: 'keyword_refresh', request: { method: 'POST', path: '/kwogw/v2/webapi', body: { id: 1, jsonrpc: '2.0', method: 'updates.RequestUpdates', params: { phrases } } } });
+  expect(await keywordParameters('keyword_refresh', { keywords: ['typescript'], confirm: true })).toEqual({ phrases: [{ phrase: 'typescript', database: 'us', location: 0 }] });
+  expect(await keywordParameters('keyword_refresh_status', { ...input, location_id: 0, status_updated_at: 1792221173.25, currency: 'EUR', domain: 'example.com' })).toEqual({ phrases: phrases.map(phrase => ({ ...phrase, location: 0, status_updated_at: 1792221173.25 })), include_updating: true, currency: 'EUR', domain: 'example.com' });
+  expect(await keywordParameters('keyword_refresh_status', { keywords: ['typescript'] })).toEqual({ phrases: [{ phrase: 'typescript', database: 'us', location: 0, status_updated_at: 0 }], include_updating: true, currency: 'USD' });
+});
+
+test('local research and refresh reject unsupported selectors, arbitrary RPC fields and invalid selections before authentication', async () => {
+  const invalidLocal: Query[] = [{ location_id: 0 }, { location_id: 1.5 }, { location_id: 9007199254740992 }, { device: 'mobile' }, { date: '202609' }, { domain: 'example.com' }, { method: 'updates.RequestUpdates' }, { api_key: 'injected' }];
+  for (const name of ['keyword_local_overview', 'keyword_local_serp', 'keyword_local_serp_organic_metrics', 'keyword_local_serp_export']) {
+    const valid: Query = { keyword: 'typescript', location_id: 21167 };
+    if (name === 'keyword_local_serp_organic_metrics') valid.urls = ['https://example.com/'];
+    for (const invalid of invalidLocal) await expect(keywordParameters(name, { ...valid, ...invalid })).rejects.toThrow();
+  }
+  for (const domains of [[], ['example.com', 'example.com'], ['https://example.com/'], ['example.com/path'], ['example.com\n']]) await expect(keywordParameters('keyword_serp_domain_organic_metrics', { keyword: 'typescript', domains })).rejects.toThrow();
+  await expect(keywordParameters('keyword_refresh', { keywords: ['typescript'] })).rejects.toThrow('changes your Semrush account');
+  const invalidRefresh: Query[] = [{ keywords: [] }, { keywords: ['same', 'same'] }, { keywords: Array.from({ length: 101 }, (_, i) => 'keyword ' + i) }, { device: 'mobile' }, { date: '202609' }, { location_id: -1 }, { status_updated_at: 1 }];
+  for (const invalid of invalidRefresh) await expect(keywordParameters('keyword_refresh', { keywords: ['typescript'], dry_run: true, ...invalid })).rejects.toThrow();
+  await expect(keywordParameters('keyword_refresh_status', { keywords: ['typescript'], status_updated_at: -1 })).rejects.toThrow();
+  await expect(keywordParameters('keyword_refresh_status', { keywords: ['typescript'], location_id: 21167, domain: 'example.com' })).rejects.toThrow();
+});
+
 test('On Page setup uses the native country name, mobile value and explicit configuration-only request', async () => {
   const landings = [{ url: 'https://example.com/', keywords: ['one, whole phrase'] }];
   expect(await preview('onpage_create', { campaign_id: 793, landings, dry_run: true })).toEqual({ method: 'POST', path: '/on-page-seo-checker/api/create', body: {

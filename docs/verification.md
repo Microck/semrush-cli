@@ -1,5 +1,42 @@
 # Verification
 
+## Version 0.32.0 local keyword research candidate
+
+The catalog contains 323 operations, 223 reads and 100 confirmed writes.
+Nine new operations cover location discovery, cached local metrics and SERPs,
+local URL counts and native downloads, national SERP domain metrics, explicit
+refresh and status. The current Keyword Overview client supplied the native
+serializers. Its location selector disables mobile, historical and personalized
+domain contexts; the local command schemas preserve those restrictions.
+
+The source suite has 262 passing tests across the full run and scoped checks.
+Typecheck, Oxlint, generated-reference checks and five daemon builds passed on
+Raft. Stateful HTTP fixtures cover cached reads without refresh, native location
+response shapes, safe and long decimal precision, repeated URLs, domain ordering,
+all three export formats, pending waits, quota/permission errors, lost or invalid
+refresh receipts and later report usability. Native refresh receipts retain
+extra fields after boundary validation. No refresh request is replayed.
+
+Source CLI and MCP matched 12 independent native read selections. EUR and domain
+row-order variants were captured as whole native replies; comparisons do not
+round prices, drop fields or synthesize a fixed response order. Local CSV and
+semicolon CSV matched native bytes. XLSX matched all workbook entries apart from
+provider creation/modification timestamps. CLI file saves and private MCP
+resource reads passed for each format.
+
+The native local refresh probe consumed one request from the observed
+1,000-request allowance and progressed from status 1 to 2. Source CLI national
+and MCP local refreshes each consumed one additional request, finished and
+matched native status reads. The adapter itself does not poll. No projects,
+lists, preferences, connections or purchases were created by this pass.
+
+Independent simplification reviews found two fixture reuse issues: the refresh
+handler now shares the existing JSON-RPC reply callback, and the export filename
+map supplies the handled method set. Typecheck, lint, generated-reference
+checks and all 76 browser integration tests passed afterward. The Fumadocs
+production build also passed on Raft. Public release checks and final
+documentation deployment remain pending for this candidate.
+
 ## Version 0.31.0 On Page SEO Checker
 
 The catalog contains 314 operations, 215 reads and 99 confirmed writes.

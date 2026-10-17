@@ -1,6 +1,6 @@
 # Architecture
 
-The CLI and stdio MCP share a catalog of 314 operations, 215 reads and 99 writes,
+The CLI and stdio MCP share a catalog of 323 operations, 223 reads and 100 writes,
 and one Semrush Effect service. Input validation populates defaults before
 credential-bearing resources are acquired. The browser layer owns a transient
 Chromium context, reads page bootstrap metadata without evaluating page-owned
@@ -82,3 +82,10 @@ On Page batch deletion sends a JSON DELETE body; project, note and tracking
 deletion explicitly select query encoding. RPC and tracking status envelopes
 are validated by their protocol adapters; a native page's analysis status stays
 report data.
+
+Local keyword reads use native current desktop context and retain cached global
+and local metrics. Refresh is a separate confirmed RPC operation: its receipt
+gets one boundary validation while the original native payload remains output.
+Lost or invalid receipts require a status read; no refresh request is replayed.
+Status reads do not poll. Local SERP exports share the existing export lifecycle
+but have a distinct serializer without national device/date/currency fields.

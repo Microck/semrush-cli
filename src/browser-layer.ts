@@ -360,6 +360,18 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     const bytes = file.bytes;
     return yield* writer.create(file.filename, exportMimeTypes[extension], (destination, signal) => writeFile(destination, bytes, { mode: 0o600, signal }));
   });
+  /** A refresh can consume allowance before a lost response; never replay it. */
+  const keywordRefresh = Effect.fn('Semrush.keywordRefresh')(function* (params: Query) {
+    const readback = ' Read keyword-refresh-status before requesting another refresh; the request may have committed and was not retried.';
+    const receipt = yield* rpc('updates.RequestUpdates', params).pipe(Effect.mapError(error => error.providerCode === undefined
+      ? new ReportError({ message: error.message + readback })
+      : new ReportError({ message: error.message + readback, providerCode: error.providerCode })));
+    yield* Schema.decodeUnknownEffect(Schema.Struct({
+      change: Schema.Struct({ before: Schema.Int, delta: Schema.Int, limit: Schema.Int }),
+      phrases: Schema.Array(Schema.Struct({ phrase: Schema.String, database: Schema.String, location: Schema.Int, update_status: Schema.Int })).check(Schema.isMinLength(1)),
+    }))(receipt).pipe(Effect.mapError(() => new ReportError({ message: 'Semrush returned an invalid keyword refresh receipt.' + readback })));
+    return receipt;
+  });
   /** Export creation never retries. Only native code 0 from the idempotent wait means pending. */
   const keywordExport = Effect.fn('Semrush.keywordExport')(function* (method: string, params: Query, format: Schema.Json | undefined) {
     return yield* Effect.scoped(Effect.gen(function* () {
@@ -623,7 +635,8 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       if (name === 'audit_web_vitals_settings_set') reportData = yield* webVitalsSettingsReceipt(reportData, Array.isArray(query.urls) ? query.urls.length : 0);
     } else if (['keyword', 'domain', 'direct', 'magic', 'kwm', 'ksb', 'bla'].includes(family)) {
       if (name === 'backlink_audit_rerun') yield* checkBacklinkAuditControl(query);
-      reportData = yield* rpc(definition.method, name === 'backlink_audit_create' ? yield* createBacklinkAudit(params) : params, family, definition.web_report);
+      reportData = name === 'keyword_refresh' ? yield* keywordRefresh(params)
+        : yield* rpc(definition.method, name === 'backlink_audit_create' ? yield* createBacklinkAudit(params) : params, family, definition.web_report);
       if (responseType === 'download_url' || responseType === 'export_id') {
         const href = yield* nativeExportURL(responseType, reportData, browserOrigin, auth);
         const artifact = yield* Effect.scoped(downloadExport({ kind: 'file', request: { method: 'GET', path: href, body: {} }, headers: {} }, query.format, exports));

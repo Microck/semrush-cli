@@ -439,6 +439,96 @@ test('real multipart uploads and protected audit edits preserve credentials and 
 }, 30000);
 
 
+test('local keyword reads preserve cached metrics, native location shapes, SERP ordering and domain values without refresh', async () => {
+  keywordResearchFixture.use();
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const service = yield* Semrush;
+    expect((yield* service.report(yield* parseReport('keyword_locations', { input: 'New York' }))).data).toEqual({ history: [{ name: 'California,United States', location: 21137, type: 20 }], results: [{ name: 'New York,United States', location: 21167, type: 20 }] });
+    const local = { keyword: keywordFixturePhrase, location_id: 21167 };
+    const overview = yield* service.report(yield* parseReport('keyword_local_overview', local));
+    expect(overview.data).toMatchObject({ global_metrics: [{ location: 0, results: null, cpc: 4.1 }], local_metrics: { location: 21167, update_status: 0, results: null, serp_id: 'b-g-9223372036854775807' } });
+    expect((yield* service.report(yield* parseReport('keyword_local_serp', { ...local, limit: 1 }))).data).toEqual([{ position: 1, kind: 0, domain: 'example.com', url: 'https://example.com/', features: [] }]);
+    expect((yield* service.report(yield* parseReport('keyword_local_overview', { ...local, currency: 'EUR' }))).data).toMatchObject({ local_metrics: { cpc: '3.6196808999999996' } });
+    const urls = ['https://example.com/one', 'https://example.com/two', 'https://example.com/one'];
+    expect((yield* service.report(yield* parseReport('keyword_local_serp_organic_metrics', { ...local, urls }))).data).toEqual([...urls].reverse().map(url => ({ url, keywords_count: 12, traffic: 34 })));
+    const domains = ['z.example', 'a.example'];
+    expect((yield* service.report(yield* parseReport('keyword_serp_domain_organic_metrics', { keyword: keywordFixturePhrase, domains }))).data).toEqual([{ domain: 'a.example', traffic: 0 }, { domain: 'z.example', traffic: 0 }]);
+    expect((yield* service.report(yield* parseReport('keyword_serp_domain_backlink_metrics', { keyword: keywordFixturePhrase, domains }))).data).toEqual([{ domain: 'a.example', authority_score: 58, backlinks_count: 2336444 }, { domain: 'z.example', authority_score: 58, backlinks_count: 2336444 }]);
+    expect((yield* service.report(yield* parseReport('keyword_refresh_status', { keywords: [keywordFixturePhrase], location_id: 21167 }))).data).toEqual([]);
+    expect(keywordResearchFixture.refreshes).toBe(0); expect(keywordResearchFixture.statusReads).toBe(1);
+    for (const call of keywordResearchFixture.observed.filter(call => ['keywords.GetLocalInfo', 'serp.GetURLs', 'serp.GetURLsOrganicMetricsLocal'].includes(call.method))) expect(call.params).toMatchObject({ location: 21167, device: 0, date: '' });
+    keywordResearchFixture.use('empty'); expect((yield* service.report(yield* parseReport('keyword_locations', {}))).data).toEqual([]);
+  }).pipe(Effect.provide(fixtureLayer()))));
+});
+
+test('confirmed keyword refresh preserves the quota receipt and advances status only through explicit reads', async () => {
+  keywordResearchFixture.use();
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const service = yield* Semrush, selection = { keywords: ['café'], location_id: 21167 };
+    const refresh = yield* service.report(yield* parseReport('keyword_refresh', { ...selection, confirm: true }));
+    expect(refresh.data).toEqual({ change: { before: 44, delta: 1, limit: 1000 }, phrases: [{ phrase: 'café', database: 'us', location: 21167, update_status: 1 }], native_extra: false });
+    expect(keywordResearchFixture.refreshes).toBe(1); expect(keywordResearchFixture.statusReads).toBe(0);
+    for (const update_status of [1, 2]) {
+      expect((yield* service.report(yield* parseReport('keyword_refresh_status', selection))).data).toEqual([{ phrase: 'café', database: 'us', location: 21167, update_status, status_updated_at: 1792221173, results: null, serp_id: 's-d-99-1017-13394082193748469000' }]);
+    }
+    expect(keywordResearchFixture.refreshes).toBe(1); expect(keywordResearchFixture.statusReads).toBe(2);
+  }).pipe(Effect.provide(fixtureLayer()))));
+});
+
+test('lost or invalid keyword refresh receipts retain one committed request and require status readback without replay', async () => {
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const service = yield* Semrush;
+      for (const scenario of ['lost-refresh', 'missing-refresh-receipt'] as const) {
+        keywordResearchFixture.use(scenario);
+        const selection = { keywords: ['café'] };
+        const failed = yield* service.report(yield* parseReport('keyword_refresh', { ...selection, confirm: true })).pipe(Effect.flip);
+        expect(failed.message).toContain('keyword-refresh-status'); expect(failed.message).toContain('may have committed'); expect(failed.message).not.toContain('fixture-secret');
+        expect(keywordResearchFixture.refreshes).toBe(1); expect(keywordResearchFixture.statusReads).toBe(0);
+        expect((yield* service.report(yield* parseReport('keyword_refresh_status', selection))).data).toMatchObject([{ phrase: 'café', update_status: 1 }]);
+        expect(keywordResearchFixture.refreshes).toBe(1);
+        expect((yield* service.report(yield* parseReport('keyword_local_overview', { keyword: keywordFixturePhrase, location_id: 21167 }))).data).toHaveProperty('local_metrics');
+      }
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { keywordResearchFixture.use(); }
+});
+
+test('keyword refresh quota and permission failures preserve provider codes, redact secrets and keep later reads usable', async () => {
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const service = yield* Semrush;
+      for (const [scenario, code] of [['denied', -32002], ['rate-limited', -32003]] as const) {
+        keywordResearchFixture.use(scenario);
+        const failed = yield* service.report(yield* parseReport('keyword_refresh', { keywords: ['café'], confirm: true })).pipe(Effect.flip);
+        expect(failed._tag).toBe('ReportError');
+        if (failed._tag !== 'ReportError') throw Error('Expected native report failure');
+        expect(failed.providerCode).toBe(code); expect(failed.message).not.toContain('fixture-secret'); expect(keywordResearchFixture.refreshes).toBe(1);
+        expect((yield* service.report(yield* parseReport('keyword_refresh_status', { keywords: ['café'] }))).data).toEqual([]);
+      }
+      keywordResearchFixture.use('read-failed');
+      const failedRead = yield* service.report(yield* parseReport('keyword_local_overview', { keyword: keywordFixturePhrase, location_id: 21167 })).pipe(Effect.flip);
+      expect(failedRead.message).toContain('HTTP 403'); expect(keywordResearchFixture.refreshes).toBe(0);
+      keywordResearchFixture.use(); expect((yield* service.report(yield* parseReport('keyword_locations', {}))).data).toHaveProperty('results');
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { keywordResearchFixture.use(); }
+});
+
+test('local SERP exports retain exact native format bodies, bytes and private resources including a pending wait', async () => {
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const service = yield* Semrush, files = yield* Exports;
+      for (const [format, code] of Object.entries({ csv: 1, csv_semicolon: 2, xlsx: 0 })) {
+        keywordResearchFixture.use(format === 'csv' ? 'pending' : 'complete');
+        const report = yield* service.report(yield* parseReport('keyword_local_serp_export', { keyword: keywordFixturePhrase, location_id: 21167, format }));
+        expect(report.artifact).toBeDefined(); if (!report.artifact) throw Error('Missing local export');
+        expect(Buffer.from((yield* files.read(report.artifact.uri)).blob, 'base64')).toEqual(keywordResearchFixture.bytes(code));
+        expect(keywordResearchFixture.initializations).toBe(1); expect(keywordResearchFixture.waits).toBe(format === 'csv' ? 2 : 1); expect(keywordResearchFixture.downloads).toBe(1); expect(keywordResearchFixture.refreshes).toBe(0);
+      }
+      expect(yield* files.list()).toHaveLength(3);
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { keywordResearchFixture.use(); }
+});
+
 test('keyword controls, country rows and Bulk Analysis retain native values, context and precision', async () => {
   keywordResearchFixture.use();
   await Effect.runPromise(Effect.scoped(Effect.gen(function* () {

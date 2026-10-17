@@ -95,6 +95,15 @@ test('keyword exports require a destination and validate formats before acquirin
   await expect(cli(['keyword-overview', '--keyword', 'typescript', '--date', '202613'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('Invalid keyword_overview') });
 });
 
+test('keyword refresh previews stay offline, require consent and reject unsupported local controls before authentication', async () => {
+  const preview = JSON.parse((await cli(['keyword-refresh', '--keywords', '["café"]', '--location-id', '21167', '--dry-run', '--json'])).stdout);
+  expect(preview.request).toEqual({ method: 'POST', path: '/kwogw/v2/webapi', body: { id: 1, jsonrpc: '2.0', method: 'updates.RequestUpdates', params: { phrases: [{ phrase: 'café', database: 'us', location: 21167 }] } } });
+  await expect(cli(['keyword-refresh', '--keywords', '["café"]'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('--confirm') });
+  await expect(cli(['keyword-refresh', '--keywords', '[]', '--dry-run'])).rejects.toMatchObject({ code: 2, stdout: '' });
+  await expect(cli(['keyword-local-overview', '--keyword', 'typescript', '--location-id', '21167', '--device', 'mobile'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('unknown option') });
+  await expect(cli(['keyword-local-serp-export', '--keyword', 'typescript', '--location-id', '21167'])).rejects.toMatchObject({ code: 2, stdout: '', stderr: expect.stringContaining('--output') });
+});
+
 test('On Page previews stay offline and invalid assignments or unconfirmed writes fail before authentication', async () => {
   const selection = ['--campaign-id', '793', '--landings', '[{"url":"https://example.com/","keywords":["example domain"]}]'];
   const preview = JSON.parse((await cli(['onpage-create', ...selection, '--dry-run', '--json'])).stdout);
@@ -118,8 +127,8 @@ test('Core Web Vitals URL-list previews stay offline and invalid IDs or unconfir
 test('built catalog distinguishes read reports and project writes', async () => {
   const { stdout, stderr } = await cli(['reports', '--json']);
   const listed = JSON.parse(stdout);
-  expect(listed).toHaveLength(314);
-  expect(listed.filter((entry: { read_only: boolean }) => !entry.read_only)).toHaveLength(99);
+  expect(listed).toHaveLength(323);
+  expect(listed.filter((entry: { read_only: boolean }) => !entry.read_only)).toHaveLength(100);
   expect(stderr).toBe('');
 });
 test('invalid usage fails before attempting authentication', async () => {
@@ -148,13 +157,16 @@ test('MCP advertises write safety and previews without an authenticated runtime'
     expect((await client.listResourceTemplates()).resourceTemplates[0]?.uriTemplate).toBe('semrush-export://{export_id}{?offset,limit}');
     await expect(client.readResource({ uri: 'semrush-export://unknown' })).rejects.toThrow('Download an export first');
     const listed = await client.listTools();
-    expect(listed.tools).toHaveLength(314);
+    expect(listed.tools).toHaveLength(323);
     expect(listed.tools.find(tool => tool.name === 'project_delete')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
     expect(listed.tools.find(tool => tool.name === 'backlink_audit_disavow_import')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
     expect(listed.tools.find(tool => tool.name === 'backlink_audit_export')?.annotations).toMatchObject({ readOnlyHint: true, idempotentHint: false });
     expect(listed.tools.find(tool => tool.name === 'backlink_audit_replace_scope')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true, idempotentHint: false });
     for (const name of ['backlink_audit_comment_delete', 'backlink_audit_tag_delete']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
     expect(listed.tools.find(tool => tool.name === 'project_create')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false });
+    expect(listed.tools.find(tool => tool.name === 'keyword_refresh')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false, idempotentHint: false });
+    for (const name of ['keyword_locations', 'keyword_local_overview', 'keyword_local_serp', 'keyword_local_serp_organic_metrics', 'keyword_refresh_status', 'keyword_serp_domain_organic_metrics', 'keyword_serp_domain_backlink_metrics']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: true });
+    expect(listed.tools.find(tool => tool.name === 'keyword_local_serp_export')?.annotations).toMatchObject({ readOnlyHint: true, idempotentHint: false });
     expect(listed.tools.filter(tool => tool.name.startsWith('onpage_'))).toHaveLength(22);
     expect(listed.tools.filter(tool => tool.name.startsWith('onpage_') && tool.annotations?.readOnlyHint)).toHaveLength(13);
     for (const name of ['onpage_page_add', 'onpage_page_update', 'onpage_pages_add', 'onpage_pages_delete']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true, idempotentHint: false });
@@ -169,6 +181,9 @@ test('MCP advertises write safety and previews without an authenticated runtime'
     const preview = await client.callTool({ name: 'project_create', arguments: { name: 'example', dry_run: true } });
     expect(preview.isError).not.toBe(true);
     expect(preview.content).toEqual([{ type: 'text', text: JSON.stringify({ dry_run: true, report: 'project_create', request: { method: 'POST', path: '/apis/v4-raw/folders/api/v0/folders', body: { properties: [{ name: { value: 'example' } }] } } }) }]);
+    const refreshPreview = await client.callTool({ name: 'keyword_refresh', arguments: { keywords: ['café'], dry_run: true } });
+    expect(refreshPreview.isError).not.toBe(true);
+    expect(refreshPreview.content).toEqual([{ type: 'text', text: JSON.stringify({ dry_run: true, report: 'keyword_refresh', request: { method: 'POST', path: '/kwogw/v2/webapi', body: { id: 1, jsonrpc: '2.0', method: 'updates.RequestUpdates', params: { phrases: [{ phrase: 'café', database: 'us', location: 0 }] } } } }) }]);
     const denied = await client.callTool({ name: 'project_delete', arguments: { folder_id: '123' } });
     expect(denied.isError).toBe(true);
     expect(denied.content).toEqual([{ type: 'text', text: expect.stringContaining('confirm:true') }]);

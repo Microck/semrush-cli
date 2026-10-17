@@ -270,21 +270,38 @@ function keywordExportParameters(method: string, q: Query): Query {
     return { ...keywordBulkParameters(q), format, filename: 'semrush-keyword-bulk',
       columns: Object.entries(keywordExportColumns).filter(([name]) => columns.includes(name)).map(([, code]) => code) };
   }
+  if (method === 'serp.ExportURLsLocal') return { phrase: q.keyword ?? '', database: q.database ?? 'us', location: q.location_id ?? 0, format, filename: 'semrush-keyword-local-serp' };
   return { phrase: q.keyword ?? '', database: q.database ?? 'us', device: q.device === 'mobile' ? 1 : 0, date: q.date ?? '', format,
     filename: method === 'serp.ExportDomains' ? 'semrush-keyword-serp-domains' : 'semrush-keyword-serp' };
 }
 
 function keywordParameters(definition: Report, q: Query): Query {
   const method = definition.method;
+  if (method === 'locations.Get') return { database: q.database ?? 'us', input: q.input ?? '' };
+  if (method === 'updates.RequestUpdates' || method === 'updates.GetKeywords') return keywordRefreshParameters(method, q);
   if (method === 'keywords.GetBulk') return { ...keywordBulkParameters(q), date: '' };
-  if (method === 'keywords.Export' || method === 'serp.ExportURLs' || method === 'serp.ExportDomains') return keywordExportParameters(method, q);
+  if (method === 'keywords.Export' || method === 'serp.ExportURLs' || method === 'serp.ExportDomains' || method === 'serp.ExportURLsLocal') return keywordExportParameters(method, q);
   if (!('keyword' in q)) return {};
-  const params: Query = { phrase: (q.keyword ?? null), database: (q.database ?? null), device: q.device === 'mobile' ? 1 : 0, currency: q.currency ?? 'USD', location: 0, date: q.date ?? '' };
+  const params: Query = { phrase: (q.keyword ?? null), database: (q.database ?? null), device: q.device === 'mobile' ? 1 : 0, currency: q.currency ?? 'USD', location: q.location_id ?? 0, date: q.date ?? '' };
   if (method.startsWith('ideas.')) Object.assign(params, { mode: 0, questions_only: (q.questions_only ?? null) });
-  if (method === 'serp.GetURLsOrganicMetrics' || method === 'serp.GetURLsBacklinksMetrics') params.urls = q.urls ?? [];
+  if (method === 'serp.GetURLsOrganicMetrics' || method === 'serp.GetURLsBacklinksMetrics' || method === 'serp.GetURLsOrganicMetricsLocal') params.urls = q.urls ?? [];
+  if (method === 'serp.GetDomainsOrganicMetrics' || method === 'serp.GetDomainsBacklinksMetrics') params.domains = Array.isArray(q.domains) ? q.domains.toSorted() : [];
   return params;
 }
 
+/** Refresh uses explicit phrase selections; status timestamps are native epoch seconds. */
+function keywordRefreshParameters(method: string, query: Query): Query {
+  const status = method === 'updates.GetKeywords';
+  const phrases = Array.isArray(query.keywords) ? query.keywords.map(phrase => {
+    const selection: Query = { phrase, database: query.database ?? 'us', location: query.location_id ?? 0 };
+    if (status) selection.status_updated_at = query.status_updated_at ?? 0;
+    return selection;
+  }) : [];
+  if (!status) return { phrases };
+  const parameters: Query = { phrases, include_updating: true, currency: query.currency ?? 'USD' };
+  if (query.domain) parameters.domain = query.domain;
+  return parameters;
+}
 
 function domainParameters(definition: Report, q: Query): Query {
   const method = definition.method;
@@ -390,6 +407,7 @@ export interface WebRequest { method: string; path: string; body: Schema.Json; e
 
 /** Fixed public request plans. RPC credentials enter only inside the browser layer. */
 export function webRequest(definition: Report, query: Query): WebRequest {
+  if (definition.transport === 'keyword') return { method: 'POST', path: '/kwogw/v2/webapi', body: rpcBody(definition.method, reportParameters(definition, query)) };
   if (definition.transport === 'bla') return { method: 'POST', path: '/backlink_audit/rpc/?method=' + encodeURIComponent(definition.method), body: rpcBody(definition.method, reportParameters(definition, query)) };
   if (definition.transport === 'kwm' || definition.transport === 'ksb') return { method: 'POST', path: definition.transport === 'ksb' ? '/ksb/rpc' : '/kwm/rpc', body: rpcBody(definition.method, reportParameters(definition, query)) };
   const parameters = reportParameters(definition, query);

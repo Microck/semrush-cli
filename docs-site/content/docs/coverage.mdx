@@ -3,14 +3,14 @@ title: Web UI coverage
 description: Supported web workflows, evidence and remaining gaps.
 ---
 
-The CLI has 314 fixed operations: 215 reads and 99 confirmed writes.
+The CLI has 323 fixed operations: 223 reads and 100 confirmed writes.
 It uses your web session and the current web UI's request contracts. Account
 permissions and quotas apply to both interfaces. This is not full Semrush suite
 parity. The table distinguishes implemented workflows from remaining gaps.
 
 | Web workflow | CLI and MCP coverage | Remaining web UI work |
 | --- | --- | --- |
-| Keyword Overview and Bulk Analysis | Metrics, country rows, intent, trends, device and monthly snapshots, currency, bulk and personalized metrics, SERPs and URL enrichment, ads and Product Listing Ads, related ideas and clusters; native bulk and SERP CSV/semicolon CSV/XLSX downloads | Local keyword research, refresh controls, native PDF and separate chart-image downloads |
+| Keyword Overview and Bulk Analysis | Metrics, country rows, intent, trends, device and monthly snapshots, currency, bulk and personalized metrics, SERPs and URL/domain enrichment, ads and Product Listing Ads, related ideas and clusters; location lookup, cached local metrics/SERPs/URL counts, confirmed metric refresh and status; native bulk, national and local SERP CSV/semicolon CSV/XLSX downloads | Native PDF and separate chart-image downloads |
 | Keyword Magic | Pagination, sorting, filters, questions, groups and totals; save selected phrases through list import | UI-specific selection rendering |
 | Organic Research | Rankings, pages, subdomains, competitors, position changes, topics, trends | Chart rendering and UI-specific exports |
 | Historical and mobile research | Database and snapshot selection, subject to account access | UI comparisons not represented by available report filters |
@@ -42,16 +42,25 @@ for Magic, Gap, Saved Keywords and the builder.
 
 ## Verification
 
-The source suite has 252 tests, including real Chromium, a private Galleton
+The source suite has 262 tests, including real Chromium, a private Galleton
 daemon and stateful HTTP fixtures. All 48 original research mappings also have
 differential tests against the Python reference. Across versioned live passes,
-all 215 reads have execution evidence. Keyword research source CLI and MCP
+all 223 reads have execution evidence. Keyword research source CLI and MCP
 matched 17 native read selections, including mobile and monthly snapshots.
 Bulk CSV, semicolon CSV, personalized CSV and historical mobile SERP CSV
 matched native bytes. Bulk XLSX matched workbook contents apart from provider
 timestamps. SERP domain XLSX passed CLI and MCP file checks; separate export
 jobs differed in changing Backlinks counts. Populated Product Listing Ads
 have fixture evidence only; the live response was empty.
+
+Local keyword source CLI and MCP matched 12 native read selections, including
+cached local metrics, EUR values, local SERPs, repeated URL enrichment, domain
+metrics and mobile/historical national contexts. Native domain row order varied;
+each comparison matched a complete independently observed reply. Local CSV and
+semicolon CSV matched native bytes; XLSX matched workbook contents apart from
+provider timestamps. Confirmed national CLI and local MCP refreshes each consumed
+one request and reached a status matching the native endpoint. Lost receipts and
+quota/permission errors have HTTP fixture evidence only.
 
 On Page SEO Checker source and fresh release CLI and MCP matched 20 native report
 selections across all 13 reads. Optimization idea rows varied in order between

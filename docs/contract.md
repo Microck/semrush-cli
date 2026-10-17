@@ -1055,3 +1055,50 @@ The bundle retains statistics and orphan route constants that returned native
 400/404 and have no current call sites. They are not exposed. Native PDF uses
 My Reports; it remains outside this workflow's verified boundary. The new
 commands do not generate content or simulate connected-service results.
+
+## Local keyword research and explicit metric refresh
+
+The same native Keyword Overview client defines eight additional reads and one
+confirmed write. The catalog total becomes 323 operations, 223 reads and 100
+writes. Native Guru probes returned New York location 21167, local metrics and
+SERPs, local URL keyword counts and domain organic/backlink metrics. The native
+location selector disables mobile, historical and personalized-domain contexts.
+Local commands therefore expose current desktop data without those selectors.
+Database access restrictions remain native errors.
+
+- `keyword-locations`: `locations.Get` with `database` and `input`; returns the
+  native history/results object or array. Empty input is allowed for discovery.
+- `keyword-local-overview`: `keywords.GetLocalInfo` with the ordinary report
+  fields, a required positive `location_id` mapped to `location`, desktop 0 and
+  current date. Returns the entire native global/local metrics object. It does
+  not run the web client's separate automatic refresh action.
+- `keyword-local-serp`: `serp.GetURLs` with the same local context. Returns native
+  rows, with an optional client-side limit matching the existing SERP command.
+- `keyword-local-serp-organic-metrics`: `serp.GetURLsOrganicMetricsLocal` with
+  local context and one to 100 absolute HTTP(S) URLs. Repeated URLs are allowed.
+- `keyword-local-serp-export`: `serp.ExportURLsLocal` with phrase, database,
+  location, format and filename. Unlike national exports it sends no device,
+  date or currency. It uses the existing one-job export/wait/download workflow
+  and unchanged native CSV, semicolon CSV or XLSX bytes.
+- `keyword-serp-domain-organic-metrics` and
+  `keyword-serp-domain-backlink-metrics`: `serp.GetDomainsOrganicMetrics` and
+  `serp.GetDomainsBacklinksMetrics`, with ordinary national report context and
+  one to 100 distinct bare domains. Native request domain ordering is lexical.
+  The adapter returns each native metric row without merging or synthesizing it.
+- `keyword-refresh-status`: `updates.GetKeywords` with a `phrases` array of
+  phrase/database/location/status_updated_at records, `include_updating:true`,
+  currency and an optional domain for national data only. Public keywords, database and location apply
+  to the selection; `status_updated_at` uses native epoch seconds and defaults
+  to zero to request current state. It performs one read without polling.
+- `keyword-refresh`: `updates.RequestUpdates` with phrase/database/location
+  records. It requires confirmation or an offline preview, accepts one to 100
+  unique keywords and uses location zero for national data. The native quota
+  receipt and per-keyword statuses are returned unchanged. It does not poll,
+  retry, purchase additional allowance or change account preferences. A lost
+  response requires reading refresh status before another request.
+
+Refresh is independent of research reads. An authenticated native probe
+requested one local keyword, changed usage from 44 to 45 of 1,000 and observed
+native update status 1 followed by 2. Native numeric statuses remain raw data.
+Only the export wait's existing pending response permits retry; refresh requests
+and status reads do not add automatic retries.

@@ -79,7 +79,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 
 ## command surface
 
-314 operations, available as cli commands and mcp tools. 215 reads and 99 writes that need explicit confirmation.
+323 operations, available as cli commands and mcp tools. 223 reads and 100 writes that need explicit confirmation.
 
 | command | what it does |
 | --- | --- |
@@ -88,6 +88,10 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 | `keyword-countries`, `keyword-bulk`, `keyword-product-ads` | country metrics, bulk keyword research and product listing ad previews |
 | `keyword-serp-organic-metrics`, `keyword-serp-backlink-metrics` | enrich selected search result urls with organic or backlink metrics |
 | `keyword-bulk-export`, `keyword-serp-export`, `keyword-serp-domains-export` | download native keyword, search result url or domain tables |
+| `keyword-locations`, `keyword-local-overview`, `keyword-local-serp` | find locations and read current local keyword metrics and search results |
+| `keyword-local-serp-organic-metrics`, `keyword-local-serp-export` | enrich local result urls or download their native table |
+| `keyword-serp-domain-organic-metrics`, `keyword-serp-domain-backlink-metrics` | read organic and backlink metrics for search result domains |
+| `keyword-refresh`, `keyword-refresh-status` | request a confirmed metric refresh or read its status |
 | `domain-overview`, `domain-keywords`, `domain-competitors` | organic rankings and competing domains |
 | `domain-pages`, `domain-subdomains`, `domain-position-changes` | pages, subdomains and ranking changes |
 | `keyword-gap`, `backlink-gap` | compare domains and find keyword or backlink opportunities |
@@ -231,6 +235,33 @@ semrush keyword-serp-domains-export --keyword 'email marketing' --format csv_sem
 all three exports accept `csv`, `csv_semicolon` or `xlsx`, default to csv and require an unused `--output` path. serp exports accept device and date, but no currency. mcp returns artifact resources.
 
 bulk exports accept `--columns` as a json array of `keyword`, `intent`, `volume`, `trend`, `difficulty`, `cpc`, `competition`, `serp_features`, `results`, `personalized_difficulty`, `positions` or `potential_traffic`. the last three require `--domain`. see [keyword research](https://semrush.micr.dev/docs/keyword-research) for the full inputs and verification limits.
+
+find a location, then read local keyword metrics and search results:
+
+```bash
+semrush keyword-locations --database us --input 'New York'
+semrush keyword-local-overview --keyword 'email marketing' --location-id 21167
+semrush keyword-local-serp --keyword 'email marketing' --location-id 21167
+semrush keyword-local-serp-export --keyword 'email marketing' --location-id 21167 --output local-serp.csv
+```
+
+use the location id returned for your database. local research reads current desktop data only, without mobile, historical dates or personalized domain metrics. local url metrics take one to 100 `--urls` from the result, including repeats. local exports accept `csv`, `csv_semicolon` or `xlsx` and require an unused `--output` path; they have no currency option.
+
+for national results, pass one to 100 distinct bare domains to `keyword-serp-domain-organic-metrics` or `keyword-serp-domain-backlink-metrics`:
+
+```bash
+semrush keyword-serp-domain-organic-metrics --keyword 'email marketing' --domains '["example.com"]'
+semrush keyword-serp-domain-backlink-metrics --keyword 'email marketing' --domains '["example.com"]'
+```
+
+research reads use cached data and do not request fresh metrics. preview a refresh separately, then use `--confirm` if you want to spend the native update allowance:
+
+```bash
+semrush keyword-refresh --keywords '["email marketing"]' --location-id 21167 --dry-run
+semrush keyword-refresh-status --keywords '["email marketing"]' --location-id 21167
+```
+
+refresh accepts one to 100 unique keywords. omit `--location-id` or use `0` for national data. the cli returns semrush's quota receipt and statuses without retrying or polling. if a refresh response is lost, read its status before submitting another request. mcp exposes these operations with underscores.
 
 ### competitors and backlinks
 
@@ -944,7 +975,7 @@ npm run check
 
 the cli uses the published [`galleton` 0.1.0 sdk](https://www.npmjs.com/package/galleton). the bundled galleton daemon is still required for sessions. building it from source requires go 1.23 or newer, `tar` and `patch`. published cli packages include the daemon for supported platforms, so npm users do not need go.
 
-the current source passed 252 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
+the current source passed 262 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
 
 ## documentation
 

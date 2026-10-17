@@ -5,8 +5,8 @@ description: Select keyword snapshots, enrich SERP URLs and download native expo
 
 These commands use your existing Semrush session. Sign in with the
 [authentication guide](/docs/authentication) first. They read research data and
-create download jobs without saving keywords, refreshing metrics or changing
-account settings.
+create download jobs without saving keywords or changing account settings.
+Only the explicit `keyword-refresh` command requests a metric refresh.
 
 ## Select a keyword snapshot
 
@@ -88,6 +88,66 @@ Only the native pending response permits another wait, up to three checks.
 Permission, rate and transport failures remain errors. The native export stage
 has a 90-second deadline. Cancellation closes the active download and leaves
 no partial MCP resource.
+
+## Read local keyword data
+
+```sh
+semrush keyword-locations --database us --input 'New York' --json
+semrush keyword-local-overview --keyword typescript --database us --location-id 21167 --json
+semrush keyword-local-serp --keyword typescript --database us --location-id 21167 --limit 1000 --json
+semrush keyword-local-serp-organic-metrics --keyword typescript --location-id 21167 --urls '["https://www.typescriptlang.org/"]' --json
+semrush keyword-local-serp-export --keyword typescript --location-id 21167 --format xlsx --output ./local-serp.xlsx
+```
+
+Choose a location ID from the lookup response. Empty `--input` requests native
+discovery. Location lookup can return a history/results object or an array;
+the command retains either native shape.
+
+Local research uses current desktop data. Mobile, historical dates and a
+personalized domain cannot be combined with these commands. The overview
+returns the complete native `global_metrics` and `local_metrics` object.
+Reading it does not start a metric refresh. Unavailable values remain null or
+empty as returned by Semrush. Supported databases and account access apply.
+
+Local URL enrichment accepts one to 100 URLs, including repeated URLs. Local
+exports accept the same three file formats as national exports. They use the
+native local export serializer and retain the provider's file bytes.
+
+## Read domain metrics from a SERP
+
+```sh
+semrush keyword-serp-domain-organic-metrics --keyword typescript --domains '["typescriptlang.org","github.com"]' --json
+semrush keyword-serp-domain-backlink-metrics --keyword typescript --domains '["typescriptlang.org","github.com"]' --json
+```
+
+Supply one to 100 distinct bare domains from SERP rows, without URL schemes or
+paths. The request sends them in native lexical order. These national reports
+accept the existing desktop/mobile, monthly snapshot and currency controls.
+Match results by domain; the adapter does not merge them into SERP rows.
+
+## Refresh metrics explicitly
+
+```sh
+semrush keyword-refresh --keywords '["typescript"]' --database us --location-id 21167 --dry-run
+semrush keyword-refresh --keywords '["typescript"]' --database us --location-id 21167 --confirm --json
+semrush keyword-refresh-status --keywords '["typescript"]' --database us --location-id 21167 --json
+```
+
+Review the preview before confirming. Refresh uses the native account allowance
+and can consume requests. It accepts one to 100 unique phrases, with location
+zero (default) for national data or a positive ID for local data. It does not
+purchase more allowance, change preferences or wait for completion.
+
+The receipt includes native quota counters and per-keyword statuses. The status
+command reads once and does not start another refresh or poll. An optional
+`--status-updated-at` uses native epoch seconds; its default zero requests the
+current state. Status reads accept currency and an optional domain for already
+available personalized national metrics. A domain cannot be combined with a
+local location. The native numeric statuses remain unchanged.
+
+A lost response or invalid receipt can occur after a refresh commits. Read
+`keyword-refresh-status` before requesting another refresh. The adapter never
+replays the request automatically, including after permission or quota errors.
 
 ## Use MCP
 
