@@ -87,7 +87,7 @@ semrush keyword-list-delete-keywords --basket-id 456 --owner-id 123 \
   --keywords '["deno runtime"]' --confirm --json
 ```
 
-Deleting keywords returns an `undo_id`. Restore deleted phrases using:
+Copy `.data.UndoID` from the deletion result to restore those phrases:
 
 ```sh
 semrush keyword-list-undo-delete --undo-id 'undo-id-placeholder' --confirm
@@ -98,12 +98,29 @@ semrush keyword-list-undo-delete --undo-id 'undo-id-placeholder' --confirm
 Group phrases into semantically coherent topic clusters:
 
 ```sh
-semrush keyword-list-cluster-forecast --basket-id 456 --owner-id 123 --json
 semrush keyword-list-cluster --basket-id 456 --owner-id 123 --confirm --json
 semrush keyword-list-cluster-status --basket-id 456 --owner-id 123 --json
 semrush keyword-list-clusters --basket-id 456 --owner-id 123 --json
 semrush keyword-list-cluster-keywords --basket-id 456 --owner-id 123 --cluster-id 789 --json
 ```
+
+### Generating a strategy from seed phrases
+
+Generate a strategy with related keywords from your seed phrases:
+
+```sh
+semrush keyword-strategy-create --name 'TypeScript Strategy' \
+  --seed-keywords '["typescript framework","javascript framework"]' --confirm --json
+```
+
+Use the returned `data.BasketID` and its `Owner.ID` from `keyword-lists` to read the forecast and progress:
+
+```sh
+semrush keyword-list-cluster-forecast --basket-id 456 --owner-id 123 --json
+semrush keyword-list-cluster-status --basket-id 456 --owner-id 123 --json
+```
+
+Creation starts generation and uses your account allowance. A regular imported list can return `not found` for the forecast read.
 
 ### Exporting lists and mind maps
 

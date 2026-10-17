@@ -76,8 +76,13 @@ use different field names and ID representations.
 `keyword-list-create --name <name> --confirm` creates an empty regular list.
 It does not generate a strategy or start clustering. Read commands inspect list
 metadata, keywords, summary, tags, clustering forecast and clustering status.
+Clustering forecasts are available for generated seed strategies created by
+`keyword-strategy-create`. An ordinary imported list returned native `-10011`
+(`not found`) for the same forecast read; that error remains visible.
 Writes rename/delete a list, import/delete keywords, undo a deletion, add/remove
 tags, request metric updates and explicitly start clustering.
+Selected-keyword deletion returns `data.UndoID`; pass that exact string to
+`keyword-list-undo-delete --undo-id`.
 
 List-scoped operations take `--basket-id` and `--owner-id`. Both come from
 `keyword-lists` (`BasketID` and `Owner.ID`). Builder IDs are safe JSON integers;
