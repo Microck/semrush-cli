@@ -1,6 +1,6 @@
 # Verification
 
-## Version 0.32.0 local keyword research candidate
+## Version 0.32.0 local keyword research
 
 The catalog contains 323 operations, 223 reads and 100 confirmed writes.
 Nine new operations cover location discovery, cached local metrics and SERPs,
@@ -34,8 +34,24 @@ Independent simplification reviews found two fixture reuse issues: the refresh
 handler now shares the existing JSON-RPC reply callback, and the export filename
 map supplies the handled method set. Typecheck, lint, generated-reference
 checks and all 76 browser integration tests passed afterward. The Fumadocs
-production build also passed on Raft. Public release checks and final
-documentation deployment remain pending for this candidate.
+production build also passed on Raft.
+
+[CI run 39014174555](https://github.com/Microck/semrush-cli/actions/runs/39014174555)
+passed all five jobs, including the full 262-test suite and native package setup
+on Linux, macOS and Windows. CI, GitHub and npm archives have identical SHA-256
+`391f5ded665b319e617313c1ebc373380348512eea7763b50a89e45a2fedaead`.
+
+The fresh release package passed the same 12 CLI/MCP native read selections
+and all three local export comparisons. Public CLI national and MCP local
+refreshes each used one request and matched completed native status. Including
+the native probe and source checks, this pass used five refresh requests.
+A clean registry installation reports 0.32.0 and passes authenticated doctor;
+the main installed command also reports 0.32.0.
+
+Published coverage, keyword research, command reference and On Page pages passed
+mobile checks without page errors or horizontal overflow. Search finds the new
+local overview command, and llms.txt reports 323 operations. No account projects,
+lists, preferences, connections or purchases were changed by this pass.
 
 ## Version 0.31.0 On Page SEO Checker
 
