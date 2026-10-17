@@ -160,12 +160,31 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
   /** Each native write must return its own receipt, rather than just an HTTP success. */
   const selectReportingData = Effect.fn('Semrush.selectReportingData')(function* (name: string, definition: Report, query: Query, body: Schema.Json) {
     const selected = 'graphql_field' in definition ? yield* reportingResult(body, definition.graphql_field) : yield* successfulEnvelope(body, []);
+    const id = Schema.Int.check(Schema.isGreaterThan(0));
+    if (name.startsWith('reporting_template')) {
+      const status = Schema.Literal('success');
+      const invalidReceipt = () => new ReportError({ message: 'My Reports returned no valid custom template receipt. Inspect reporting-templates before another write; the request was not retried.' });
+      if (name === 'reporting_templates') {
+        yield* Schema.decodeUnknownEffect(Schema.Struct({ status, templates: Schema.Array(Schema.Struct({ id })), page: Schema.Int, pages: Schema.Int, limit: Schema.Int, total: Schema.Int }))(selected).pipe(Effect.mapError(invalidReceipt));
+      } else if (name === 'reporting_template_create' || name === 'reporting_template_delete') {
+        const receipt = yield* Schema.decodeUnknownEffect(Schema.Struct({ status, template: Schema.Struct({ id }) }))(selected).pipe(Effect.mapError(invalidReceipt));
+        if (name === 'reporting_template_delete' && receipt.template.id !== query.template_id) return yield* Effect.fail(invalidReceipt());
+      } else if (name === 'reporting_template_report') {
+        yield* Schema.decodeUnknownEffect(Schema.Struct({ status, document: Schema.Struct({ id }) }))(selected).pipe(Effect.mapError(invalidReceipt));
+      } else if (name === 'reporting_template_share') {
+        const receipt = yield* Schema.decodeUnknownEffect(Schema.Struct({ status, sharedWith: Schema.Array(Schema.String) }))(selected).pipe(Effect.mapError(invalidReceipt));
+        const recipients = new Set(receipt.sharedWith.map(email => email.toLowerCase()));
+        if (!Array.isArray(query.emails) || query.emails.some(email => !recipients.has(String(email).toLowerCase()))) return yield* Effect.fail(invalidReceipt());
+      } else {
+        yield* Schema.decodeUnknownEffect(Schema.Struct({ status }))(selected).pipe(Effect.mapError(invalidReceipt));
+      }
+      return selected;
+    }
     if (name === 'reporting_save') {
       // SAFETY: public validation requires a complete document object with an integer ID.
       return yield* reportingSaved(selected, (query.document as Query).id);
     }
     if (name === 'reporting_delete' && selected !== true) return yield* Effect.fail(new ReportError({ message: 'My Reports did not confirm deletion. Inspect reporting-overview before another deletion; deletion was not retried.' }));
-    const id = Schema.Int.check(Schema.isGreaterThan(0));
     if (name === 'reporting_create') yield* Schema.decodeUnknownEffect(Schema.Struct({ userDocumentId: id }))(selected)
       .pipe(Effect.mapError(() => new ReportError({ message: 'My Reports returned no valid creation receipt. Inspect reporting-overview before creating another report; creation was not retried.' })));
     if (name === 'reporting_clone') yield* Schema.decodeUnknownEffect(Schema.Struct({ document: Schema.Struct({ id }) }))(selected)
@@ -737,7 +756,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
         Effect.mapError(error => {
           if (family === 'sharing_web' && definition.mutation) return confirmedWriteError(error, ` Sharing may have changed and was not retried. Inspect ${sharingReadback} before another write.`);
           if (family === 'onpage_web' && definition.mutation) return new ReportError({ message: error.message + ' This On Page write was not confirmed and may have committed. Inspect onpage-info, onpage-settings or onpage-pages before another write.' });
-          return family === 'reporting_web' && definition.mutation ? confirmedWriteError(error, ' The reporting action may have committed and was not retried. Inspect reporting-overview, reporting-get and reporting-tasks before another write.') : error;
+          return family === 'reporting_web' && definition.mutation ? confirmedWriteError(error, ` The reporting action may have committed and was not retried. Inspect ${name.startsWith('reporting_template') ? 'reporting-templates' : 'reporting-overview, reporting-get and reporting-tasks'} before another write.`) : error;
         }),
       );
       if (family === 'tracking_web') reportData = yield* successfulEnvelope(reportData, requestSecrets);

@@ -159,8 +159,8 @@ test('Core Web Vitals URL-list previews stay offline and invalid IDs or unconfir
 test('built catalog distinguishes read reports and project writes', async () => {
   const { stdout, stderr } = await cli(['reports', '--json']);
   const listed = JSON.parse(stdout);
-  expect(listed).toHaveLength(353);
-  expect(listed.filter((entry: { read_only: boolean }) => !entry.read_only)).toHaveLength(113);
+  expect(listed).toHaveLength(360);
+  expect(listed.filter((entry: { read_only: boolean }) => !entry.read_only)).toHaveLength(119);
   expect(stderr).toBe('');
 });
 test('invalid usage fails before attempting authentication', async () => {
@@ -189,7 +189,7 @@ test('MCP advertises write safety and previews without an authenticated runtime'
     expect((await client.listResourceTemplates()).resourceTemplates[0]?.uriTemplate).toBe('semrush-export://{export_id}{?offset,limit}');
     await expect(client.readResource({ uri: 'semrush-export://unknown' })).rejects.toThrow('Download an export first');
     const listed = await client.listTools();
-    expect(listed.tools).toHaveLength(353);
+    expect(listed.tools).toHaveLength(360);
     for (const name of ['domain_position_changes_presets', 'domain_position_changes_daily_trend', 'domain_position_changes_monthly_trend', 'keyword_magic_access', 'keyword_magic_groups_summary', 'keyword_magic_topic_suggestions']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: true });
     expect(listed.tools.find(tool => tool.name === 'keyword_domain_prepare')?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false, idempotentHint: false });
     for (const name of ['keyword_domain_suggestions', 'keyword_domain_root', 'keyword_domain_status', 'keyword_ai_databases', 'keyword_ai_summary', 'keyword_ai_topics']) expect(listed.tools.find(tool => tool.name === name)?.annotations).toMatchObject({ readOnlyHint: true });

@@ -103,6 +103,11 @@ export function keywordPDFParameters(query: Query, apiKey?: string): Query {
 /** Filters mirror the native grid; caller text only enters GraphQL variables. */
 function reportingParameters(definition: Report, query: Query): Query {
   if (definition.method.includes('/template/system/')) return { parameters: query.parameters ?? {} };
+  if (definition.method === '/my_reports/api/v1/templates/') return { currentPage: query.page ?? 1, limit: 30, searchQuery: query.search ?? '', timezone: query.timezone ?? 0 };
+  if (definition.method === '/my_reports/api/v1/template/{report_id}') return { templateName: query.name ?? '', userDocumentId: String(query.report_id) };
+  if (definition.method === '/my_reports/api/v1/template/{template_id}/document') return { documentName: query.name ?? '' };
+  if (definition.method === '/my_reports/api/v1/template/{template_id}/share') return { emails: query.emails ?? [] };
+  if (definition.method.startsWith('/my_reports/api/v1/template/{template_id}')) return {};
   if (definition.method.endsWith('/clone')) return { documentName: query.name ?? null };
   if (definition.method.endsWith('/{document_id}')) {
     // SAFETY: reporting-save's public schema validates the stored document and recursive widgets.
@@ -544,7 +549,7 @@ export function webRequest(definition: Report, query: Query): WebRequest {
   let body: Schema.Json = parameters;
   if (definition.transport === 'onpage_web' && definition.method.endsWith('/landings/create/')) body = parameters.landings ?? [];
   else if (definition.method.endsWith('/campaign_set_competitors')) body = parameters.competitors ?? [];
-  else if (definition.http_method === 'POST' && Object.keys(parameters).length === 0) body = null;
+  else if ((definition.http_method === 'POST' || definition.transport === 'reporting_web' && definition.http_method === 'DELETE') && Object.keys(parameters).length === 0) body = null;
   const prepared: WebRequest = { method: definition.http_method, path, body };
   if ('request_encoding' in definition && (definition.request_encoding === 'json' || definition.request_encoding === 'query')) prepared.encoding = definition.request_encoding;
   return prepared;

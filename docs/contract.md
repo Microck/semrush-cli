@@ -945,6 +945,42 @@ recipient. Missing, partial or lost write receipts never cause a retry. Read
 `reporting-shares` before another write. No sharing operation generates a report,
 changes its delivery schedule or sends a PDF by email.
 
+### Custom templates
+
+Custom report templates are separate from system templates and saved reports.
+`reporting-templates` reads `/my_reports/api/v1/templates/` with native
+`currentPage`, fixed `limit: 30`, `searchQuery` and `timezone` query parameters.
+Public `--page` starts at one, `--search` defaults to an empty string and
+`--timezone` defaults to zero. Results preserve the native template IDs, sharing
+information, available actions and pagination counters. Listing does not mark
+shared templates as seen or create reports.
+
+`reporting-template-create --report-id <id> --name <name> --confirm` saves a
+custom template from an existing report through
+`POST /my_reports/api/v1/template/{report_id}`. The native JSON body contains
+`templateName` and the report ID as a string in `userDocumentId`. A template
+creation receipt must contain a positive integer `template.id`.
+
+`reporting-template-report --template-id <id> --name <name> --confirm` creates a
+separate saved report through `POST /my_reports/api/v1/template/{template_id}/document`
+with `documentName`. It does not generate a PDF. Template placeholders may need
+configuration in the new report before generation. Template IDs and report IDs
+are distinct positive 32-bit integers and must never be interchanged.
+
+`reporting-template-share` and `reporting-template-share-revoke` take a
+`--template-id` and explicit `--emails` array. They send native POST and DELETE
+requests respectively to `/my_reports/api/v1/template/{template_id}/share` with
+`{emails:[...]}`. Sharing sends notifications. This template API does not accept
+viewer/editor roles or the 24-character share IDs used by report sharing.
+
+`reporting-template-delete --template-id <id> --confirm` sends DELETE to
+`/my_reports/api/v1/template/{template_id}`; `reporting-template-restore` sends
+POST to that path's `/restore` action. Deletion affects the template, not reports
+already created from it. All writes require a native success receipt, are sent
+once, and support offline dry runs. Denied, missing or lost receipts are errors;
+inspect `reporting-templates` before any further write. These operations do not
+purchase reporting upgrades, start trials or change report delivery settings.
+
 ## Core Web Vitals
 
 Eight Site Audit operations expose the native `page-speed-metrics` service:

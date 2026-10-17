@@ -27,6 +27,7 @@ import { unzipSync } from 'fflate';
 import { makeMindmapFixture } from './mindmap-fixture.js';
 import { makeWebBotAuthFixture, auditAuthPath } from './web-bot-auth-fixture.js';
 import { makeReportingFixture, reportingDocument, reportingPDFBytes } from './reporting-fixture.js';
+import { makeReportingTemplateFixture } from './reporting-template-fixture.js';
 import { makeKeywordResearchFixture, keywordDownloadPath, keywordFixturePhrase } from './keyword-research-fixture.js';
 import { makeWebVitalsFixture, webVitalsPath, negativeURLId, positiveURLId } from './web-vitals-fixture.js';
 import { makeOnpageFixture, onpagePath, onpagePageId, onpageSnapshotId } from './onpage-fixture.js';
@@ -72,12 +73,14 @@ const auditArchiveFixture = makeAuditArchiveFixture();
 const mindmapFixture = makeMindmapFixture();
 const webBotAuthFixture = makeWebBotAuthFixture();
 const reportingFixture = makeReportingFixture();
+const reportingTemplateFixture = makeReportingTemplateFixture();
 const webVitalsFixture = makeWebVitalsFixture();
 const keywordResearchFixture = makeKeywordResearchFixture();
 const onpageFixture = makeOnpageFixture();
 const organicResearchFixture = makeOrganicResearchFixture();
 const sharingFixture = makeSharingFixture();
-const fixtureHandlers = new Map([...archivePaths.map(path => [path, auditArchiveFixture.serve] as const), [folderPath, serveProjectFixture], [savedPath, serveSavedFixture], ['/notes/api/', serveNotesFixture], ['/siteaudit/api/campaigns/789/js-impact/', serveJSImpactFixture], ['/siteaudit/export/js-impact/', serveJSImpactFixture], ['/analytics/keywordmanager/list', mindmapFixture.serve], ['/mindmap-download', mindmapFixture.serve], [auditAuthPath, webBotAuthFixture.serve], ['/my_reports/graphql/', reportingFixture.serve], ['/my_reports/api/v1/', reportingFixture.lifecycle.serve], ['/my_reports/reports/', reportingFixture.lifecycle.serve], [webVitalsPath, webVitalsFixture.serve], [keywordDownloadPath, keywordResearchFixture.serveDownload], [onpagePath, onpageFixture.serve]]);
+// Match specific system/custom template paths before the generic reporting API prefix.
+const fixtureHandlers = new Map([...archivePaths.map(path => [path, auditArchiveFixture.serve] as const), [folderPath, serveProjectFixture], [savedPath, serveSavedFixture], ['/notes/api/', serveNotesFixture], ['/siteaudit/api/campaigns/789/js-impact/', serveJSImpactFixture], ['/siteaudit/export/js-impact/', serveJSImpactFixture], ['/analytics/keywordmanager/list', mindmapFixture.serve], ['/mindmap-download', mindmapFixture.serve], [auditAuthPath, webBotAuthFixture.serve], ['/my_reports/graphql/', reportingFixture.serve], ['/my_reports/api/v1/template/system/', reportingFixture.lifecycle.serve], ['/my_reports/api/v1/template/', reportingTemplateFixture.serve], ['/my_reports/api/v1/templates/', reportingTemplateFixture.serve], ['/my_reports/api/v1/', reportingFixture.lifecycle.serve], ['/my_reports/reports/', reportingFixture.lifecycle.serve], [webVitalsPath, webVitalsFixture.serve], [keywordDownloadPath, keywordResearchFixture.serveDownload], [onpagePath, onpageFixture.serve]]);
 /** Serve the native authentication checks separately from report fixtures. */
 function serveAuthenticationFixture(request: IncomingMessage, response: ServerResponse, url: URL): boolean {
   if (url.pathname === '/robots.txt') { response.end('User-agent: *\nDisallow: /'); return true; }
@@ -1266,6 +1269,74 @@ test('My Reports fails on partial GraphQL errors, missing account data and denie
     }).pipe(Effect.provide(fixtureLayer()))));
   } finally { reportingFixture.use('complete'); }
 });
+
+test('custom templates create reports, manage access and restore without changing existing templates', async () => {
+  reportingTemplateFixture.reset();
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const semrush = yield* Semrush;
+      const call = (name: string, query: Query) => Effect.gen(function* () { return yield* semrush.report(yield* parseReport(name, query)); });
+      expect((yield* call('reporting_templates', {})).data).toMatchObject({ total: 1, page: 1, limit: 30, templates: [{ id: 501, name: 'Existing template' }] });
+      expect((yield* call('reporting_template_create', { report_id: 71, name: 'Reusable report', confirm: true })).data).toMatchObject({ template: { id: 502 } });
+      const template = { template_id: 502, confirm: true };
+      expect((yield* call('reporting_template_report', { ...template, name: 'New report' })).data).toMatchObject({ document: { id: 72, isScheduled: false, recipients: null } });
+      const sharing = { ...template, emails: ['recipient@example.com'] };
+      yield* call('reporting_template_share', sharing);
+      expect((yield* call('reporting_templates', { search: 'Reusable' })).data).toMatchObject({ total: 1, templates: [{ id: 502, sharedWith: ['recipient@example.com'] }] });
+      yield* call('reporting_template_share_revoke', sharing);
+      expect((yield* call('reporting_templates', { search: 'Reusable' })).data).toMatchObject({ templates: [{ sharedWith: [] }] });
+      yield* call('reporting_template_delete', template);
+      expect((yield* call('reporting_templates', {})).data).toMatchObject({ total: 1, templates: [{ id: 501, name: 'Existing template' }] });
+      yield* call('reporting_template_restore', template);
+      expect((yield* call('reporting_templates', {})).data).toMatchObject({ total: 2, templates: [{ id: 501 }, { id: 502, name: 'Reusable report' }] });
+      expect((yield* call('reporting_templates', { search: 'a & b?' })).data).toMatchObject({ total: 0, templates: [] });
+      expect((yield* call('reporting_templates', { page: 2 })).data).toMatchObject({ page: 2, templates: [] });
+      expect(reportingTemplateFixture.writes()).toBe(6);
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { reportingTemplateFixture.reset(); }
+}, 30000);
+
+test('custom template writes reject denied, lost and incomplete receipts without replay', async () => {
+  const actions: [string, Query][] = [
+    ['reporting_template_create', { report_id: 71, name: 'Reusable report' }],
+    ['reporting_template_report', { template_id: 501, name: 'New report' }],
+    ['reporting_template_share', { template_id: 501, emails: ['recipient@example.com'] }],
+    ['reporting_template_share_revoke', { template_id: 501, emails: ['recipient@example.com'] }],
+    ['reporting_template_delete', { template_id: 501 }],
+    ['reporting_template_restore', { template_id: 501 }],
+  ];
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const semrush = yield* Semrush;
+      for (const scenario of ['denied', 'lost', 'missing', 'partial'] as const) {
+        for (const [name, query] of actions) {
+          reportingTemplateFixture.reset(scenario);
+          const error = yield* semrush.report(yield* parseReport(name, { ...query, confirm: true })).pipe(Effect.flip);
+          expect(error.message).toContain('reporting-templates');
+          expect(error.message).not.toContain('fixture-secret');
+          expect(reportingTemplateFixture.writes()).toBe(1);
+          const total = scenario === 'denied' ? 1 : name === 'reporting_template_create' ? 2 : name === 'reporting_template_delete' ? 0 : 1;
+          expect((yield* semrush.report(yield* parseReport('reporting_templates', {}))).data).toMatchObject({ total });
+        }
+      }
+      reportingTemplateFixture.reset('wrong-id');
+      expect((yield* semrush.report(yield* parseReport('reporting_template_delete', { template_id: 501, confirm: true })).pipe(Effect.flip)).message).toContain('reporting-templates');
+      expect(reportingTemplateFixture.writes()).toBe(1);
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { reportingTemplateFixture.reset(); }
+}, 30000);
+
+test('custom template listing rejects missing native pagination instead of returning an empty success', async () => {
+  reportingTemplateFixture.reset('bad-list');
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const semrush = yield* Semrush;
+      const error = yield* semrush.report(yield* parseReport('reporting_templates', {})).pipe(Effect.flip);
+      expect(error.message).toContain('reporting-templates');
+      expect(reportingTemplateFixture.writes()).toBe(0);
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { reportingTemplateFixture.reset(); }
+}, 30000);
 
 test('My Reports lifecycle creates, saves, clones and generates once, and reads existing PDF bytes privately', async () => {
   reportingFixture.lifecycle.reset();

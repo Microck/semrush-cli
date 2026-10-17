@@ -19743,5 +19743,289 @@
         "share_ids"
       ]
     }
+  },
+  "reporting_templates": {
+    "method": "/my_reports/api/v1/templates/",
+    "description": "List custom report templates, shared access and native pagination. Does not create reports or mark templates as seen.",
+    "transport": "reporting_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "page": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647,
+          "default": 1
+        },
+        "search": {
+          "type": "string",
+          "maxLength": 2000,
+          "default": ""
+        },
+        "timezone": {
+          "type": "number",
+          "minimum": -12,
+          "maximum": 14,
+          "default": 0
+        }
+      },
+      "required": []
+    }
+  },
+  "reporting_template_create": {
+    "method": "/my_reports/api/v1/template/{report_id}",
+    "description": "Save a custom template from an existing report. Does not generate a PDF.",
+    "transport": "reporting_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "report_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647,
+          "description": "Saved report ID to use as the template source."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^(?=[\\s\\S]*\\S)[\\s\\S]+(?![\\s\\S])"
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "report_id",
+        "name"
+      ]
+    }
+  },
+  "reporting_template_report": {
+    "method": "/my_reports/api/v1/template/{template_id}/document",
+    "description": "Create a saved report from a custom template. Configure template placeholders before generating a PDF.",
+    "transport": "reporting_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "template_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647,
+          "description": "Custom template ID from reporting-templates."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^(?=[\\s\\S]*\\S)[\\s\\S]+(?![\\s\\S])"
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "template_id",
+        "name"
+      ]
+    }
+  },
+  "reporting_template_delete": {
+    "method": "/my_reports/api/v1/template/{template_id}",
+    "description": "Delete a custom template without deleting reports created from it.",
+    "transport": "reporting_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "DELETE",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "template_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647,
+          "description": "Exact custom template ID, not a saved report ID."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "template_id"
+      ]
+    }
+  },
+  "reporting_template_restore": {
+    "method": "/my_reports/api/v1/template/{template_id}/restore",
+    "description": "Restore a previously deleted custom template using its exact template ID.",
+    "transport": "reporting_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "template_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647,
+          "description": "Exact custom template ID, not a saved report ID."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "template_id"
+      ]
+    }
+  },
+  "reporting_template_share": {
+    "method": "/my_reports/api/v1/template/{template_id}/share",
+    "description": "Share a custom report template and send access notifications to the specified email addresses.",
+    "transport": "reporting_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "template_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647,
+          "description": "Custom template ID from reporting-templates."
+        },
+        "emails": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "maxLength": 254,
+            "pattern": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+(?![\\s\\S])"
+          },
+          "description": "Recipients who will receive access and sharing notifications."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "template_id",
+        "emails"
+      ]
+    }
+  },
+  "reporting_template_share_revoke": {
+    "method": "/my_reports/api/v1/template/{template_id}/share",
+    "description": "Revoke custom template access for the specified email addresses.",
+    "transport": "reporting_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": true,
+    "http_method": "DELETE",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "template_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647,
+          "description": "Custom template ID from reporting-templates."
+        },
+        "emails": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "maxLength": 254,
+            "pattern": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+(?![\\s\\S])"
+          },
+          "description": "Recipients whose custom template access will be revoked."
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm this account mutation."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print the request without sending it."
+        }
+      },
+      "required": [
+        "template_id",
+        "emails"
+      ]
+    }
   }
 }

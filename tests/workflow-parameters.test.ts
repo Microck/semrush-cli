@@ -887,3 +887,18 @@ test('My Reports sharing uses report resources and string IDs in the native gran
   await expect(preview('reporting_share', { folder_id: '71', emails: ['recipient@example.com'], role: 'viewer', dry_run: true })).rejects.toThrow();
   await expect(preview('reporting_share', { report_id: 2147483648, emails: ['recipient@example.com'], role: 'viewer', dry_run: true })).rejects.toThrow();
 });
+
+test('custom report templates use distinct template and report IDs with native payloads', async () => {
+  expect(await preview('reporting_templates', { page: 2, search: 'a & b?' })).toEqual({ method: 'GET', path: '/my_reports/api/v1/templates/', body: { currentPage: 2, limit: 30, searchQuery: 'a & b?', timezone: 0 } });
+  expect(await preview('reporting_template_create', { report_id: 71, name: 'Reusable report', dry_run: true })).toEqual({ method: 'POST', path: '/my_reports/api/v1/template/71', body: { templateName: 'Reusable report', userDocumentId: '71' } });
+  expect(await preview('reporting_template_report', { template_id: 501, name: 'New report', dry_run: true })).toEqual({ method: 'POST', path: '/my_reports/api/v1/template/501/document', body: { documentName: 'New report' } });
+  expect(await preview('reporting_template_delete', { template_id: 501, dry_run: true })).toEqual({ method: 'DELETE', path: '/my_reports/api/v1/template/501', body: null });
+  expect(await preview('reporting_template_restore', { template_id: 501, dry_run: true })).toEqual({ method: 'POST', path: '/my_reports/api/v1/template/501/restore', body: null });
+  for (const [name, method] of [['reporting_template_share', 'POST'], ['reporting_template_share_revoke', 'DELETE']] as const) {
+    expect(await preview(name, { template_id: 501, emails: ['person@example.com'], dry_run: true })).toEqual({ method, path: '/my_reports/api/v1/template/501/share', body: { emails: ['person@example.com'] } });
+  }
+  await expect(preview('reporting_template_create', { template_id: 501, name: 'Wrong ID type', dry_run: true })).rejects.toThrow();
+  await expect(preview('reporting_template_report', { template_id: 2147483648, name: 'Overflow', dry_run: true })).rejects.toThrow();
+  await expect(preview('reporting_templates', { page: 0 })).rejects.toThrow();
+  await expect(preview('reporting_template_share', { template_id: 501, emails: ['person@example.com'], role: 'viewer', dry_run: true })).rejects.toThrow();
+});

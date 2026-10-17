@@ -75,6 +75,35 @@ Downloading reads an existing PDF. It does not generate another report. The
 output file must not already exist. MCP returns an artifact resource containing
 the same PDF bytes. See [file resources](/docs/mcp#file-exports-and-resources).
 
+## Reuse a report as a template
+
+Save a report's layout and widgets as a custom template:
+
+```sh
+semrush reporting-template-create --report-id 123 --name 'monthly seo' --confirm
+semrush reporting-templates --search 'monthly seo' --json
+```
+
+Custom template IDs are in `data.templates[].id`. Use that ID to create a new
+saved report, then configure any template placeholders before generating its PDF:
+
+```sh
+semrush reporting-template-report --template-id 456 --name 'october seo' --confirm
+```
+
+List additional pages with `reporting-templates --page 2`. Each page holds up to
+30 templates. Sharing sends an access notification to each recipient:
+
+```sh
+semrush reporting-template-share --template-id 456 --emails '["person@example.com"]' --confirm
+semrush reporting-template-share-revoke --template-id 456 --emails '["person@example.com"]' --confirm
+semrush reporting-template-delete --template-id 456 --confirm
+semrush reporting-template-restore --template-id 456 --confirm
+```
+
+Deleting a template leaves reports created from it intact. Template sharing uses
+recipient email addresses, without the viewer/editor roles of report sharing.
+
 ## Share a report
 
 Sharing grants viewer or editor access and sends a notification to each recipient:
