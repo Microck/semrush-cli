@@ -1,6 +1,6 @@
 # Architecture
 
-The CLI and stdio MCP share a catalog of 276 operations, 187 reads and 89 writes,
+The CLI and stdio MCP share a catalog of 284 operations, 194 reads and 90 writes,
 and one Semrush Effect service. Input validation populates defaults before
 credential-bearing resources are acquired. The browser layer owns a transient
 Chromium context, reads page bootstrap metadata without evaluating page-owned
@@ -60,3 +60,9 @@ Missing authentication metadata fails before the save. Full replacements take
 all three headers through one write-only object, whose values are redacted in
 previews, responses and provider errors. Google Analytics connections remain
 guarded until their connection-preserving contract is verified.
+
+Core Web Vitals uses the shared Site Audit request client. Exact signed URL IDs
+remain strings throughout validation, path planning and JSON output. A settings
+replacement validates its native URL receipt once; partial or missing receipts
+fail with a readback instruction because the write may already have committed.
+It never retries, restores an earlier list or starts a crawl.

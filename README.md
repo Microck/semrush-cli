@@ -79,7 +79,7 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 
 ## command surface
 
-276 operations, available as cli commands and mcp tools. 187 reads and 89 writes that need explicit confirmation.
+284 operations, available as cli commands and mcp tools. 194 reads and 90 writes that need explicit confirmation.
 
 | command | what it does |
 | --- | --- |
@@ -155,6 +155,9 @@ logout forgets this cli's saved session. it doesn't log out your other browsers.
 | `audit-export-all` | collect available native reports in one zip with an availability manifest |
 | `audit-js-impact-guide`, `audit-js-impact-changed-pages`, `audit-js-impact-pages` | inspect changes caused by javascript rendering |
 | `audit-export-js-impact` | download matching javascript impact rows as csv or xlsx |
+| `audit-web-vitals-status`, `audit-web-vitals-overview`, `audit-web-vitals-pages` | inspect core web vitals processing and page metrics |
+| `audit-web-vitals-history`, `audit-web-vitals-recommendations`, `audit-web-vitals-improvements` | read page history, lighthouse recommendations and top improvements |
+| `audit-web-vitals-settings`, `audit-web-vitals-settings-set` | read or replace the urls selected for the next audit |
 | `notes`, `note`, `note-databases`, `note-hidden-categories` | list and read chart notes, database options and hidden categories |
 | `notes-export` | download all chart notes as native csv |
 | `note-create`, `note-update`, `note-delete` | create, edit or delete your own user notes |
@@ -803,6 +806,34 @@ these commands read existing crawl results and do not start rendering or analysi
 
 live cli and mcp checks on an owned three-page crawl with rendering enabled matched native summary, count and filtered/paginated page json. the results included one unchanged page and no changed-title rows. csv bytes matched native downloads for both clients. mcp xlsx bytes matched exactly; cli xlsx workbook contents matched except for semrush's creation timestamp in `docProps/core.xml`.
 
+### core web vitals
+
+read core web vitals processing status, overview and page metrics for an existing audit:
+
+```bash
+semrush audit-web-vitals-status --campaign-id 456
+semrush audit-web-vitals-overview --campaign-id 456
+semrush audit-web-vitals-pages --campaign-id 456
+semrush audit-web-vitals-improvements --campaign-id 456
+```
+
+these reports use semrush's native lcp, tbt and cls values. long native numeric values can appear as strings so their digits stay intact. copy an exact `urlId` string from the pages result to read its history or lighthouse recommendations. keep a leading minus sign and do not convert it to a json number:
+
+```bash
+semrush audit-web-vitals-history --campaign-id 456 --url-id '<urlId>'
+semrush audit-web-vitals-recommendations --campaign-id 456 --url-id '<urlId>'
+```
+
+read the current url selection before replacing it:
+
+```bash
+semrush audit-web-vitals-settings --campaign-id 456
+semrush audit-web-vitals-settings-set --campaign-id 456 \
+  --urls '["https://example.com/","https://example.com/about"]' --dry-run
+```
+
+use `--confirm` to save one to ten unique absolute http or https urls. this replaces the whole selection for the next audit and does not start a crawl. clearing the selection with an empty array is unsupported because the native endpoint rejects it. mcp exposes the same commands with underscores.
+
 ## mcp
 
 finish setup and sign in first, then add this to your client's mcp config:
@@ -839,7 +870,7 @@ npm run check
 
 the cli uses the published [`galleton` 0.1.0 sdk](https://www.npmjs.com/package/galleton). the bundled galleton daemon is still required for sessions. building it from source requires go 1.23 or newer, `tar` and `patch`. published cli packages include the daemon for supported platforms, so npm users do not need go.
 
-the current source passed 216 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
+the current source passed 224 tests on raft, including a dropped-response mutation fixture that verifies exactly one write. live guru checks on an owned project verified scope replacement through mcp, including preserved empty selections, manual scheduling and disabled notifications.
 
 ## documentation
 

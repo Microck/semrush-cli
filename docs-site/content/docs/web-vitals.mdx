@@ -1,0 +1,79 @@
+---
+title: Core Web Vitals
+description: Read native page-speed reports and replace the saved URL selection.
+---
+
+Core Web Vitals commands use your existing Semrush session. They read Site
+Audit's native LCP, TBT and CLS measurements, score, page-status history and
+Lighthouse recommendations. The CLI does not calculate additional INP or CrUX metrics.
+
+## Read a report
+
+Use a campaign ID from `audit-campaigns`:
+
+```sh
+semrush audit-web-vitals-status --campaign-id 456 --json
+semrush audit-web-vitals-overview --campaign-id 456 --json
+semrush audit-web-vitals-pages --campaign-id 456 --json
+semrush audit-web-vitals-improvements --campaign-id 456 --json
+semrush audit-web-vitals-settings --campaign-id 456 --json
+```
+
+The page report contains every measured URL, native thresholds in `scales` and
+per-page values and differences. It has no server-side pagination or filters.
+History retains the provider's ordering. Long numeric literals can appear as
+strings under the CLI's precision-preserving JSON parser. Empty recommendations and unavailable
+measurements stay as Semrush returned them.
+
+| Command suffix | Native data |
+| --- | --- |
+| `status` | Availability, score and score delta |
+| `overview` | Score and dated page-status counts |
+| `pages` | Snapshot ID, thresholds and LCP/TBT/CLS for each measured URL |
+| `history` | Metric history for one `url_id` |
+| `recommendations` | Lighthouse recommendations for one `url_id` |
+| `improvements` | Top improvements and affected-page statistics |
+| `settings` | Saved URLs and whether a change is pending |
+
+Copy a `urlId` from `pageMetricsValues` for a per-URL read. Keep it as a string,
+including a leading minus sign. It is different from the crawled-page `pageId`.
+
+```sh
+semrush audit-web-vitals-history --campaign-id 456 --url-id '-1234567890123456789' --json
+semrush audit-web-vitals-recommendations --campaign-id 456 --url-id '-1234567890123456789' --json
+```
+
+MCP uses underscore names such as `audit_web_vitals_history` and arguments
+`{"campaign_id":456,"url_id":"-1234567890123456789"}`. All seven report commands
+are read-only.
+
+## Replace the URL selection
+
+Read the current settings before replacing the full list:
+
+```sh
+semrush audit-web-vitals-settings --campaign-id 456 --json
+semrush audit-web-vitals-settings-set --campaign-id 456 --urls '["https://example.com/","https://example.com/about"]' --dry-run
+semrush audit-web-vitals-settings-set --campaign-id 456 --urls '["https://example.com/","https://example.com/about"]' --confirm --json
+```
+
+Supply one to ten unique absolute HTTP(S) URLs. JSON array input preserves URLs
+containing commas. The write replaces the complete saved selection, applies to
+the next audit and does not launch a crawl or change general audit settings.
+MCP exposes `audit_web_vitals_settings_set` with `urls` and `confirm:true`.
+
+The native form enables Save after Clear all, but its API rejects an empty
+array with HTTP 400, `urls must not be empty`. The CLI rejects empty arrays
+before authentication. Clearing the list remains unsupported.
+
+A provider can accept only part of a submitted list. Partial or missing URL
+receipts remain errors because a complete replacement was not confirmed.
+The saved list may already have changed. Inspect `audit-web-vitals-settings`
+before sending another write. The CLI never automatically retries or rolls
+back a partial or lost response.
+
+New audits can return HTTP 404, `no previously saved page speed properties`,
+before their first analysis. The CLI preserves this error rather than returning
+an empty list. Core Web Vitals has no native spreadsheet export in the current UI.
+Native PDF workflows remain unsupported; see the [coverage page](/docs/coverage)
+for verified account gates.

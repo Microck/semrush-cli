@@ -1,5 +1,47 @@
 # Verification
 
+## Version 0.29.0 Core Web Vitals
+
+Eight new operations cover native Site Audit page-speed status, overview, page
+metrics, per-URL history, Lighthouse recommendations, top improvements, saved
+URL settings and confirmed selection replacement. The catalog contains 284
+operations, 194 reads and 90 confirmed writes. Signed URL IDs remain exact
+strings. The existing precision-preserving JSON parser can also return long
+measurement literals as strings. Native LCP, TBT and CLS data stays unchanged;
+no INP or CrUX data is calculated.
+
+Typecheck, Oxlint, generated-reference checks, five daemon builds and all 224
+tests passed on Raft. Independent reuse and efficiency reviews found no changes
+needed. The quality review caught JavaScript's permissive final-newline `$`
+matching; strict end assertions and trailing CR/LF cases now enforce the exact
+ID and whitespace-free URL contracts. Real HTTP fixtures cover all seven reads,
+empty data, cookie rotation, provider denials, missing initial properties, URL
+replacement and committed partial, malformed and dropped save responses. No
+failed save is automatically retried or rolled back.
+
+Source CLI and MCP matched nine independent native selections on the authorized
+Guru session: the five campaign-level reads and history/recommendations for
+both positive and negative URL IDs. The native report contained ten measured
+pages, a score of 100 and two history dates. Comparison uses the CLI's documented
+precision-preserving JSON representation without rounding metric values.
+
+An owned manual audit capped at three pages completed its first analysis. MCP
+then saved two URLs and CLI replaced them with one. Both receipts matched native
+settings readbacks. The snapshot ID, page cap, manual schedule and disabled
+notifications stayed unchanged; settings did not launch a new crawl.
+
+The native UI enables Save after Clear all, but a bounded owned-audit API probe
+returned HTTP 400, `urls must not be empty`. Empty-list clearing stays unsupported
+and fails before authentication. Before the first analysis, settings returned
+HTTP 404, `no previously saved page speed properties`. Partial/malformed/lost
+receipt handling has fixture evidence only; no native partial acceptance was
+observed.
+
+The current Site Audit export menu offers pages, pages with all issues, markup,
+Issues, Compare Crawls and All reports. It offers no Crawled Links selection.
+The JavaScript bundle retains a links-download URL constant, but its earlier
+CSV and XLSX probes returned 404; the CLI does not expose it as a working feature.
+
 ## Version 0.28.0 My Reports pagination and filters
 
 The existing reporting overview now accepts native offset pagination and combined

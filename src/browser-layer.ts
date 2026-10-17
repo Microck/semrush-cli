@@ -130,6 +130,13 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
     if (!response.data?.me) return yield* Effect.fail(new ReportError({ message: 'My Reports did not return account data. Check reporting access in the Semrush web UI.' }));
     return response.data.me;
   });
+  /** A native partial save can commit; never report it as a complete replacement or retry it. */
+  const webVitalsSettingsReceipt = Effect.fn('Semrush.webVitalsSettingsReceipt')(function* (body: Schema.Json, requestedCount: number) {
+    const receipt = yield* Schema.decodeUnknownEffect(Schema.Struct({ urls: Schema.Array(Schema.String) }))(body)
+      .pipe(Effect.mapError(() => new ReportError({ message: 'Semrush may have changed the Core Web Vitals URL list but returned no valid URL receipt. Read audit-web-vitals-settings before sending another write.' })));
+    if (receipt.urls.length !== requestedCount) return yield* Effect.fail(new ReportError({ message: `Semrush returned ${receipt.urls.length} saved Core Web Vitals URLs for ${requestedCount} submitted URLs. The list may have changed. Read audit-web-vitals-settings to inspect the saved list before sending another write.` }));
+    return body;
+  });
   /** Fill the wizard's recommended values only for a new campaign; edits remain partial. */
   const createBacklinkAudit = Effect.fn('Semrush.createBacklinkAudit')(function* (params: Query) {
     const campaigns = yield* Schema.decodeUnknownEffect(Schema.Array(Schema.Struct({ projectId: Schema.Number, userDomainId: Schema.NullOr(Schema.Number) })))(yield* rpc('domains.GetAll', {}, 'bla'))
@@ -536,6 +543,7 @@ export const makeSemrushLayer = (browserOrigin: string) => Layer.effect(Semrush,
       const wireResponseType = responseType === 'empty' ? 'empty' : 'json';
       reportData = yield* request(prepared.path, prepared.body, prepared.method, prepared.headers, wireResponseType, prepared.file);
       if (family === 'reporting_web') reportData = yield* reportingAccount(reportData);
+      if (name === 'audit_web_vitals_settings_set') reportData = yield* webVitalsSettingsReceipt(reportData, Array.isArray(query.urls) ? query.urls.length : 0);
     } else if (['keyword', 'domain', 'direct', 'magic', 'kwm', 'ksb', 'bla'].includes(family)) {
       if (name === 'backlink_audit_rerun') yield* checkBacklinkAuditControl(query);
       reportData = yield* rpc(definition.method, name === 'backlink_audit_create' ? yield* createBacklinkAudit(params) : params, family, definition.web_report);

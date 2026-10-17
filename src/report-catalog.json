@@ -5287,7 +5287,7 @@
           "then": {
             "properties": {
               "domain": {
-                "pattern": "^https?://[^\\s]+$"
+                "pattern": "^https?://[^\\s]+(?![\\s\\S])"
               }
             }
           }
@@ -10064,7 +10064,7 @@
           "then": {
             "properties": {
               "domain": {
-                "pattern": "^https?://[^\\s]+$"
+                "pattern": "^https?://[^\\s]+(?![\\s\\S])"
               }
             }
           }
@@ -15444,6 +15444,242 @@
           "description": "Native report-name Contains search, combined with other filters."
         }
       }
+    }
+  },
+  "audit_web_vitals_status": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/page-speed-metrics/status",
+    "description": "Read Core Web Vitals availability, score and score delta.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "SEO project/campaign ID from project-enable-seo, not the folder ID."
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    }
+  },
+  "audit_web_vitals_overview": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/page-speed-metrics/web-vitals/main-statistics",
+    "description": "Read native Core Web Vitals score and dated page-status counts.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "SEO project/campaign ID from project-enable-seo, not the folder ID."
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    }
+  },
+  "audit_web_vitals_pages": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/page-speed-metrics/web-vitals/snapshot-metrics",
+    "description": "Read all measured URLs and their native LCP, TBT and CLS values. Retains signed URL IDs as strings.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "SEO project/campaign ID from project-enable-seo, not the folder ID."
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    }
+  },
+  "audit_web_vitals_history": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/page-speed-metrics/web-vitals/history/{url_id}",
+    "description": "Read native metric history for one exact signed URL ID.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "SEO project/campaign ID from project-enable-seo, not the folder ID."
+        },
+        "url_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20,
+          "pattern": "^-?[0-9]+(?![\\s\\S])",
+          "description": "Exact signed decimal urlId from audit-web-vitals-pages. Keep it as a string, including a leading minus sign."
+        }
+      },
+      "required": [
+        "campaign_id",
+        "url_id"
+      ]
+    }
+  },
+  "audit_web_vitals_recommendations": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/page-speed-metrics/lighthouse-audits/recommendations/{url_id}",
+    "description": "Read native Lighthouse recommendations for one exact signed URL ID.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "SEO project/campaign ID from project-enable-seo, not the folder ID."
+        },
+        "url_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20,
+          "pattern": "^-?[0-9]+(?![\\s\\S])",
+          "description": "Exact signed decimal urlId from audit-web-vitals-pages. Keep it as a string, including a leading minus sign."
+        }
+      },
+      "required": [
+        "campaign_id",
+        "url_id"
+      ]
+    }
+  },
+  "audit_web_vitals_improvements": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/page-speed-metrics/lighthouse-audits/recommendations/top-improvements",
+    "description": "Read native top improvements and affected-page statistics.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "SEO project/campaign ID from project-enable-seo, not the folder ID."
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    }
+  },
+  "audit_web_vitals_settings": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/page-speed-metrics/settings",
+    "description": "Read the saved Core Web Vitals URL selection and pending-change flag.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": false,
+    "destructive": false,
+    "http_method": "GET",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "SEO project/campaign ID from project-enable-seo, not the folder ID."
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    }
+  },
+  "audit_web_vitals_settings_set": {
+    "method": "/siteaudit/api/campaigns/{campaign_id}/page-speed-metrics/settings",
+    "description": "Replace the complete Core Web Vitals URL list for the next audit. Requires one to ten URLs; the native API rejects empty lists. Does not launch a crawl; partial acceptance requires inspecting the saved list before another write.",
+    "transport": "audit_web",
+    "total_method": "",
+    "web_report": "",
+    "mutation": true,
+    "destructive": false,
+    "http_method": "POST",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "SEO project/campaign ID from project-enable-seo, not the folder ID."
+        },
+        "urls": {
+          "type": "array",
+          "maxItems": 10,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^https?://[^\\s]+(?![\\s\\S])"
+          },
+          "description": "One to ten unique absolute HTTP(S) URLs. Replaces the full saved selection.",
+          "minItems": 1
+        },
+        "confirm": {
+          "type": "boolean",
+          "default": false
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "campaign_id",
+        "urls"
+      ]
     }
   }
 }

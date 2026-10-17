@@ -12,6 +12,30 @@ const preview = async (name: string, input: Query) => {
   return webRequest(parsed.definition, parsed.query);
 };
 
+test('Core Web Vitals uses fixed GET paths and exact signed decimal URL IDs', async () => {
+  const base = '/siteaudit/api/campaigns/793/page-speed-metrics/';
+  for (const [suffix, path] of [['status', 'status'], ['overview', 'web-vitals/main-statistics'], ['pages', 'web-vitals/snapshot-metrics'], ['improvements', 'lighthouse-audits/recommendations/top-improvements'], ['settings', 'settings']]) {
+    expect(await preview('audit_web_vitals_' + suffix, { campaign_id: 793 })).toEqual({ method: 'GET', path: base + path, body: {} });
+  }
+  for (const url_id of ['-9223372036854775808', '9223372036854775807']) {
+    expect(await preview('audit_web_vitals_history', { campaign_id: 793, url_id })).toEqual({ method: 'GET', path: base + 'web-vitals/history/' + url_id, body: {} });
+    expect(await preview('audit_web_vitals_recommendations', { campaign_id: 793, url_id })).toEqual({ method: 'GET', path: base + 'lighthouse-audits/recommendations/' + url_id, body: {} });
+  }
+  const invalidInputs: Query[] = [{ campaign_id: 793, url_id: 123 }, { campaign_id: 793, url_id: '../settings' }, { campaign_id: 793, url_id: '1e3' }, { campaign_id: 793, url_id: '' }, ...['123\n', '123\r', '123\r\n'].map(url_id => ({ campaign_id: 793, url_id }))];
+  for (const invalid of invalidInputs) await expect(preview('audit_web_vitals_history', invalid)).rejects.toThrow('Invalid audit_web_vitals_history');
+});
+
+test('Core Web Vitals replacement requires explicit URLs and confirmation, and supports one native offline preview', async () => {
+  for (const urls of [['https://example.com/'], Array.from({ length: 10 }, (_, i) => 'https://example.com/' + i)]) {
+    const parsed = await Effect.runPromise(parseReport('audit_web_vitals_settings_set', { campaign_id: 793, urls, dry_run: true }));
+    expect(previewMutation(parsed.name, parsed.definition, parsed.query)).toEqual({ dry_run: true, report: parsed.name,
+      request: { method: 'POST', path: '/siteaudit/api/campaigns/793/page-speed-metrics/settings', body: { urls } } });
+  }
+  await expect(preview('audit_web_vitals_settings_set', { campaign_id: 793, urls: ['https://example.com/'] })).rejects.toThrow('Use --confirm');
+  const invalidInputs: Query[] = [{}, { urls: [] }, { urls: ['relative'] }, { urls: ['file:///etc/passwd'] }, { urls: ['https://example.com/with space'] }, ...['https://example.com/\n', 'https://example.com/\r', 'https://example.com/\r\n'].map(url => ({ urls: [url] })), { urls: ['https://example.com/', 'https://example.com/'] }, { urls: Array.from({ length: 11 }, (_, i) => 'https://example.com/' + i) }];
+  for (const input of invalidInputs) await expect(preview('audit_web_vitals_settings_set', { campaign_id: 793, confirm: true, ...input })).rejects.toThrow('Invalid audit_web_vitals_settings_set');
+});
+
 test('My Reports discovery is one fixed read-only query and rejects caller GraphQL and control flags', async () => {
   const parsed = await Effect.runPromise(parseReport('reporting_overview', {}));
   expect(parsed.definition).toMatchObject({ mutation: false, destructive: false });

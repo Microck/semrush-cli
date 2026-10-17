@@ -890,3 +890,45 @@ Guru session returned 34 templates, zero reports and an Essential report limit
 of three. Both the constructor and Keyword Overview PDF dialogs require an
 explicit Privacy Policy acknowledgment before submission. It remains unset;
 report creation, saving, generation and downloads remain unsupported.
+
+## Core Web Vitals
+
+Eight Site Audit operations expose the native `page-speed-metrics` service:
+status, overview, page metrics, per-URL history, per-URL Lighthouse
+recommendations, top improvements, saved URL settings and confirmed settings
+replacement. Read commands use GET and return native data, including empty
+recommendation arrays, unavailable measurements and native history ordering.
+The report uses Semrush's LCP, TBT and CLS measurements; no INP or CrUX data is
+invented. The native page table returns all measured URLs without server-side
+pagination or filters.
+
+History and recommendations require `url_id`, copied exactly from the page
+metrics. It is a signed decimal string, not a JavaScript number or crawled-page
+ID. Negative and larger-than-safe-integer values retain their exact path bytes.
+All paths and methods are fixed; no caller URL or arbitrary endpoint is accepted.
+
+`audit-web-vitals-settings-set` requires an explicit `urls` array of one to ten
+unique absolute HTTP(S) URLs and confirmation, or an offline dry run. It sends
+one native JSON POST with `{urls:[...]}`. The native editor enables Save after
+Clear all, but the API rejects an empty array with HTTP 400, `urls must not be
+empty`. The command rejects empty input before authentication; clearing remains
+unsupported.
+The list replaces the prior selection. Changes apply during the next audit;
+the command does not launch one or change general audit settings.
+
+The native UI distinguishes full and partial URL acceptance by returned count.
+The CLI checks the returned URL receipt once. A missing or partial receipt
+fails with an explicit instruction to read `audit-web-vitals-settings` before
+sending another write. Partial acceptance may already have changed the saved
+list. No automatic retry or rollback occurs after a partial or lost response.
+
+Native source and the read-only Guru UI supplied these contracts. Existing
+reports returned a score of 100, ten measured pages and two history dates;
+positive and negative URL IDs returned history and recommendation data. New
+audits can return native 404, `no previously saved page speed properties`,
+before their first analysis. This remains an error, not an invented empty list.
+
+Current Site Audit spreadsheet controls offer Crawled Pages, pages with all
+issues, markup, Issues, Compare Crawls and All reports. They do not offer a
+Crawled Links export. The client bundle's crawled-links URL constant
+returned 404 in prior native checks and is not treated as an available UI feature.

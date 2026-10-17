@@ -27,6 +27,7 @@ import { unzipSync } from 'fflate';
 import { makeMindmapFixture } from './mindmap-fixture.js';
 import { makeWebBotAuthFixture, auditAuthPath } from './web-bot-auth-fixture.js';
 import { makeReportingFixture } from './reporting-fixture.js';
+import { makeWebVitalsFixture, webVitalsPath, negativeURLId, positiveURLId } from './web-vitals-fixture.js';
 
 const exec = promisify(execFile);
 const binary = resolve(`dist/daemon/galleton-${process.platform}-${process.arch}${process.platform === 'win32' ? '.exe' : ''}`);
@@ -67,7 +68,8 @@ const auditArchiveFixture = makeAuditArchiveFixture();
 const mindmapFixture = makeMindmapFixture();
 const webBotAuthFixture = makeWebBotAuthFixture();
 const reportingFixture = makeReportingFixture();
-const fixtureHandlers = new Map([...archivePaths.map(path => [path, auditArchiveFixture.serve] as const), [folderPath, serveProjectFixture], [savedPath, serveSavedFixture], ['/notes/api/', serveNotesFixture], ['/siteaudit/api/campaigns/789/js-impact/', serveJSImpactFixture], ['/siteaudit/export/js-impact/', serveJSImpactFixture], ['/analytics/keywordmanager/list', mindmapFixture.serve], ['/mindmap-download', mindmapFixture.serve], [auditAuthPath, webBotAuthFixture.serve], ['/my_reports/graphql/', reportingFixture.serve]]);
+const webVitalsFixture = makeWebVitalsFixture();
+const fixtureHandlers = new Map([...archivePaths.map(path => [path, auditArchiveFixture.serve] as const), [folderPath, serveProjectFixture], [savedPath, serveSavedFixture], ['/notes/api/', serveNotesFixture], ['/siteaudit/api/campaigns/789/js-impact/', serveJSImpactFixture], ['/siteaudit/export/js-impact/', serveJSImpactFixture], ['/analytics/keywordmanager/list', mindmapFixture.serve], ['/mindmap-download', mindmapFixture.serve], [auditAuthPath, webBotAuthFixture.serve], ['/my_reports/graphql/', reportingFixture.serve], [webVitalsPath, webVitalsFixture.serve]]);
 /** Serve the native authentication checks separately from report fixtures. */
 function serveAuthenticationFixture(request: IncomingMessage, response: ServerResponse, url: URL): boolean {
   if (url.pathname === '/robots.txt') { response.end('User-agent: *\nDisallow: /'); return true; }
@@ -426,6 +428,86 @@ test('real multipart uploads and protected audit edits preserve credentials and 
     auditUsername = ''; auditPassword = ''; auditRejectPassword = false; auditOtherConnection = null;
   }
 }, 30000);
+
+test('Core Web Vitals reads retain native measurements, signed URL IDs, history ordering and cookie rotation', async () => {
+  webVitalsFixture.reset();
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const semrush = yield* Semrush;
+    for (const suffix of ['status', 'overview', 'pages', 'improvements', 'settings']) {
+      const result = yield* semrush.report(yield* parseReport('audit_web_vitals_' + suffix, { campaign_id: 793 }));
+      expect(result.artifact).toBeUndefined(); expect(result.authenticated).toBe(true);
+      if (suffix === 'pages') expect(result.data).toHaveProperty('pageMetricsValues.0.urlId', negativeURLId);
+      if (suffix === 'overview') expect(result.data).toHaveProperty('pageStatistics.0.date', 2000);
+    }
+    for (const url_id of [negativeURLId, positiveURLId]) {
+      const history = yield* semrush.report(yield* parseReport('audit_web_vitals_history', { campaign_id: 793, url_id }));
+      expect(history.data).toHaveProperty('lcpData.values.0.date', 2000);
+      const recommendation = yield* semrush.report(yield* parseReport('audit_web_vitals_recommendations', { campaign_id: 793, url_id }));
+      expect(recommendation.data).toHaveProperty('recommendations.0.id', 'render-blocking-resources');
+    }
+    webVitalsFixture.use('empty');
+    expect((yield* semrush.report(yield* parseReport('audit_web_vitals_pages', { campaign_id: 793 }))).data).toHaveProperty('pageMetricsValues', []);
+  }).pipe(Effect.provide(fixtureLayer()))));
+  expect((await sdk.headers('test', fixtureURL)).Cookie).toContain('web_vitals_rotation=retained');
+  webVitalsFixture.reset();
+});
+
+test('Core Web Vitals URL replacement, replacement of prior values round-trip without launching a crawl', async () => {
+  webVitalsFixture.reset();
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const semrush = yield* Semrush;
+    for (const urls of [['https://example.com/', 'https://example.com/two'], ['https://example.com/two']]) {
+      expect((yield* semrush.report(yield* parseReport('audit_web_vitals_settings_set', { campaign_id: 793, urls, confirm: true }))).data).toMatchObject({ urls, changed: true });
+      expect((yield* semrush.report(yield* parseReport('audit_web_vitals_settings', { campaign_id: 793 }))).data).toMatchObject({ urls, changed: true });
+    }
+  }).pipe(Effect.provide(fixtureLayer()))));
+  expect(webVitalsFixture.writes).toBe(2);
+});
+
+test('Core Web Vitals partial and missing receipts fail after one committed write and expose the actual saved list on inspection', async () => {
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const semrush = yield* Semrush;
+      const urls = ['https://example.com/', 'https://example.com/two'];
+      for (const scenario of ['partial', 'malformed'] as const) {
+        webVitalsFixture.reset(); webVitalsFixture.use(scenario);
+        const error = yield* semrush.report(yield* parseReport('audit_web_vitals_settings_set', { campaign_id: 793, urls, confirm: true })).pipe(Effect.flip);
+        expect(error.message).toContain('Read audit-web-vitals-settings');
+        expect(webVitalsFixture.writes).toBe(1);
+        webVitalsFixture.use('complete');
+        expect((yield* semrush.report(yield* parseReport('audit_web_vitals_settings', { campaign_id: 793 }))).data).toHaveProperty('urls', scenario === 'partial' ? urls.slice(0, 1) : urls);
+      }
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { webVitalsFixture.reset(); }
+});
+
+test('a dropped Core Web Vitals replacement response is not retried and leaves the committed selection inspectable', async () => {
+  webVitalsFixture.reset(); webVitalsFixture.use('dropped');
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const semrush = yield* Semrush; const urls = ['https://example.com/replaced'];
+      const error = yield* semrush.report(yield* parseReport('audit_web_vitals_settings_set', { campaign_id: 793, urls, confirm: true })).pipe(Effect.flip);
+      expect(error.message).toContain('browser request failed'); expect(webVitalsFixture.writes).toBe(1);
+      webVitalsFixture.use('complete');
+      expect((yield* semrush.report(yield* parseReport('audit_web_vitals_settings', { campaign_id: 793 }))).data).toHaveProperty('urls', urls);
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { webVitalsFixture.reset(); }
+});
+
+test('Core Web Vitals provider denials, business errors and missing initial properties stay errors without blocking later reads', async () => {
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const semrush = yield* Semrush;
+      for (const [scenario, expected] of [['denied', 'HTTP 403'], ['business-error', 'Semrush report failed'], ['uninitialized', 'HTTP 404']] as const) {
+        webVitalsFixture.use(scenario);
+        const error = yield* semrush.report(yield* parseReport('audit_web_vitals_settings', { campaign_id: 793 })).pipe(Effect.flip);
+        expect(error.message).toContain(expected); expect(error.message).not.toContain('fixture-secret');
+      }
+      webVitalsFixture.use('complete');
+      expect((yield* semrush.report(yield* parseReport('audit_web_vitals_status', { campaign_id: 793 }))).data).toHaveProperty('score', 100);
+    }).pipe(Effect.provide(fixtureLayer()))));
+  } finally { webVitalsFixture.reset(); }
+});
 
 test('My Reports overview preserves native limits, first-page metadata and cookie rotation without downloading tasks', async () => {
   reportingFixture.use('complete');

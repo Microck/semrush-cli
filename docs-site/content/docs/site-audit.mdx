@@ -201,7 +201,8 @@ Page, page/issue matrix and markup exports accept `--relative`, `--sort` and
 markup exports contain structured-data fields. Use a snapshot-based export when
 you need a specific historical crawl.
 
-Crawled-links exports remain unsupported. Both native formats returned HTTP 404,
+The current native spreadsheet menu does not offer Crawled Links. A bundle
+URL constant for that export returned HTTP 404 in both formats,
 `no endpoint for the requested path`, while page exports from the same snapshot
 succeeded. This is an endpoint failure, not evidence of a Guru plan restriction.
 
@@ -306,3 +307,9 @@ same destination and MCP resource rules as other audit exports.
 
 Empty reports can mean the crawl has no JS Impact data. Check the availability
 flag rather than treating an empty response as proof of a subscription limit.
+
+## Core Web Vitals
+
+Read score, page metrics, history, Lighthouse recommendations and the saved URL
+selection, or replace that selection for the next audit. See the
+[Core Web Vitals guide](/docs/web-vitals).

@@ -3,7 +3,7 @@ title: Web UI coverage
 description: Supported web workflows, evidence and remaining gaps.
 ---
 
-The CLI has 276 fixed operations: 187 reads and 89 confirmed writes.
+The CLI has 284 fixed operations: 194 reads and 90 confirmed writes.
 It uses your web session and the current web UI's request contracts. Account
 permissions and quotas apply to both interfaces. This is not full Semrush suite
 parity. The table distinguishes implemented workflows from remaining gaps.
@@ -23,7 +23,8 @@ parity. The table distinguishes implemented workflows from remaining gaps.
 | Projects | Create, inspect, rename, add first domain, delete, leave, tags and pinning | Sharing invitations and account administration |
 | Project dashboard | Toolkit status, metric values and detail URLs | Third-party integration setup |
 | SEO setup | Create an SEO project and explicitly start automatic Site Audit/Position Tracking setup | Connected-service audit setup |
-| Site Audit | Discovery, limits, settings, HTTP Basic and Web Bot Auth authentication, uploaded URL lists, schedules, launch, page and issue tables, page recrawl, execution status, abort/finalize, structure, performance, linking, history, snapshots, page, issue-matrix, markup, issue and Compare Crawls CSV/XLSX exports; JS Impact guide, changed-page count, filtered pages and CSV/XLSX exports; All reports ZIP with native files and a manifest | Google Analytics connections; crawled-links downloads |
+| Site Audit | Discovery, limits, settings, HTTP Basic and Web Bot Auth authentication, uploaded URL lists, schedules, launch, page and issue tables, page recrawl, execution status, abort/finalize, structure, performance, linking, history, snapshots, page, issue-matrix, markup, issue and Compare Crawls CSV/XLSX exports; JS Impact guide, changed-page count, filtered pages and CSV/XLSX exports; All reports ZIP with native files and a manifest | Google Analytics connections |
+| Core Web Vitals | Native status, score, LCP/TBT/CLS overview and pages, exact signed URL-ID history, Lighthouse recommendations, top improvements and saved URL selection; confirmed replacement of one to ten URLs for the next audit | Empty-list clearing: native API returns HTTP 400 |
 | Position Tracking | Target creation, destructive replacement/deletion, complete tracked keyword/tag reads, locations, limits, keyword add/delete/tags, competitor replacement, partial address/business/brand/volume settings edits, campaign settings reads, alert listing/counts, rule lifecycle, confirmed event detail/read-state changes and deletion, rankings, pages, ranking distribution, competitor discovery, target comparison, visibility/distribution/cannibalization trends | Tier 3 crawl schedules, AI-target brand matching and clearing, paid-only UI exports |
 | Keyword Strategy Builder | Domain strategy lifecycle, presets, filtered page opportunities, page URLs/SERPs, existing/recommended keywords, keyword deletion and CSV/XLSX exports; seed-based basket lifecycle, topics/pages, paginated clusters, favorites, selected-cluster deletion and metric refresh, keyword import, tags, deletion/undo, clustering, four native export selections and owner-aware selected keyword/cluster copy/move; send selected phrases to tracking; native JPG/PNG mind-map downloads | Content generation |
 | Saved Keywords | Create, rename, delete/undo collections; keyword import, filters, metrics, tags, workflow labels, copy/move, deletion/undo, metadata and CSV/semicolon CSV/XLSX exports; send selected phrases to tracking | Content generation |
@@ -37,11 +38,16 @@ for Magic, Gap, Saved Keywords and the builder.
 
 ## Verification
 
-The source suite has 216 tests, including real Chromium, a private Galleton
+The source suite has 224 tests, including real Chromium, a private Galleton
 daemon and stateful HTTP fixtures. All 48 original research mappings also have
 differential tests against the Python reference. Across versioned live passes,
-all 187 reads have execution evidence. Page/issue-matrix and markup exports
-matched native CSV and XLSX downloads through MCP. The CLI markup XLSX matched
+all 194 reads have execution evidence. Core Web Vitals source CLI and MCP
+matched nine independent native selections, including positive and negative
+URL IDs. Settings replacements passed native readback on an owned three-page
+audit without launching another crawl. Partial, malformed and lost save receipts
+have stateful HTTP fixture coverage; those failures were not induced live.
+
+Page/issue-matrix and markup exports matched native CSV and XLSX downloads through MCP. The CLI markup XLSX matched
 workbook contents, with only the provider creation timestamp differing.
 Comparison exports also passed through CLI and MCP in both formats; CSV matched
 native bytes and XLSX matched workbook contents apart from Semrush's creation
@@ -183,6 +189,12 @@ Source and fresh npm CLI and MCP also matched nine native pagination and filter
 selections. The live list was empty; real HTTP fixtures verify positive second
 pages, page exhaustion and combined filters. See [My Reports](/docs/reporting)
 for the read-only boundary.
+
+The current Site Audit export menu does not offer a Crawled Links selection.
+A links-download URL constant remains in its JavaScript bundle, but both CSV
+and XLSX probes returned HTTP 404 with the same authenticated session. The CLI
+does not expose that unverified route. Its current menu's page, issue, markup,
+Compare Crawls and All reports downloads are supported.
 
 ## Native PDF access
 
