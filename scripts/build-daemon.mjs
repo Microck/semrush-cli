@@ -1,3 +1,4 @@
+import { daemonBuildFlags, daemonCacheKey } from './daemon-build-recipe.mjs';
 import { mkdir, writeFile, access, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -10,7 +11,7 @@ const exec = promisify(execFile);
 const revision = 'efe7b742536d6c118c37a269bf626c5927e2a1b9';
 const patchPath = resolve('patches/galleton-static-provider.patch');
 const patchHash = createHash('sha256').update(await readFile(patchPath)).digest('hex').slice(0,12);
-const cache = join(tmpdir(), `semrush-cli-galleton-${revision}-${patchHash}`);
+const cache = join(tmpdir(), daemonCacheKey(revision, patchHash));
 await mkdir(cache, { recursive: true });
 const source = join(cache, `galleton-${revision}`);
 try { await access(join(cache, 'prepared')); }
@@ -34,7 +35,7 @@ for (const [goos, goarch, platform, arch] of targets) {
   const name = `galleton-${platform}-${arch}${goos === 'windows' ? '.exe' : ''}`;
   const cachedBinary = join(cache, name);
   try { await access(cachedBinary); }
-  catch { await exec('go', ['build', '-trimpath', '-buildvcs=false', '-ldflags=-s -w', '-o', cachedBinary, './cmd/galleton'], { cwd: source, env: { ...process.env, GOOS: goos, GOARCH: goarch, CGO_ENABLED: '0' }, timeout: 240000 }); }
+  catch { await exec('go', ['build', ...daemonBuildFlags, '-o', cachedBinary, './cmd/galleton'], { cwd: source, env: { ...process.env, GOOS: goos, GOARCH: goarch, CGO_ENABLED: '0' }, timeout: 240000 }); }
   const { copyFile, chmod, rename } = await import('node:fs/promises');
   await copyFile(cachedBinary, join('dist/daemon', name + '.tmp'));
   await rename(join('dist/daemon', name + '.tmp'), join('dist/daemon', name));
