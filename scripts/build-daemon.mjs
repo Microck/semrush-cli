@@ -34,7 +34,7 @@ for (const [goos, goarch, platform, arch] of targets) {
   const name = `galleton-${platform}-${arch}${goos === 'windows' ? '.exe' : ''}`;
   const cachedBinary = join(cache, name);
   try { await access(cachedBinary); }
-  catch { await exec('go', ['build', '-trimpath', '-ldflags=-s -w', '-o', cachedBinary, './cmd/galleton'], { cwd: source, env: { ...process.env, GOOS: goos, GOARCH: goarch, CGO_ENABLED: '0' }, timeout: 240000 }); }
+  catch { await exec('go', ['build', '-trimpath', '-buildvcs=false', '-ldflags=-s -w', '-o', cachedBinary, './cmd/galleton'], { cwd: source, env: { ...process.env, GOOS: goos, GOARCH: goarch, CGO_ENABLED: '0' }, timeout: 240000 }); }
   const { copyFile, chmod, rename } = await import('node:fs/promises');
   await copyFile(cachedBinary, join('dist/daemon', name + '.tmp'));
   await rename(join('dist/daemon', name + '.tmp'), join('dist/daemon', name));

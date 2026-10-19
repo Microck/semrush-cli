@@ -7,3 +7,5 @@ dist/
 .vercel/
 coverage/
 *.tsbuildinfo
+
+docs-site/.e2e/
